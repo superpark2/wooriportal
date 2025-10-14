@@ -1,6 +1,7 @@
 .mgmt-container {
-    padding: 20px;
-    background: var(--bg-body);
+    margin : auto;
+    max-width: 1400px;
+    min-width: 650px;
     min-height: 100vh;
 }
 

@@ -1,6 +1,7 @@
 .dashboard-container {
-    min-height: 100vh;
     max-width: 1400px;
+    min-width: 650px;
+    min-height: 92vh;
     margin: auto;
 }
 

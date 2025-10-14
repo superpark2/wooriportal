@@ -1,0 +1,41 @@
+:root {
+    /* ==== 기본 배경 ==== */
+    --bg-body: #1a1a1a; /* ruru-base-background */
+    --bg-surface: #20060E; /* ruru-shadow-based-background */
+    --bg-hover: #300914; /* ruru-shadow-based-background-light */
+    --bg-accent: #67001f; /* ruru-shadow-border-color */
+
+    /* ==== 기본 텍스트 ==== */
+    --text-primary: #E8DDE3; /* ruru-text-color */
+    --text-secondary: #FFF1F6; /* ruru-sub-accent-text-color */
+    --text-muted: #FFAACF; /* ruru-sub-accent-color */
+    --text-inverse: #ffffff;
+
+    /* ==== 포인트 컬러 ==== */
+    --accent-light: rgba(245, 71, 132, 0.1); /* ruru-main-accent-transparent-bg */
+    --accent-main: #F54784; /* ruru-main-accent-color */
+    --accent-dark: #FF6B8B; /* ruru-bright-reddish-color */
+
+    /* ==== 상태 색상 ==== */
+    --success: #FFAACF; /* 대체: 서브 강조색 */
+    --warning: #FF6B8B; /* 밝은 빨강 계열 */
+    --danger: #ff8080; /* ruru-error-color */
+    --info: #3b3b3b; /* ruru-medium-dark-gray-bg */
+
+    /* ==== 테두리 ==== */
+    --border-light: rgba(255, 255, 255, 0.1); /* ruru-faint-border-color */
+    --border: #67001f; /* ruru-shadow-border-color */
+    --border-strong: #F54784; /* 주요 강조색으로 강한 보더 */
+
+    /* ==== 버튼 ==== */
+    --btn-bg-primary: #F54784; /* 메인 강조 */
+    --btn-bg-primary-hover: #FF6B8B; /* 밝은 버전 */
+    --btn-bg-secondary: #FFAACF; /* 서브 강조 */
+    --btn-bg-secondary-hover: #FFF1F6; /* 밝은 서브 강조 */
+    --btn-bg-danger: #ff8080; /* 에러 컬러 */
+    --btn-bg-danger-hover: #FF6B8B; /* 밝은 빨강 호버 */
+
+    /* ==== 그림자 ==== */
+    --shadow-soft: rgba(255, 80, 120, 0.6); /* ruru-hover-accent-shadow */
+    --shadow-strong: rgba(245, 71, 132, 0.4); /* ruru-main-accent-shadow-light */
+}

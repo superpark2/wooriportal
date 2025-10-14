@@ -108,10 +108,10 @@
                          class="pcinfo-image-preview-edit"
                     />
                     <span id="editImageName" class="pcinfo-image-name-edit"></span>
-                    <label id="editDeleteImageLabel" class="pcinfo-delete-image-label-edit" th:style="${pc.pcInfoImageMeta != null ? 'display:inline;' : 'display:none;'}">
-                        <input type="checkbox" name="imageDelete" id="editDeleteImageCheckbox"> 기존 이미지 삭제
-                    </label>
                 </div>
+                <label id="editDeleteImageLabel" class="pcinfo-delete-image-label-edit" th:style="${pc.pcInfoImageMeta != null ? 'display:inline;' : 'display:none;'}">
+                    <input type="checkbox" name="imageDelete" id="editDeleteImageCheckbox"> 기존 이미지 삭제
+                </label>
             </div>
             <div class="pcinfo-form-group">
                 <label for="editBuilding">빌딩</label>
@@ -387,18 +387,27 @@
         fetch(url)
             .then(r => r.json())
             .then(buildings => {
-            let options = '<option value="">빌딩을 선택하세요</option>';
+                let options = '<option value="">빌딩을 선택하세요</option>';
                 (buildings || []).forEach(b => {
                     const selected = String(b.locationNum) === String(selectedBuildingNum) ? 'selected' : '';
                     options += `<option value="${b.locationNum}" ${selected}>${b.locationName}</option>`;
                 });
                 const el = document.getElementById('editBuilding');
                 if (el) el.innerHTML = options;
-                if (selectedBuildingNum) loadRoomOptions(selectedBuildingNum, selectedRoomNum); else {
+                
+                // 건물이 선택되어 있으면 해당 건물의 방 목록을 로드
+                if (selectedBuildingNum) {
+                    loadRoomOptions(selectedBuildingNum, selectedRoomNum);
+                } else {
                     const roomEl = document.getElementById('editRoom');
                     if (roomEl) roomEl.innerHTML = '<option value="">룸을 선택하세요</option>';
-            }
-        });
+                }
+            })
+            .catch(error => {
+                console.error('건물 목록 로드 실패:', error);
+                const el = document.getElementById('editBuilding');
+                if (el) el.innerHTML = '<option value="">건물 목록을 불러올 수 없습니다</option>';
+            });
     }
     function loadRoomOptions(buildingNum, selectedRoomNum) {
         if (!buildingNum) {
@@ -410,13 +419,18 @@
         fetch(url)
             .then(r => r.json())
             .then(rooms => {
-            let options = '<option value="">룸을 선택하세요</option>';
+                let options = '<option value="">룸을 선택하세요</option>';
                 (rooms || []).forEach(rm => {
                     const selected = String(rm.locationNum) === String(selectedRoomNum) ? 'selected' : '';
                     options += `<option value="${rm.locationNum}" ${selected}>${rm.locationName}</option>`;
                 });
                 const el = document.getElementById('editRoom');
                 if (el) el.innerHTML = options;
+            })
+            .catch(error => {
+                console.error('방 목록 로드 실패:', error);
+                const el = document.getElementById('editRoom');
+                if (el) el.innerHTML = '<option value="">방 목록을 불러올 수 없습니다</option>';
             });
     }
     const editBuildingEl = document.getElementById('editBuilding');

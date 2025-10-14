@@ -1,5 +1,14 @@
+/* Binggrae체 */
+@font-face {
+    font-family: 'Binggrae';
+    src: url('/font/binggrae.otf') format('opentype');
+    font-weight: normal;
+    font-style: normal;
+    font-display: swap;
+}
+
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: 'Binggrae', Tahoma, Geneva, Verdana, sans-serif;
     background-color: var(--bg-body);
     color: var(--text-primary);
     width: 100%;

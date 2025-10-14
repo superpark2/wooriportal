@@ -97,9 +97,9 @@
                         <img id="editPcPreviewImg" src="" alt="PC 이미지 미리보기">
                     </div>
                     <label><input type="file" id="editPcImage" accept="image/*"></label>
-                    <div class="image-delete-section" id="editPcImageDeleteSection" style="display: none;">
-                        <label><input type="checkbox" id="editPcImageDelete"> 기존 사진 삭제</label>
-                    </div>
+                </div>
+                <div class="image-delete-section" id="editPcImageDeleteSection" style="display: none;">
+                    <label><input type="checkbox" id="editPcImageDelete"> 기존 사진 삭제</label>
                 </div>
                 <label>#: <input type="text" id="editPcSeat"></label><br>
                 <label>CPU: <input type="text" id="editPcCpu"></label><br>
@@ -524,15 +524,32 @@
                 document.getElementById('editPcIp').value = pcData.pcInfoIp;
                 document.getElementById('editPcLocation').value = pcData.locationNum;
                 // 건물/방 셀렉트 채우기
-                // pcData.locationNum은 방 번호이므로, 해당 방의 parent 건물을 추정: currentRooms에서 찾거나 fallback으로 currentBuildingNum 사용
-                let buildingForRoom = pcData.pcBuilding || currentBuildingNum;
-                populateBuildingSelect('editPcBuilding', buildingForRoom);
-                // 건물 선택이 보이도록 보장 및 방 목록 동기화
-                const buildingSelect = document.getElementById('editPcBuilding');
-                buildingSelect.style.display = '';
-                document.querySelector('label select#editPcBuilding')?.parentElement?.removeAttribute('style');
-                // 반드시 해당 건물의 방 목록으로 로드하여 현재 방을 선택
-                loadRoomsForBuilding(buildingForRoom, pcData.locationNum);
+                // pcData.locationNum은 방 번호이므로, 해당 방의 parent 건물을 찾기
+                let buildingForRoom = null;
+                
+                // currentRooms에서 현재 방의 부모 건물 찾기
+                if (currentRooms && currentRooms.length > 0) {
+                    const currentRoom = currentRooms.find(room => room.locationNum == pcData.locationNum);
+                    if (currentRoom && currentRoom.locationParent) {
+                        buildingForRoom = currentRoom.locationParent.locationNum;
+                    }
+                }
+                
+                // 찾지 못한 경우 fallback으로 pcData.pcBuilding 또는 currentBuildingNum 사용
+                if (!buildingForRoom) {
+                    buildingForRoom = pcData.pcBuilding || currentBuildingNum;
+                }
+                
+                // 건물 목록이 없으면 먼저 로드
+                ensureBuildingsThen(() => {
+                    populateBuildingSelect('editPcBuilding', buildingForRoom);
+                    // 건물 선택이 보이도록 보장 및 방 목록 동기화
+                    const buildingSelect = document.getElementById('editPcBuilding');
+                    buildingSelect.style.display = '';
+                    document.querySelector('label select#editPcBuilding')?.parentElement?.removeAttribute('style');
+                    // 반드시 해당 건물의 방 목록으로 로드하여 현재 방을 선택
+                    loadRoomsForBuilding(buildingForRoom, pcData.locationNum);
+                });
 
                 // 건물 변경 시 방 목록 갱신
                 document.getElementById('editPcBuilding').onchange = (e) => {

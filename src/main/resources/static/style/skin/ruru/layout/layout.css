@@ -1,8 +1,11 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: var(--bg-body);
+    background-color: rgba(26, 26, 26, 0.6); /* 어두운 반투명 배경 */
+    background-image: url("/bg/rurubg.png");
+    background-blend-mode: multiply; /* 또는 overlay, darken 등 */
     color: var(--text-primary);
+    display: flex;
     width: 100%;
+    font-family: '경기천년바탕', sans-serif; /* 제목/로고 폰트 적용 */
 }
 
 /* ==== 사이드바 ==== */

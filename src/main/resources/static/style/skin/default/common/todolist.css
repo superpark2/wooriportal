@@ -1,7 +1,7 @@
 /* ==== 할일 목록 컨테이너 ==== */
 .todolist-container {
     max-width: 1000px;
-    margin: 20px auto 0 auto;
+    margin: 0 auto 0 auto;
     padding: 20px;
     background: var(--bg-surface);
     border-radius: 12px;

@@ -2,6 +2,7 @@
 
 .detail-container {
     max-width: 1400px;
+    min-width: 650px;
     margin: 0 auto;
     padding: 20px;
     background: var(--bg-surface);

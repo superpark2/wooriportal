@@ -1,12 +1,11 @@
 .dashboard-container {
-    padding: 20px;
+    padding: 0 20px 0 20px;
     background: var(--bg-body);
-    min-height: 100vh;
 }
 
 .dashboard-header {
     margin-bottom: 30px;
-    padding: 20px;
+    padding: 0 20px 0 20px;
     background: var(--bg-surface);
     border-radius: 8px;
     box-shadow: 0 2px 4px var(--shadow-soft);

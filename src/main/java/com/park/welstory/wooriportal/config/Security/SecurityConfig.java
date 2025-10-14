@@ -32,7 +32,8 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**",
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
-                                "/signup", "/pcinfo/view/**"
+                                "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
+                                    "/facility/pcinfo/delete", "/location/list"
                         ).permitAll()
 
                         .requestMatchers("/bg/**", "/file/**", "/font/**", "/js/**", "/loading/**",
