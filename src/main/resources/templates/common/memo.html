@@ -5,7 +5,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>메모</title>
+    <title>𝓦𝓸𝓸𝓻𝓲</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
 <body>
@@ -59,7 +59,6 @@
             </form>
         </div>
     </div>
-
 </div>
 
 <div layout:fragment="script">
@@ -116,6 +115,16 @@
                         memoList.forEach(memo => {
                             const memoItem = document.createElement('div');
                             memoItem.className = 'memo-item';
+                            user = /*[[${user}]]*/ null;
+                            let deleteBtn = '';
+                            if (user.memberNum === memo.member?.memberNum) {
+                                deleteBtn = `
+                                <button class="btn-icon delete-memo" data-id="${memo.memoNum}">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            `;
+                            }
+
                             memoItem.innerHTML = `
                                 <div class="memo-content">
                                     <div class="memo-text">${escapeHtml(memo.memoContent)}</div>
@@ -123,19 +132,19 @@
                                         <span class="memo-member">${escapeHtml(memo.member?.memberName || '탈퇴한 회원')}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                                         <span class="memo-date">${formatDate(memo.createdAt)}</span>
                                         <div class="memo-actions">
-                                            <button class="btn-icon delete-memo" data-id="${memo.memoNum}">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
+                                            ${deleteBtn}
                                         </div>
                                     </div>
                                 </div>
                             `;
                             memoListContainer.prepend(memoItem);
 
-                            const deleteBtn = memoItem.querySelector('.delete-memo');
-                            deleteBtn.addEventListener('click', function() {
-                                deleteMemo(this.getAttribute('data-id'));
-                            });
+                            const deleteButton = memoItem.querySelector('.delete-memo');
+                            if (deleteButton) {
+                                deleteButton.addEventListener('click', function () {
+                                    deleteMemo(this.getAttribute('data-id'));
+                                });
+                            }
                         });
 
                         currentPage++;

@@ -25,10 +25,12 @@ public class MemoController {
     // 리스트
     @GetMapping("{group}/memo")
     public String list(HttpServletRequest request, Model model,
-                       @PathVariable String group) {
+                       @PathVariable String group,
+                       @AuthenticationPrincipal CustomUserDetails user) {
         String title = boardTitleService.boardTitle(group);
         model.addAttribute("title", title);
         model.addAttribute("subTitle", "메모");
+        model.addAttribute("user", user);
         if(title.isEmpty()) {
             return "redirect:/";
         }
