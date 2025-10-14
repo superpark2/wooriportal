@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>게시판 상세보기</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content">
+    
+    <link rel="stylesheet" th:href="@{'/style/skin/default/common/board/detail.css'}">
+    
+    <div class="detail-container">
+        <!-- 게시글 헤더 -->
+        <div class="detail-header">
+            <h1 class="detail-title" th:text="${board.boardTitle}">게시글 제목</h1>
+            <div class="detail-meta">
+                <div class="detail-meta-item">
+                    <i class="fas fa-user"></i>
+                    <span th:text="${board.getBoardTitle}">작성자</span>
+                </div>
+                <div class="detail-meta-item">
+                    <i class="fas fa-calendar"></i>
+                    <span th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}">작성일</span>
+                </div>
+                <div class="detail-meta-item" th:if="${board.isNotice}">
+                    <i class="fas fa-bullhorn"></i>
+                    <span>공지사항</span>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 게시글 내용 -->
+        <div class="detail-content" th:utext="${board.boardContent}">
+            게시글 내용이 여기에 표시됩니다.
+        </div>
+        
+        <!-- 첨부파일 -->
+        <div class="detail-attachments" th:if="${board.filesMeta != null and !board.filesMeta.isEmpty()}">
+            <div class="attachments-title">
+                <i class="fas fa-paperclip"></i>
+                <span>첨부파일</span>
+            </div>
+            <ul class="attachment-list">
+                <li class="attachment-item" th:each="file : ${board.filesMeta}">
+                    <div class="attachment-info">
+                        <div class="attachment-icon">
+                            <i class="fas fa-file"></i>
+                        </div>
+                        <div>
+                            <div class="attachment-name"> <a th:href="${file.filePath}" th:text="${file.fileName}"></a></div>
+                            <span class="attachment-size"><span th:text="${#numbers.formatDecimal(file.fileSize / 1048576.0, 1, 2)}"></span> MB</span>
+                        </div>
+                    </div>
+                    <a th:href="${file.filePath}" class="attachment-download" download>
+                    <i class="fas fa-download"></i>
+                        다운로드
+                    </a>
+                </li>
+            </ul>
+        </div>
+
+
+        <div class="detail-actions">
+           <div class="detail-actions-left">
+                <a th:href="@{'/' + ${group} + '/' + ${category} + '/list'}" class="btn btn-secondary">
+                    <i class="fas fa-list"></i>
+                    목록
+                </a>
+            </div>
+            <div th:if="${board.isWriter}" class="detail-actions-right">
+                <a th:href="@{'/' + ${group} + '/' + ${category} + '/modify/' + ${board.BoardNum}}" class="btn btn-primary">
+                    <i class="fas fa-edit"></i>
+                    수정
+                </a>
+
+                <form th:if="${board.isWriter}" th:action="@{'/' + ${group} + '/' + ${category} + '/delete/' + ${num}}" method="post">
+                    <input hidden th:value="${board.Member.MemberNum}" name="writerNum">
+                <button type="submit" class="btn btn-danger" onclick="return confirm('정말 삭제하시겠습니까?')">
+                    <i class="fas fa-trash"></i>
+                    삭제
+                </button>
+                </form>
+            </div>
+        </div>
+    </div>
+    
+</div>
+
+<div layout:fragment="script">
+
+
+
+    <script th:inline="javascript">
+        const group = /*[[${group}]]*/ '';
+        const category = /*[[${category}]]*/ '';
+        const boardNum = /*[[${board.BoardNum}]]*/ '';
+    </script>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:layout="http://www.w3.org/1999/xhtml"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woori Portal Dashboard</title>
+</head>
+<body>
+<!-- 사이드바 -->
+<nav class="sidebar" th:block th:fragment="leftside">
+    <!-- 대시보드 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeMenu == 'main' ? 'active' : ''}" href="/main"><i class="fas fa-home"></i> 대시보드</a></li>
+        </ul>
+    </div>
+
+    <!-- 공지사항 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeSubMenu == 'commonnotice' ? 'active' : ''}" href="/common/notice/list"><i class="fas fa-bullhorn"></i> 공지사항</a></li>
+            <li><a th:classappend="${activeSubMenu == 'commonboard' ? 'active' : ''}" href="/common/board/list"><i class="fas fa-comments"></i> 게시판</a></li>
+        </ul>
+    </div>
+
+    <!-- 영업 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li ><a th:classappend="${activeMenu == 'sales' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="sales-submenu"><i class="fas fa-chart-line"></i> 영업</a></li>
+        </ul>
+        <ul th:classappend="${activeMenu == 'sales' ? 'show' : ''}" class="sidebar-menu submenu" id="sales-submenu">
+            <li><a th:classappend="${activeSubMenu == 'salesnotice' ? 'active' : ''}" href="/sales/notice/list"><i class="fas fa-clipboard-list"></i> 공지사항</a></li>
+            <li><a th:classappend="${activeSubMenu == 'salesknowledge' ? 'active' : ''}" href="/sales/knowledge/list"><i class="fas fa-brain"></i> 업무지식</a></li>
+            <li><a th:classappend="${activeSubMenu == 'saleslibrary' ? 'active' : ''}" href="/sales/library/list"><i class="fas fa-folder"></i> 자료실</a></li>
+            <li><a th:classappend="${activeSubMenu == 'salesboard' ? 'active' : ''}" href="/sales/board/list"><i class="fas fa-comments"></i> 게시판</a></li>
+            <li><a th:classappend="${activeSubMenu == 'salesmemo' ? 'active' : ''}" href="/sales/memo"><i class="fas fa-sticky-note"></i> 메모</a></li>
+        </ul>
+    </div>
+
+    <!-- 행정 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeMenu == 'management' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="admin-submenu"><i class="fas fa-cogs"></i> 행정</a></li>
+        </ul>
+        <ul th:classappend="${activeMenu == 'management' ? 'show' : ''}" class="sidebar-menu submenu" id="admin-submenu">
+            <li><a th:classappend="${activeSubMenu == 'managementnotice' ? 'active' : ''}" href="/management/notice/list"><i class="fas fa-clipboard-list"></i> 공지사항</a></li>
+            <li><a th:classappend="${activeSubMenu == 'managementknowledge' ? 'active' : ''}" href="/management/knowledge/list"><i class="fas fa-brain"></i> 업무지식</a></li>
+            <li><a th:classappend="${activeSubMenu == 'managementlibrary' ? 'active' : ''}" href="/management/library/list"><i class="fas fa-folder"></i> 자료실</a></li>
+            <li><a th:classappend="${activeSubMenu == 'managementboard' ? 'active' : ''}" href="/management/board/list"><i class="fas fa-comments"></i> 게시판</a></li>
+            <li><a th:classappend="${activeSubMenu == 'managementmemo' ? 'active' : ''}" href="/management/memo"><i class="fas fa-sticky-note"></i> 메모</a></li>
+        </ul>
+    </div>
+
+    <!-- 시설장비 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeMenu == 'facility' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="facility-submenu"><i class="fas fa-tools"></i> 시설장비</a></li>
+        </ul>
+        <ul th:classappend="${activeMenu == 'facility' ? 'show' : ''}"   class="sidebar-menu submenu" id="facility-submenu">
+            <li><a th:classappend="${activeSubMenu == 'facilitynotice' ? 'active' : ''}" href="/facility/notice/list"><i class="fas fa-clipboard-list"></i> 공지사항</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilityknowledge' ? 'active' : ''}" href="/facility/knowledge/list"><i class="fas fa-brain"></i> 업무지식</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilitypcinfo' ? 'active' : ''}" href="/facility/pcinfo/list"><i class="fas fa-book"></i> PC 정보</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilitypcinforequire' ? 'active' : ''}" href="/pcinforequire"><i class="fas fa-book"></i> PC 요청 관리</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilityworklog' ? 'active' : ''}" href="/facility/worklog/list"><i class="fas fa-book"></i> 업무일지</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilitylibrary' ? 'active' : ''}" href="/facility/library/list"><i class="fas fa-folder"></i> 자료실</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilityboard' ? 'active' : ''}" href="/facility/board/list"><i class="fas fa-comments"></i> 게시판</a></li>
+            <li><a th:classappend="${activeSubMenu == 'facilitymemo' ? 'active' : ''}" href="/facility/memo"><i class="fas fa-sticky-note"></i> 메모</a></li>
+        </ul>
+    </div>
+
+    <!-- 개인메뉴 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeSubMenu == 'personalfavorites' ? 'active' : ''}" href="/personal/favorites/list"><i class="fas fa-star"></i> 즐겨찾기 목록</a></li>
+            <li><a th:classappend="${activeSubMenu == 'personalrecent' ? 'active' : ''}" href="/personal/recent/list"><i class="fas fa-clock"></i> 최근 열람 자료</a></li>
+            <li><a th:classappend="${activeSubMenu == 'personallibrary' ? 'active' : ''}" href="/personal/library/list"><i class="fas fa-folder"></i>  개인 자료실</a></li>
+            <li><a th:classappend="${activeSubMenu == 'personalmemo' ? 'active' : ''}" href="/personal/memo"><i class="fas fa-sticky-note"></i> 개인 메모</a></li>
+            <li><a th:classappend="${activeSubMenu == 'personaltodo' ? 'active' : ''}" href="/personal/todolist"><i class="fas fa-tasks"></i> ToDoList</a></li>
+        </ul>
+    </div>
+
+    <!-- 사용자 / 권한 관리 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeSubMenu == 'auth' ? 'active' : ''}"
+                   sec:authorize="hasAuthority('admin')"
+                   href="/member/mgmt"><i class="fas fa-users-cog"></i> 사용자 관리</a></li>
+        </ul>
+    </div>
+
+    <div class="skin-container">
+        <label class="skinsLabel" for="skinSelect"></label>
+        <select id="skinSelect" class="skin-select" onchange="changeSkin(this.value)">
+            <option value="default" th:selected="${skin} == 'default'">기본</option>
+            <option value="dark" th:selected="${skin} == 'dark'">다크</option>
+            <option value="maltese" th:selected="${skin} == 'maltese'">말티즈</option>
+        </select>
+    </div>
+
+</nav>
+
+</body>
+</html>

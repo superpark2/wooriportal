@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woori Portal Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+
+<header class="header" th:block th:fragment="header">
+
+        <div class="header-left">
+            <div class="logo">두번째 프로젝트</div>
+            <nav>
+                <ul class="header-menu">
+                    <li style="cursor:pointer"><a id="aiBtn" class="dropdown-arrow"><i class="fas fa-robot"></i> AI</a></li>
+                    <li><a href="/weather" class="dropdown-arrow"><i class="fas fa-cloud-sun"></i> 일기예보</a></li>
+                    <li><a href="/calculator" class="dropdown-arrow"><i class="fas fa-calculator"></i> 계산기</a></li>
+                    <li><a href="/formatter" class="dropdown-arrow"><i class="fas fa-exchange-alt"></i> 단위변환기</a></li>
+                    <li><a href="/tetris" class="dropdown-arrow"><i class="fas fa-coffee"></i> 휴게실</a></li>
+                    <li><a href="/filestorage/list"><i class="fas fa-folder"></i>  파일 스토리지</a></li>
+<!--                    <li><a href="#" class="dropdown-arrow"><i class="fas fa-file-import"></i> 이미지 압축기</a></li>-->
+<!--                    <li><a href="#" class="dropdown-arrow"><i class="fas fa-calendar-alt"></i> 캘린더</a></li>-->
+                </ul>
+            </nav>
+        </div>
+        <div class="header-right">
+<!--            <a href="#"><i class="fas fa-th"></i></a>-->
+<!--            <a href="#"><i class="fas fa-bell"></i></a>-->
+<!--            <a href="#"><i class="fas fa-flag"></i></a>-->
+            <div class="user-profile image-container">
+
+                <img sec:authorize="isAuthenticated()"
+                     th:src="${#authentication.principal.memberProfile}"
+                     class="user-avatar"/>
+                <div class="user-avatar" sec:authorize="!isAuthenticated()">G</div>
+
+                <div class="user-info">
+                    <h4 sec:authorize="isAuthenticated()" sec:authentication="principal.memberName"></h4>
+                    <h4 sec:authorize="!isAuthenticated()">Guest</h4>
+                </div>
+                <i class="fas fa-chevron-down"></i>
+            </div>
+        </div>
+    </header>
+
+</body>
+</html>

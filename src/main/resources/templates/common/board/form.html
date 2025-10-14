@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+  <meta charset="UTF-8">
+  <title>게시판</title>
+  <script src="/js/suneditor-2.47.8/suneditor.min.js"></script>
+  <script src="/js/suneditor-2.47.8/ko.js"></script>
+  <link rel="stylesheet" href="/js/suneditor-2.47.8/css/suneditor.min.css">
+</head>
+<body>
+<div layout:fragment="content">
+
+  <link rel="stylesheet" th:href="@{'/style/skin/default/common/board/form.css'}">
+
+  <div class="form-container">
+    <h1 th:text="${title} + ' ' + ${subTitle}" class="form-title">타이틀</h1>
+    <form th:action="@{/{group}/{category}/write (group=${group}, category=${category})}" id="boardForm" method="post" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>제목</label>
+        <input type="text" name="boardTitle" class="form-input" required maxlength="200" placeholder="제목을 입력하세요" th:value="${board.boardTitle}">
+      </div>
+
+      <div class="form-group">
+        <section class="editor-section">
+          <label>내용</label>
+          <textarea id="editor-content" name="boardContent" placeholder="내용을 입력하세요..." th:text="${board.boardContent}"></textarea>
+        </section>
+      </div>
+
+      <div class="form-group">
+        <label>첨부파일</label>
+        <div id="fileContainer" class="file-container"></div>
+        <button type="button" class="btn btn-file-add" onclick="addFileInput()">
+          📎 파일 추가
+        </button>
+        <p id="fileNotAdd" class="file-warning" style="display: none;">
+          최대 6개까지만 추가할 수 있습니다.
+        </p>
+      </div>
+
+      <input type="checkbox" value="true" name="isNotice">
+      <label>공지로 등록</label>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary">등록</button>
+        <a th:href="@{/${type}/${category}/list}" class="btn btn-secondary">취소</a>
+      </div>
+        <input hidden th:value="${board.boardNum}" name="boardNum">
+    </form>
+  </div>
+>
+</div>
+
+
+<div layout:fragment="script">
+
+  <script th:inline="javascript">
+
+    const group = /*[[${group}]]*/ '';
+    const category = /*[[${category}]]*/ '';
+
+    document.addEventListener("DOMContentLoaded", function() {
+      // SunEditor 설정
+      const editor = SUNEDITOR.create('editor-content', {
+        lang: SUNEDITOR_LANG['ko'],
+        height: '300px',
+        buttonList: [
+          ['undo', 'redo'],
+          ['bold', 'italic', 'underline', 'strike'],
+          ['blockquote', 'indent', 'outdent'],
+          ['image', 'video'],
+          ['fontColor', 'hiliteColor'],
+          ['align', 'list', 'link'],
+          ['fullScreen', 'preview', 'codeView']
+        ],
+
+        // 이미지 세팅
+        imageUploadUrl: `/${group}/${category}/image/upload`,
+        imageUploadSizeLimit: 20 * 1024 * 1024, // 20MB
+        imageAccept: '.jpg,.jpeg,.png,.gif,.bmp,.webp,.ico,.tiff,.tif,.svg',
+        // imageUploadHeader: {
+        //   'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.getAttribute('content')
+        // }
+      });
+
+      // 제출
+      const form = document.getElementById('boardForm');
+      form.addEventListener('submit', function(e) {
+        document.getElementById('editor-content').value = editor.getContents();
+      });
+    });
+
+
+
+    // 파일 첨부
+    function addFileInput() {
+      const container = document.getElementById('fileContainer');
+      const fileCount = container.children.length;
+
+      if (fileCount >= 6) {
+        document.getElementById('fileNotAdd').style.display = 'block';
+        return;
+      }
+
+      const fileItem = document.createElement('div');
+      fileItem.className = 'file-item';
+      fileItem.innerHTML = `
+                <input type="file" name="files" class="form-input">
+                <button type="button" class="file-remove-btn" onclick="removeFileInput(this)">삭제</button>
+            `;
+
+      container.appendChild(fileItem);
+    }
+
+    // 파일 삭제
+    function removeFileInput(button) {
+      button.parentElement.remove();
+      document.getElementById('fileNotAdd').style.display = 'none';
+    }
+  </script>
+
+</div>
+
+</body>
+</html>

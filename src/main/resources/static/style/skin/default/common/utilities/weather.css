@@ -1,0 +1,80 @@
+body {
+    font-family: 'Segoe UI', sans-serif;
+    background: var(--bg-body);
+    padding: 40px;
+    color: var(--text-primary);
+}
+
+h1 {
+    font-size: 24px;
+    margin-bottom: 20px;
+    color: var(--text-primary);
+}
+
+select {
+    padding: 8px;
+    font-size: 16px;
+    margin-bottom: 30px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+}
+
+.main-card {
+    padding: 20px;
+    border-radius: 12px;
+    margin-bottom: 30px;
+    background: var(--bg-surface);
+    box-shadow: 0 4px 8px var(--shadow-strong);
+    border: 1px solid var(--border);
+}
+
+.main-card h2 {
+    margin: 0 0 10px;
+    font-size: 20px;
+    color: var(--text-primary);
+}
+
+.main-card .value {
+    color: var(--accent-main);
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.forecast-day {
+    margin-bottom: 30px;
+}
+
+.forecast-day h2 {
+    margin-bottom: 10px;
+    color: var(--text-secondary);
+}
+
+.forecast-row {
+    display: flex;
+    gap: 12px;
+    overflow-x: auto;
+    padding-bottom: 10px;
+}
+
+.forecast-item {
+    background: var(--bg-surface);
+    padding: 10px;
+    width: 120px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-soft);
+    flex-shrink: 0;
+    border: 1px solid var(--border-light);
+}
+
+.time {
+    font-weight: bold;
+    color: var(--accent-main);
+    margin-bottom: 6px;
+}
+
+.desc {
+    font-size: 14px;
+    color: var(--text-secondary);
+}

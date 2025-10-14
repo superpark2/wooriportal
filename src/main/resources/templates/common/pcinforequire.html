@@ -1,0 +1,176 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC 요청 목록</title>
+    <link rel="stylesheet" href="/style/skin/default/common/pcinforequire.css">
+</head>
+<body class="pcinfo-view">
+
+<div layout:fragment="content" class="pcinfo-container">
+    <div class="container pcinfo-view">
+        <div class="pcinfo-header">
+            <h1 class="pcinfo-title">PC 요청 목록</h1>
+            <div class="header-controls">
+                <a class="btn btn-secondary btn-sm" th:href="@{'/pcinforequire'(status='미완료',size=${size})}">미완료만 보기</a>
+                <a class="btn btn-secondary btn-sm" th:href="@{'/pcinforequire'(size=${size})}">전체보기</a>
+            </div>
+        </div>
+
+        <div class="table-section">
+            <div class="request-cards">
+                <div th:each="req : ${content}" class="request-card">
+                    <div class="card-header">
+                        <div class="author-info">
+                            <div class="req-writer">
+                                <strong th:text="${req.reWriter}">작성자</strong>
+                                <span class="req-location" th:if="${req.pcInfo != null}">
+                                    <span th:if="${req.pcInfo.buildingName != null and req.pcInfo.locationName != null}" 
+                                          th:text="'(' + ${req.pcInfo.buildingName} + '/' + ${req.pcInfo.locationName} + '/' + ${req.reSeat} + ')'">(건물/룸/좌석)</span>
+                                    <span th:if="${req.pcInfo.buildingName == null and req.pcInfo.locationName != null}" 
+                                          th:text="'(' + ${req.pcInfo.locationName} + '/' + ${req.reSeat} + ')'">(룸/좌석)</span>
+                                    <span th:if="${req.pcInfo.buildingName != null and req.pcInfo.locationName == null}" 
+                                          th:text="'(' + ${req.pcInfo.buildingName} + '/' + ${req.reSeat} + ')'">(건물/좌석)</span>
+                                    <span th:if="${req.pcInfo == null and req.reSeat != null}" 
+                                          th:text="'(' + ${req.reSeat} + ')'">(좌석)</span>
+                                </span>
+                            </div>
+                        </div>
+                        <div class="card-date" th:text="${#temporals.format(req.createdAt,'yyyy. MM. dd')}">2025. 10. 11</div>
+                    </div>
+                    
+                    <div class="card-content">
+                        <div class="req-question" th:text="${req.reContent}">질문</div>
+                        <!-- 답변들 표시 -->
+                        <div th:each="answer : ${req.answers}" th:if="${answer != null}" 
+                             class="req-answer">
+                            <div class="answer-content">
+                                <span th:text="${answer.reWriter + ': ' + answer.reContent}">답변: ...</span>
+                            </div>
+                            <div class="answer-actions">
+                                <button class="btn btn-sm btn-danger btn-delete-answer" th:attr="data-renum=${answer.reNum}">삭제</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="card-actions">
+                        <div class="status-section">
+                            <span class="status-label">상태:</span>
+                            <button class="btn btn-primary btn-sm btn-toggle-status" th:attr="data-renum=${req.reNum},data-status=${req.reStatus}" th:text="${req.reStatus}">미완료</button>
+                        </div>
+                        <div class="action-section">
+                            <button class="btn btn-secondary btn-sm btn-reply" th:attr="data-renum=${req.reNum}">답변</button>
+                            <button class="btn btn-danger btn-sm require-delete" th:attr="data-renum=${req.reNum}">삭제</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="logs-pagination" th:if="${page.totalPages>1}">
+                <a class="log-page-btn-terran" th:classappend="${page.first} ? ' disabled'" th:href="@{'/pcinforequire'(page=${page.number-1},size=${size},status=${status})}" th:if="${!page.first}">&lt;</a>
+                <button class="log-page-btn-terran" th:if="${page.first}" disabled>&lt;</button>
+                <span class="log-page-info" th:text="${page.number+1} + ' / ' + ${page.totalPages}">1 / 1</span>
+                <a class="log-page-btn-terran" th:classappend="${page.last} ? ' disabled'" th:href="@{'/pcinforequire'(page=${page.number+1},size=${size},status=${status})}" th:if="${!page.last}">&gt;</a>
+                <button class="log-page-btn-terran" th:if="${page.last}" disabled>&gt;</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="replyModal" class="pcinfo-modal">
+        <div class="pcinfo-modal-content">
+            <h2 class="pcinfo-modal-title">답변 등록</h2>
+            <div class="pcinfo-form-group">
+                <label for="replyWriter">작성자</label>
+                <input id="replyWriter" class="pcinfo-input" type="text">
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="replyContent">내용</label>
+                <textarea id="replyContent" class="pcinfo-textarea" rows="5"></textarea>
+            </div>
+            <div class="pcinfo-modal-btns">
+                <button id="replyOk" class="btn btn-primary">등록</button>
+                <button id="replyCancel" class="btn btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div layout:fragment="script">
+    <script>
+        let currentReplyTarget = null;
+        document.addEventListener('DOMContentLoaded', () => { bindReqEvents(); });
+
+        function bindReqEvents(){
+            document.addEventListener('click',(e)=>{
+                const t = e.target;
+                if(!t || !t.classList) return;
+                if(t.classList.contains('require-delete')){
+                    const id = t.getAttribute('data-renum');
+                    if(!id) return; if(!confirm('삭제하시겠습니까?')) return;
+                    fetch(`/pcinfo/require/${id}`,{method:'DELETE'}).then(r=>r.json()).then(res=>{ if(res.success) location.reload(); });
+                }
+                if(t.classList.contains('btn-reply')){
+                    currentReplyTarget = t.getAttribute('data-renum');
+                    document.getElementById('replyWriter').value='';
+                    document.getElementById('replyContent').value='';
+                    document.getElementById('replyModal').classList.add('show');
+                }
+                if(t.classList.contains('btn-toggle-status')){
+                    const id = t.getAttribute('data-renum');
+                    const currentStatus = t.getAttribute('data-status');
+                    const newStatus = currentStatus === '미완료' ? '완료' : '미완료';
+                    const confirmMsg = newStatus === '완료' ? '완료 처리 하시겠습니까?' : '미완료로 바꾸겠습니까?';
+                    
+                    if(!confirm(confirmMsg)) return;
+                    
+                    fetch(`/pcinforequire/${id}/status?status=${encodeURIComponent(newStatus)}`,{method:'POST'})
+                        .then(r=>{
+                            if(r.ok) {
+                                t.textContent = newStatus;
+                                t.setAttribute('data-status', newStatus);
+                                alert(`상태가 ${newStatus}로 변경되었습니다.`);
+                            } else {
+                                alert('상태 변경 실패');
+                            }
+                        })
+                        .catch(()=>alert('상태 변경 중 오류가 발생했습니다.'));
+                }
+                
+                // 답변 삭제
+                if(t.classList.contains('btn-delete-answer')){
+                    const answerNum = t.getAttribute('data-renum');
+                    if(!answerNum) return;
+                    if(!confirm('답변을 삭제하시겠습니까?')) return;
+                    
+                    fetch(`/pcinfo/require/${answerNum}`,{method:'DELETE'})
+                        .then(r=>{
+                            if(r.ok) {
+                                alert('답변이 삭제되었습니다.');
+                                location.reload();
+                            } else {
+                                alert('답변 삭제 실패');
+                            }
+                        })
+                        .catch(()=>alert('답변 삭제 중 오류가 발생했습니다.'));
+                }
+            });
+
+            document.getElementById('replyCancel').addEventListener('click',()=>document.getElementById('replyModal').classList.remove('show'));
+            document.getElementById('replyOk').addEventListener('click',()=>{
+                const writer = document.getElementById('replyWriter').value.trim();
+                const content = document.getElementById('replyContent').value.trim();
+                if(!writer||!content){ alert('작성자와 내용을 입력하세요.'); return; }
+                fetch(`/pcinforequire/${currentReplyTarget}/reply`,{method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({reWriter: writer, reContent: content})})
+                    .then(r=>r.json()).then(res=>{ document.getElementById('replyModal').classList.remove('show'); location.reload(); });
+            });
+            
+        }
+    </script>
+</div>
+
+</body>
+</html>
+

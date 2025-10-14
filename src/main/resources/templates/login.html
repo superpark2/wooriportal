@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Matrix Login</title>
+    <link rel="stylesheet" href="/style/login.css">
+</head>
+
+<body>
+<div class="matrix-background"></div>
+
+<div class="login-container">
+
+    <div id="loginForm">
+        <h2>SIGN IN</h2>
+        <form action="/login" method="post">
+            <input type="text" name="username" placeholder="Username" required>
+            <input type="password" name="password" placeholder="Password" required>
+
+            <button type="button" id="toRegister" class="switch-btn">Sign up</button>
+
+            <button type="submit" class="submit-btn">LOGIN</button>
+        </form>
+    </div>
+
+    <div id="registerForm" class="hidden">
+        <h2>SIGN UP</h2>
+        <form action="/signup" method="post" enctype="multipart/form-data">
+            <div class="file-upload-container">
+                <div class="image-preview" id="imagePreview"></div>
+                <div class="file-input-wrapper">
+                    <input type="file" name="MemberPicture" id="memberPicture" accept="image/*" class="file-input">
+                    <label for="memberPicture" class="file-input-label">
+                        <span class="file-input-text">Select Your Profile</span>
+                        <span class="file-input-icon"></span>
+                    </label>
+                </div>
+            </div>
+            
+            <input type="text" name="memberId" id="memberId" placeholder="ID" required minlength="3">
+            <div class="id-validation-message" id="idValidationMessage"></div>
+            <input type="password" name="memberPassword" id="memberPassword" placeholder="Password" required>
+            <input type="password" name="memberPasswordConfirm" id="memberPasswordConfirm" placeholder="Confirm Password" required>
+            <input type="text" name="memberName" id="memberName" placeholder="Your Name" required>
+            <input type="text" name="memberComment" id="memberContent" placeholder="Comment" required>
+
+            <button type="button" id="toLogin" class="switch-btn">Sign in</button>
+            <button type="submit" class="submit-btn">REGISTER</button>
+        </form>
+    </div>
+
+</div>
+
+<script>
+    const loginForm = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const toRegister = document.getElementById('toRegister');
+    const toLogin = document.getElementById('toLogin');
+    let passwordCheck = false;
+
+    function switchForms(hideForm, showForm) {
+        hideForm.classList.add('fade-out');
+        hideForm.addEventListener('animationend', () => {
+            hideForm.classList.add('hidden');
+            hideForm.classList.remove('fade-out');
+            showForm.classList.remove('hidden');
+            showForm.classList.add('fade-in');
+            showForm.addEventListener('animationend', () => {
+                showForm.classList.remove('fade-in');
+            }, { once: true });
+        }, { once: true });
+    }
+
+    toRegister.addEventListener('click', () => {
+        switchForms(loginForm, registerForm);
+    });
+
+    toLogin.addEventListener('click', () => {
+        switchForms(registerForm, loginForm);
+    });
+
+    const fileInput = document.getElementById('memberPicture');
+    const imagePreview = document.getElementById('imagePreview');
+
+    fileInput.addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        
+        if (file) {
+            if (file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                
+                reader.onload = function(e) {
+                    imagePreview.innerHTML = '';
+
+                    const img = document.createElement('img');
+                    img.src = e.target.result;
+                    img.style.maxWidth = '100px';
+                    img.style.maxHeight = '100px';
+                    img.style.borderRadius = '4px';
+                    img.style.border = '1px solid rgb(0, 166, 18)';
+                    img.style.marginBottom = '10px';
+                    img.style.objectFit = 'cover';
+                    
+                    imagePreview.appendChild(img);
+                    
+                    // 파일명 표시
+                    const fileName = document.createElement('div');
+                    fileName.textContent = file.name;
+                    fileName.style.color = 'rgb(0, 166, 18)';
+                    fileName.style.fontSize = '12px';
+                    fileName.style.marginTop = '5px';
+                    fileName.style.wordBreak = 'break-all';
+                    
+                    imagePreview.appendChild(fileName);
+                };
+                
+                reader.readAsDataURL(file);
+            } else {
+                alert('이미지 파일만 선택해주세요.');
+                fileInput.value = '';
+            }
+        } else {
+            imagePreview.innerHTML = '';
+        }
+    });
+
+    // ID 중복 검사 기능
+    const memberIdInput = document.getElementById('memberId');
+    const idValidationMessage = document.getElementById('idValidationMessage');
+    let validationTimeout;
+
+    memberIdInput.addEventListener('input', function() {
+        const memberId = this.value.trim();
+
+        clearTimeout(validationTimeout);
+
+        if (memberId === '' ||memberId.length < 3) {
+            idValidationMessage.textContent = '';
+            idValidationMessage.className = 'id-validation-message';
+            return;
+        }
+
+        validationTimeout = setTimeout(() => {
+            checkIdDuplicate(memberId);
+        });
+    });
+
+    function checkIdDuplicate(memberId) {
+
+        idValidationMessage.textContent = 'Checking...';
+        idValidationMessage.className = 'id-validation-message checking';
+        
+        fetch('/check-id', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'text/plain',
+            },
+            body: memberId
+        })
+        .then(response => response.text())
+        .then(data => {
+            if (data === true) {
+                idValidationMessage.textContent = 'ID already exists.';
+                idValidationMessage.className = 'id-validation-message error';
+            } else {
+                idValidationMessage.textContent = 'ID available.';
+                idValidationMessage.className = 'id-validation-message success';
+            }
+        })
+        .catch(error => {
+            console.error('Error checking ID:', error);
+            idValidationMessage.textContent = 'Error checking ID.';
+            idValidationMessage.className = 'id-validation-message error';
+        });
+    }
+
+    document.getElementById('passwordConfirm').addEventListener('keydown', function() {
+        if (document.getElementById('memberPassword') === document.getElementById('memberPasswordConfirm').value) {
+            passwordCheck = true;
+        } else {
+            passwordCheck = false;
+        }
+    })
+
+    registerForm.addEventListener('submit', function(event) {
+        if (!passwordCheck) {
+            event.preventDefault();
+            alert('Passwords do not match.');
+            document.getElementById('memberPasswordConfirm').focus();
+            return false;
+        }
+    });
+</script>
+
+</body>
+</html>

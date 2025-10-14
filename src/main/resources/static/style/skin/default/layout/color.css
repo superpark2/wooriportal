@@ -1,0 +1,41 @@
+:root {
+    /* ==== 기본 배경 ==== */
+    --bg-body: #f8f9fa;
+    --bg-surface: #ffffff;
+    --bg-hover: #f1f3f5;
+    --bg-accent: #e7f5ff; /* 파란 계열 포인트 백그라운드 */
+
+    /* ==== 기본 텍스트 ==== */
+    --text-primary: #212529;
+    --text-secondary: #495057;
+    --text-muted: #6c757d;
+    --text-inverse: #ffffff;
+
+    /* ==== 엑센트 컬러 계열 (메인 테마) ==== */
+    --accent-light: #a5d8ff;
+    --accent-main: #4dabf7;
+    --accent-dark: #1c7ed6;
+
+    /* ==== 상태 색상 ==== */
+    --success: #51cf66;
+    --warning: #fcc419;
+    --danger: #ff6b6b;
+    --info: #339af0;
+
+    /* ==== 테두리 ==== */
+    --border-light: #dee2e6;
+    --border: var(--accent-light);  /* 강조용 기본선 */
+    --border-strong: var(--accent-main);
+
+    /* ==== 버튼 (파생형 구조로 정리) ==== */
+    --btn-bg-primary: var(--accent-main);
+    --btn-bg-primary-hover: var(--accent-dark);
+    --btn-bg-secondary: #dee2e6;
+    --btn-bg-secondary-hover: #adb5bd;
+    --btn-bg-danger: var(--danger);
+    --btn-bg-danger-hover: #fa5252;
+
+    /* ==== 그림자 ==== */
+    --shadow-soft: rgba(0, 0, 0, 0.05);
+    --shadow-strong: rgba(0, 0, 0, 0.1);
+}

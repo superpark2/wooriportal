@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>회원 관리</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/style/skin/default/common/mgmt.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content" class="mgmt-container">
+
+    <div class="mgmt-header">
+        <h1 class="mgmt-title">
+            <i class="fas fa-users"></i>
+            <span>회원 관리</span>
+        </h1>
+    </div>
+
+    <div class="stats-info">
+        <div class="stat-card">
+            <h3>전체 회원</h3>
+            <p th:text="${totalElements} + '명'">0명</p>
+        </div>
+        <div class="stat-card">
+            <h3>현재 페이지</h3>
+            <p th:text="${currentPage + 1} + ' / ' + ${totalPages}">1 / 1</p>
+        </div>
+    </div>
+
+    <div class="member-table-section">
+        <div class="table-header">
+            <h3 class="table-title">
+                <i class="fas fa-list"></i>
+                회원 목록
+            </h3>
+        </div>
+
+        <table class="member-table">
+            <thead>
+            <tr>
+                <th class="col-image">프로필</th>
+                <th class="col-id">아이디</th>
+                <th class="col-name">이름</th>
+                <th class="col-comment">소개</th>
+                <th class="col-role">권한</th>
+                <th class="col-actions">관리</th>
+            </tr>
+            </thead>
+            <tbody>
+            <tr th:each="member : ${members}">
+                <td class="col-image">
+                    <img th:if="${member.memberPictureMeta}" 
+                         th:src="${member.memberPictureMeta}" 
+                         class="member-image" 
+                         alt="프로필">
+                    <i th:unless="${member.memberPictureMeta}" 
+                       class="fas fa-user-circle" 
+                       style="font-size: 40px; color: var(--text-muted);"></i>
+                </td>
+                <td class="col-id" th:text="${member.memberId}">user123</td>
+                <td class="col-name" th:text="${member.memberName}">홍길동</td>
+                <td class="col-comment" th:text="${member.memberComment ?: '—'}">—</td>
+                <td class="col-role">
+                    <span th:class="'role-badge role-' + ${member.memberRole}" 
+                          th:text="${member.memberRole}">user</span>
+                </td>
+                <td class="col-actions">
+                    <select class="role-select" th:data-member-num="${member.memberNum}">
+                        <option value="admin" th:selected="${member.memberRole == 'admin'}">관리자</option>
+                        <option value="user" th:selected="${member.memberRole == 'user'}">일반회원</option>
+                        <option value="wait" th:selected="${member.memberRole == 'wait'}">대기중</option>
+                    </select>
+                    <button class="btn btn-primary btn-save" 
+                            th:data-member-num="${member.memberNum}">
+                        <i class="fas fa-save"></i>
+                        저장
+                    </button>
+                </td>
+            </tr>
+            </tbody>
+        </table>
+
+        <div class="pagination" th:if="${totalPages > 1}">
+            <button th:if="${currentPage > 0}" 
+                    th:onclick="'location.href=\'/member/mgmt?page=' + (${currentPage} - 1) + '\''">
+                <i class="fas fa-chevron-left"></i>
+            </button>
+            
+            <span th:each="pageNum : ${#numbers.sequence(0, totalPages - 1)}">
+                <button th:if="${pageNum >= currentPage - 2 and pageNum <= currentPage + 2}"
+                        th:class="${pageNum == currentPage ? 'active' : ''}"
+                        th:onclick="'location.href=\'/member/mgmt?page=' + ${pageNum} + '\'"
+                        th:text="${pageNum + 1}">1</button>
+            </span>
+            
+            <button th:if="${currentPage < totalPages - 1}" 
+                    th:onclick="'location.href=\'/member/mgmt?page=' + (${currentPage} + 1) + '\''">
+                <i class="fas fa-chevron-right"></i>
+            </button>
+        </div>
+    </div>
+
+</div>
+
+<div layout:fragment="script">
+    <script th:inline="javascript">
+        document.addEventListener('DOMContentLoaded', function() {
+
+            document.querySelectorAll('.btn-save').forEach(button => {
+                button.addEventListener('click', function() {
+                    const memberNum = this.dataset.memberNum;
+                    const roleSelect = document.querySelector(`select[data-member-num="${memberNum}"]`);
+                    const newRole = roleSelect.value;
+                    
+                    if (!confirm('권한을 변경하시겠습니까?')) {
+                        return;
+                    }
+
+                    fetch('/member/update-role', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/x-www-form-urlencoded',
+                        },
+                        body: `memberNum=${memberNum}&memberRole=${newRole}`
+                    })
+                    .then(response => response.text())
+                    .then(result => {
+                        if (result === 'success') {
+                            alert('권한이 성공적으로 변경되었습니다.');
+                            location.reload();
+                        } else {
+                            alert('권한 변경에 실패했습니다.');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error:', error);
+                        alert('오류가 발생했습니다.');
+                    });
+                });
+            });
+        });
+    </script>
+</div>
+
+</body>
+</html>

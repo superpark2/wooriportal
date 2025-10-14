@@ -1,0 +1,38 @@
+.converter {
+    background: var(--bg-surface);
+    padding: 2rem;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    box-shadow: 0 2px 4px var(--shadow-soft);
+    max-width: 700px;
+    margin: auto;
+}
+
+h2 {
+    color: var(--accent-dark);
+    margin-bottom: 1rem;
+}
+
+.row {
+    display: flex;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+select, input {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid var(--border-light);
+    border-radius: 4px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+select:hover, input:hover {
+    background: var(--bg-hover);
+}
+
+.result-box {
+    font-size: 36px;
+    font-weight: 500;
+}

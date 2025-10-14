@@ -1,0 +1,322 @@
+body.pcinfo-view { background: var(--bg-body); color: var(--text-primary); }
+
+.container.pcinfo-view {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 16px;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    box-shadow: 0 6px 16px var(--shadow-strong);
+}
+
+.pcinfo-header { display:flex; align-items:center; justify-content: space-between; gap:12px; margin-bottom: 12px; }
+.pcinfo-title { font-size: 20px; font-weight: 700; color: var(--text-primary); padding-bottom: 8px; border-bottom: 2px solid var(--accent-main); margin: 0; }
+.header-controls { display:flex; gap:8px; }
+
+.logs-section h2 { text-align: left; font-size: 18px; margin: 8px 0 10px 0; font-weight: 700; }
+
+.logs-table { width: 100%; border-collapse: collapse; background: var(--bg-surface); }
+.logs-table thead th { background: var(--bg-accent); color: var(--text-primary); }
+.logs-table th, .logs-table td { border: 1px solid var(--border-light); padding: 10px; font-size: 14px; vertical-align: top; word-break: break-word; }
+.logs-table tbody tr:hover { background: var(--bg-hover); }
+
+.logs-pagination { display: flex; justify-content: center; align-items: center; gap: 8px; margin-top: 10px; }
+.log-page-btn-terran { background: var(--btn-bg-secondary); border: none; padding: 6px 12px; border-radius: 6px; color: var(--text-primary); cursor: pointer; }
+.log-page-btn-terran:hover { background: var(--btn-bg-secondary-hover); }
+.log-page-btn-terran.disabled, .log-page-btn-terran[disabled] { opacity: .5; cursor: not-allowed; }
+.log-page-info { color: var(--text-secondary); font-size: 12px; }
+
+/* 버튼 스타일 - 팔레트 활용 */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-decoration: none;
+    justify-content: center;
+    min-width: 80px;
+    box-shadow: 0 2px 4px var(--shadow-soft);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--accent-main), var(--accent-dark));
+    color: var(--text-inverse);
+    border: 1px solid var(--accent-dark);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--accent-dark), #1864ab);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(77, 171, 247, 0.4);
+}
+
+/* 미완료 상태 버튼 스타일 */
+.btn-primary[data-status="미완료"] {
+    background: var(--warning);
+    color: var(--text-primary);
+    border: 1px solid var(--warning);
+}
+
+.btn-primary[data-status="미완료"]:hover {
+    background: var(--warning);
+    opacity: 0.8;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-strong);
+}
+
+.btn-secondary {
+    background: linear-gradient(135deg, var(--bg-surface), var(--bg-hover));
+    color: var(--text-primary);
+    border: 1px solid var(--border-light);
+}
+
+.btn-secondary:hover {
+    background: linear-gradient(135deg, var(--bg-hover), var(--border-light));
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px var(--shadow-strong);
+    border-color: var(--accent-light);
+}
+
+.btn-danger {
+    background: linear-gradient(135deg, var(--danger), #fa5252);
+    color: var(--text-inverse);
+    border: 1px solid #fa5252;
+}
+
+.btn-danger:hover {
+    background: linear-gradient(135deg, #fa5252, #e03131);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.4);
+}
+
+.btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+    min-width: 60px;
+    font-weight: 500;
+}
+
+/* 상태 배지 스타일 개선 */
+.status-badge { 
+    display: inline-block; 
+    margin: 0 8px; 
+    padding: 4px 12px; 
+    border-radius: 20px; 
+    background: linear-gradient(135deg, var(--bg-accent), var(--accent-light));
+    color: var(--accent-dark);
+    font-size: 12px; 
+    font-weight: 600;
+    border: 1px solid var(--accent-light);
+    box-shadow: 0 2px 4px var(--shadow-soft);
+}
+
+/* 액션 버튼 컨테이너 개선 */
+.action-buttons { 
+    display: flex; 
+    flex-direction: column;
+    align-items: flex-end; 
+    gap: 8px; 
+}
+
+.card-actions .status-section,
+.card-actions .action-section {
+    margin-bottom: 0;
+}
+
+.status-section {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.status-label {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.action-section {
+    display: flex;
+    gap: 6px;
+}
+
+/* 카드형 레이아웃 */
+.request-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.request-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    padding: 12px;
+    box-shadow: 0 2px 8px var(--shadow-soft);
+    transition: all 0.3s ease;
+}
+
+.request-card:hover {
+    box-shadow: 0 4px 16px var(--shadow-strong);
+    transform: translateY(-2px);
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 8px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-light);
+}
+
+.author-info {
+    flex: 1;
+}
+
+.card-date {
+    font-size: 12px;
+    color: var(--text-secondary);
+    background: var(--bg-accent);
+    padding: 4px 8px;
+    border-radius: 6px;
+    white-space: nowrap;
+}
+
+.card-content {
+    margin-bottom: 10px;
+}
+
+.card-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 8px;
+    border-top: 1px solid var(--border-light);
+}
+
+.req-writer {
+    font-size: 16px;
+    margin-bottom: 0;
+}
+
+.req-writer .req-location {
+    font-size: 12px;
+    color: var(--text-secondary);
+    font-weight: 400;
+    margin-left: 4px;
+}
+
+/* 테이블 스타일 개선 */
+.logs-table th { 
+    background: linear-gradient(135deg, var(--bg-accent), var(--accent-light));
+    color: var(--accent-dark);
+    font-weight: 600;
+    border-bottom: 2px solid var(--accent-main);
+}
+
+.logs-table tbody tr:hover { 
+    background: var(--bg-accent); 
+}
+
+/* 헤더 스타일 개선 */
+.pcinfo-title {
+    color: var(--accent-dark);
+    border-bottom: 3px solid var(--accent-main);
+    padding-bottom: 8px;
+}
+
+.req-writer { font-weight:700; }
+.req-seat { color: var(--text-secondary); }
+.req-location { color: var(--text-secondary); font-size: 12px; }
+
+/* 질문과 답변 스타일 차별화 */
+.req-question {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 8px;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: var(--text-primary);
+    box-shadow: 0 2px 4px var(--shadow-soft);
+}
+
+.req-answer {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 6px;
+    margin: 3px 0;
+    font-size: 13px;
+    color: var(--text-primary);
+    font-weight: 500;
+    margin-left: 16px;
+    position: relative;
+    box-shadow: 0 2px 4px var(--shadow-soft);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.answer-content {
+    flex: 1;
+}
+
+.answer-actions {
+    display: flex;
+    gap: 2px;
+    margin-left: 8px;
+}
+
+.answer-actions .btn {
+    padding: 2px 6px;
+    font-size: 10px;
+    min-width: auto;
+    border-radius: 4px;
+    font-weight: 400;
+    box-shadow: none;
+}
+
+.answer-actions .btn:hover {
+    transform: none;
+    box-shadow: none;
+}
+
+
+.answer-actions .btn-danger {
+    background: var(--bg-accent);
+    color: var(--danger);
+    border: 1px solid var(--border-light);
+}
+
+.answer-actions .btn-danger:hover {
+    background: var(--danger);
+    color: var(--text-inverse);
+}
+
+.req-answer::before {
+    content: "💬";
+    position: absolute;
+    left: -12px;
+    top: 6px;
+    font-size: 10px;
+}
+
+.pcinfo-modal { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: none; align-items: center; justify-content: center; }
+.pcinfo-modal.show { display: flex; }
+.pcinfo-modal-content { width: calc(100% - 24px); max-width: 600px; background: var(--bg-surface); border-radius: 10px; padding: 16px; box-shadow: 0 4px 12px var(--shadow-strong); }
+.pcinfo-modal-title { margin: 0 0 12px 0; font-size: 18px; color: var(--text-primary); }
+.pcinfo-form-group { margin-bottom: 12px; }
+.pcinfo-input, .pcinfo-textarea { width: 100%; padding: 8px; border: 1px solid var(--border-light); border-radius: 6px; background: var(--bg-surface); color: var(--text-primary); }
+.pcinfo-textarea { resize: vertical; }
+.pcinfo-modal-btns { display: flex; gap: 8px; justify-content: flex-end; }
+

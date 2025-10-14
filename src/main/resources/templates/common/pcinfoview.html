@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC 상세 정보</title>
+    <link rel="stylesheet" href="/style/skin/default/layout/color.css">
+    <link rel="stylesheet" href="/style/skin/default/common/pcinfoview.css">
+</head>
+<body class="pcinfo-view aiview">
+<div class="container pcinfo-view" th:attr="data-building-num=${buildingNum},data-room-num=${pc.locationNum}" th:with="pcNum=${pc.pcInfoNum}">
+    <div class="header pcinfo-view">
+        <h1>PC Detail</h1>
+    </div>
+
+    <div class="error-message" th:if="${error != null}" style="background: #ff6b6b; color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 20px 0;">
+        <h2 th:text="${error}">PC 정보를 찾을 수 없습니다.</h2>
+    </div>
+
+    <div class="pc-image" th:if="${pc != null && pc.pcInfoImageMeta != null && !#strings.isEmpty(pc.pcInfoImageMeta)}">
+        <img th:src="${pc.pcInfoImageMeta}" alt="PC 이미지" />
+    </div>
+
+    <div class="info-section" th:if="${pc != null}">
+        <div class="info-item">
+            <span class="info-label">지점:</span>
+            <span class="info-value" th:text="${pc.buildingName}">건물</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">장소:</span>
+            <span class="info-value" th:text="${pc.locationName}">위치</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">좌석번호:</span>
+            <span class="info-value" th:text="${pc.pcInfoSeatNum}">좌석번호</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">CPU:</span>
+            <span class="info-value" th:text="${pc.pcInfoCpu}">CPU</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">저장장치:</span>
+            <span class="info-value" th:text="${pc.pcInfoStorage}">저장장치</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">RAM:</span>
+            <span class="info-value" th:text="${pc.pcInfoRam}">RAM</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">VGA:</span>
+            <span class="info-value" th:text="${pc.pcInfoVga}">VGA</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">모니터:</span>
+            <span class="info-value" th:text="${pc.pcInfoMonitor}">모니터</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">IP:</span>
+            <span class="info-value" th:text="${pc.pcInfoIp}">IP</span>
+        </div>
+    </div>
+
+    <div class="logs-section">
+        <h2>Log</h2>
+        <div id="logsContainer">
+            <div class="no-logs">로딩 중...</div>
+        </div>
+        <div class="logs-pagination"></div>
+    </div>
+
+    <div class="require-section">
+        <h2>요청</h2>
+        <div id="requireContainer">
+            <div class="no-requires">로딩 중...</div>
+        </div>
+        <div class="require-pagination" id="requirePagination">
+            <button class="require-page-btn" onclick="changeRequirePage(-1)" id="reqPrevPage">이전</button>
+            <span class="require-page-info" id="reqPageInfo">1 / 1</span>
+            <button class="require-page-btn" onclick="changeRequirePage(1)" id="reqNextPage">다음</button>
+        </div>
+    </div>
+
+</div>
+<div class="pcinfo-center-margin">
+    <button id="editBtn" class="pcinfo-btn-primary">수정</button>
+    <button id="addLogBtn" class="pcinfo-btn-secondary">새 기록</button>
+    <button id="addRequireBtn" class="pcinfo-btn-secondary">요청</button>
+    <input type="hidden" id="pcNumHidden" th:value="${pc.pcInfoNum}">
+</div>
+
+<!-- 비밀번호 모달 제거됨 -->
+
+<div id="editModal" class="pcinfo-modal">
+    <div class="pcinfo-modal-content">
+        <h2 class="pcinfo-modal-title">PC 정보 수정</h2>
+        <form id="editForm">
+            <input type="hidden" name="pcInfoNum" th:value="${pc.pcInfoNum}" />
+            <div class="pcinfo-form-group">
+                <label for="editImage">PC 사진</label>
+                <div class="pcinfo-file-input-wrapper">
+                    <input type="file" name="pcInfoImage" id="editImage" class="pcinfo-file-input">
+                    <label for="editImage" class="pcinfo-file-label">파일 선택</label>
+                </div>
+                <div id="editImagePreviewWrap" class="pcinfo-image-preview-wrap-edit">
+                    <img id="editImagePreview"
+                         th:src="${pc.pcInfoImageMeta}"
+                         alt="기존 이미지"
+                         class="pcinfo-image-preview-edit"
+                    />
+                    <span id="editImageName" class="pcinfo-image-name-edit"></span>
+                    <label id="editDeleteImageLabel" class="pcinfo-delete-image-label-edit" th:style="${pc.pcInfoImageMeta != null ? 'display:inline;' : 'display:none;'}">
+                        <input type="checkbox" name="imageDelete" id="editDeleteImageCheckbox"> 기존 이미지 삭제
+                    </label>
+                </div>
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editBuilding">빌딩</label>
+                <select id="editBuilding" class="pcinfo-input" required th:data-selected="${pc.buildingNum}"></select>
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editRoom">룸</label>
+                <select id="editRoom" class="pcinfo-input" name="locationNum" required th:data-selected="${pc.locationNum}"></select>
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editSeatNum">좌석번호</label>
+                <input type="text" id="editSeatNum" name="pcInfoSeatNum" class="pcinfo-input" required th:value="${pc.pcInfoSeatNum}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editCpu">CPU</label>
+                <input type="text" id="editCpu" name="pcInfoCpu" class="pcinfo-input" required th:value="${pc.pcInfoCpu}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editStorage">저장장치</label>
+                <input type="text" id="editStorage" name="pcInfoStorage" class="pcinfo-input" required th:value="${pc.pcInfoStorage}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editRam">RAM</label>
+                <input type="text" id="editRam" name="pcInfoRam" class="pcinfo-input" required th:value="${pc.pcInfoRam}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editVga">VGA</label>
+                <input type="text" id="editVga" name="pcInfoVga" class="pcinfo-input" required th:value="${pc.pcInfoVga}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editMonitor">모니터</label>
+                <input type="text" id="editMonitor" name="pcInfoMonitor" class="pcinfo-input" th:value="${pc.pcInfoMonitor}" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="editIp">IP</label>
+                <input type="text" id="editIp" name="pcInfoIp" class="pcinfo-input" th:value="${pc.pcInfoIp}" />
+            </div>
+            <div class="pcinfo-modal-btns">
+                <button type="submit" class="pcinfo-btn-primary">저장</button>
+                <button type="button" id="editModalCancel" class="pcinfo-btn-secondary">취소</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="logModal" class="pcinfo-modal">
+    <div class="pcinfo-modal-content">
+        <h2 class="pcinfo-modal-title">새 로그 기록</h2>
+        <div class="pcinfo-form-group">
+            <label for="logContentInput">내용</label>
+            <textarea id="logContentInput" class="pcinfo-input" rows="4" placeholder="로그 내용을 입력하세요"></textarea>
+        </div>
+        <div class="pcinfo-modal-btns">
+            <button id="logModalOk" class="pcinfo-btn-primary">저장</button>
+            <button id="logModalCancel" class="pcinfo-btn-secondary">취소</button>
+        </div>
+        <div id="logModalError" class="pcinfo-error-message">내용을 입력하세요.</div>
+    </div>
+</div>
+
+<div id="requireModal" class="pcinfo-modal">
+    <div class="pcinfo-modal-content">
+        <h2 class="pcinfo-modal-title">PC 요청 등록</h2>
+        <form id="requireForm">
+            <div class="pcinfo-form-group">
+                <label for="requireAuthor">작성자</label>
+                <input type="text" id="requireAuthor" name="author" class="pcinfo-input" placeholder="작성자명을 입력하세요" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="requireSeat">좌석</label>
+                <input type="text" id="requireSeat" name="seat" class="pcinfo-input" placeholder="예: 1A-12" />
+            </div>
+            <div class="pcinfo-form-group">
+                <label for="requireContent">요청 내용</label>
+                <textarea id="requireContent" name="content" class="pcinfo-textarea" rows="6" placeholder="요청사항을 입력하세요" required></textarea>
+            </div>
+            <div class="pcinfo-modal-buttons">
+                <button type="submit" class="pcinfo-btn-primary">등록</button>
+                <button type="button" id="closeRequireModal" class="pcinfo-btn-secondary">취소</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script th:inline="javascript">
+    window.PCINFO_IMAGE_META = '[[${pc.pcInfoImageMeta}]]';
+    document.addEventListener('DOMContentLoaded', function() {
+        const pcNum = /*[[${pc.pcInfoNum}]]*/ 0;
+        loadQrLogs(pcNum, 0);
+        bindEvents();
+    });
+
+    function loadQrLogs(pcNum, page) {
+        const url = `/qrlog/api/pc/${pcNum}?page=${page}&size=8`;
+        fetch(url)
+            .then(r => r.json())
+            .then(data => {
+                const logs = data.content || [];
+                const container = document.getElementById('logsContainer');
+                const pagination = document.querySelector('.logs-pagination');
+                if (logs.length > 0) {
+                    let html = '<table class="logs-table"><thead><tr><th style="width:120px">날짜</th><th>내용</th></tr></thead><tbody>';
+                logs.forEach(log => {
+                        const d = new Date(log.createdAt);
+                        const date = `${d.getFullYear()}. ${(d.getMonth()+1).toString().padStart(2,'0')}. ${d.getDate().toString().padStart(2,'0')}`;
+                        const text = log.content || log.logContent || '';
+                        html += `<tr><td>${date}</td><td>${text}</td></tr>`;
+                    });
+                    html += '</tbody></table>';
+                    container.innerHTML = html;
+            } else {
+                    container.innerHTML = '<div class="no-logs">등록된 로그가 없습니다.</div>';
+            }
+            renderPagination(pagination, data.totalPages, data.currentPage, pcNum);
+            })
+            .catch(() => {
+                document.getElementById('logsContainer').innerHTML = '<div class="no-logs">로그를 불러올 수 없습니다.</div>';
+        });
+    }
+    function renderPagination(el, totalPages, currentPage, pcNum) {
+        if (!el) return;
+        if (totalPages <= 1) { el.innerHTML = ''; return; }
+        let html = '';
+        html += currentPage > 0
+            ? `<button class='log-page-btn-terran' data-page='${currentPage-1}'>&lt;</button>`
+            : `<button class='log-page-btn-terran' disabled>&lt;</button>`;
+        html += `<span class='log-page-info'>${currentPage+1} / ${totalPages}</span>`;
+        html += currentPage < totalPages-1
+            ? `<button class='log-page-btn-terran' data-page='${currentPage+1}'>&gt;</button>`
+            : `<button class='log-page-btn-terran' disabled>&gt;</button>`;
+        el.innerHTML = html;
+        el.querySelectorAll('.log-page-btn-terran:not([disabled])').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const page = parseInt(btn.getAttribute('data-page'));
+            loadQrLogs(pcNum, page);
+            });
+        });
+    }
+
+    function bindEvents() {
+        const editBtn = document.getElementById('editBtn');
+        const editModal = document.getElementById('editModal');
+        const editCancel = document.getElementById('editModalCancel');
+        const pcContainer = document.querySelector('.container.pcinfo-view');
+        const editForm = document.getElementById('editForm');
+
+        if (editBtn) editBtn.addEventListener('click', () => {
+            const preview = document.getElementById('editImagePreview');
+            const nameEl = document.getElementById('editImageName');
+            const delLabel = document.getElementById('editDeleteImageLabel');
+            const fileName = preview?.src ? preview.src.substring(preview.src.lastIndexOf('/') + 1) : '';
+            
+            if (preview) {
+                preview.style.display = preview.src ? 'block' : 'none';
+            }
+            if (nameEl) {
+                nameEl.textContent = fileName;
+                nameEl.style.display = preview?.src ? 'inline' : 'none';
+            }
+            if (delLabel) delLabel.style.display = preview?.src ? 'inline' : 'none';
+
+            const buildingSelect = document.getElementById('editBuilding');
+            const roomSelect = document.getElementById('editRoom');
+            const buildingNum = buildingSelect?.getAttribute('data-selected');
+            const roomNum = roomSelect?.getAttribute('data-selected');
+            
+            loadBuildingOptions(buildingNum, roomNum);
+            editModal?.classList.add('show');
+        });
+
+        if (editCancel) editCancel.addEventListener('click', () => editModal?.classList.remove('show'));
+
+        if (editForm) editForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const formData = new FormData(editForm);
+            const delChk = document.getElementById('editDeleteImageCheckbox');
+            if (!delChk?.checked) {
+            formData.delete('imageDelete');
+        } else {
+            formData.set('imageDelete', 'true');
+        }
+            fetch('/facility/pcinfo/add', { method: 'POST', body: formData })
+                .then(() => {
+                alert('수정이 완료되었습니다.');
+                    editModal?.classList.remove('show');
+                location.reload();
+                })
+                .catch(() => alert('수정에 실패했습니다.'));
+        });
+
+        const addLogBtn = document.getElementById('addLogBtn');
+        const logModal = document.getElementById('logModal');
+        const logCancel = document.getElementById('logModalCancel');
+        const logOk = document.getElementById('logModalOk');
+        if (addLogBtn) addLogBtn.addEventListener('click', () => {
+            logModal?.classList.add('show');
+            const input = document.getElementById('logContentInput');
+            const err = document.getElementById('logModalError');
+            if (input) input.value = '';
+            if (err) err.style.display = 'none';
+        });
+        if (logCancel) logCancel.addEventListener('click', () => logModal?.classList.remove('show'));
+        if (logOk) logOk.addEventListener('click', () => {
+            const input = document.getElementById('logContentInput');
+            const content = (input?.value || '').trim();
+            const err = document.getElementById('logModalError');
+            if (!content) { if (err) err.style.display = 'block'; return; }
+            if (err) err.style.display = 'none';
+            const pcNum = document.getElementById('pcNumHidden')?.value;
+            fetch(`/qrlog/api/pc/${pcNum}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) })
+                .then(r => {
+                    if (r.ok) {
+                        alert('로그가 저장되었습니다.');
+                        logModal?.classList.remove('show');
+                        input.value = ''; // 입력 필드 초기화
+                        loadQrLogs(pcNum, 0);
+                    } else {
+                        alert('로그 저장에 실패했습니다.');
+                    }
+                })
+                .catch(() => alert('로그 저장에 실패했습니다.'));
+        });
+
+        const addReqBtn = document.getElementById('addRequireBtn');
+        const reqModal = document.getElementById('requireModal');
+        const reqClose = document.getElementById('closeRequireModal');
+        if (addReqBtn) addReqBtn.addEventListener('click', () => { 
+            reqModal?.classList.add('show'); 
+            const rf = document.getElementById('requireForm');
+            if (rf && typeof (rf.reset) === 'function') { rf.reset(); }
+        });
+        if (reqClose) reqClose.addEventListener('click', () => reqModal?.classList.remove('show'));
+
+        const reqForm = document.getElementById('requireForm');
+        if (reqForm) reqForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+        const pcNum = /*[[${pc.pcInfoNum}]]*/ 0;
+            const body = {
+                reWriter: (document.getElementById('requireAuthor') || {}).value,
+                reSeat: (document.getElementById('requireSeat') || {}).value,
+                reContent: (document.getElementById('requireContent') || {}).value,
+                reType: 'Q',
+                pcInfo: {
+                    pcInfoNum: pcNum
+                }
+            };
+            if (!body.reWriter || body.reWriter.trim() === '') { alert('작성자를 입력해주세요.'); return; }
+            if (!body.reContent || body.reContent.trim() === '') { alert('요청 내용을 입력해주세요.'); return; }
+            fetch('/pcinfo/require/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                .then(r => {
+                    if (!r.ok) {
+                        return r.text().then(text => {
+                            throw new Error(text || '서버 오류가 발생했습니다.');
+                        });
+                    }
+                    return r.json();
+                })
+                .then(data => {
+                    alert('요청이 등록되었습니다.');
+                    reqModal?.classList.remove('show');
+                    loadRequires(0);
+                })
+                .catch(error => {
+                    console.error('요청 등록 오류:', error);
+                    alert('요청 등록 실패: ' + error.message);
+                });
+        });
+
+    }
+
+    function loadBuildingOptions(selectedBuildingNum, selectedRoomNum) {
+        const url = '/location/list?type=building';
+        fetch(url)
+            .then(r => r.json())
+            .then(buildings => {
+            let options = '<option value="">빌딩을 선택하세요</option>';
+                (buildings || []).forEach(b => {
+                    const selected = String(b.locationNum) === String(selectedBuildingNum) ? 'selected' : '';
+                    options += `<option value="${b.locationNum}" ${selected}>${b.locationName}</option>`;
+                });
+                const el = document.getElementById('editBuilding');
+                if (el) el.innerHTML = options;
+                if (selectedBuildingNum) loadRoomOptions(selectedBuildingNum, selectedRoomNum); else {
+                    const roomEl = document.getElementById('editRoom');
+                    if (roomEl) roomEl.innerHTML = '<option value="">룸을 선택하세요</option>';
+            }
+        });
+    }
+    function loadRoomOptions(buildingNum, selectedRoomNum) {
+        if (!buildingNum) {
+            const roomEl = document.getElementById('editRoom');
+            if (roomEl) roomEl.innerHTML = '<option value="">룸을 선택하세요</option>';
+            return;
+        }
+        const url = `/location/list?type=room&buildingNum=${buildingNum}`;
+        fetch(url)
+            .then(r => r.json())
+            .then(rooms => {
+            let options = '<option value="">룸을 선택하세요</option>';
+                (rooms || []).forEach(rm => {
+                    const selected = String(rm.locationNum) === String(selectedRoomNum) ? 'selected' : '';
+                    options += `<option value="${rm.locationNum}" ${selected}>${rm.locationName}</option>`;
+                });
+                const el = document.getElementById('editRoom');
+                if (el) el.innerHTML = options;
+            });
+    }
+    const editBuildingEl = document.getElementById('editBuilding');
+    if (editBuildingEl) editBuildingEl.addEventListener('change', (e) => {
+        const target = e.target || e.srcElement;
+        const val = target && target.value !== undefined ? target.value : '';
+        loadRoomOptions(val, null);
+    });
+
+    var requireCurrentPage = 0;
+    var requireTotalPages = 1;
+    function loadRequires(page = 0) {
+        const pcNum = /*[[${pc.pcInfoNum}]]*/ 0;
+        requireCurrentPage = page;
+        const requireContainer = document.getElementById('requireContainer');
+        const paginationEl = document.getElementById('requirePagination');
+        if (requireContainer) requireContainer.innerHTML = '<div class="no-requires">로딩 중...</div>';
+        fetch(`/pcinfo/require/pc/${pcNum}?page=${page}&size=5`)
+            .then(r => r.json())
+            .then(data => {
+                if (data.content && data.content.length > 0) {
+                    let html = '';
+                    // 질문만 필터링 (Type Q)
+                    const questions = data.content.filter(req => req.reType === 'Q');
+                    
+                    console.log('Questions:', questions);
+                    
+                    questions.forEach(question => {
+                        const ts = question.createdAt || question.created_at || question.createdDate;
+                        const d = ts ? new Date(ts) : null;
+                        const date = d ? `${d.getFullYear()}. ${(d.getMonth()+1).toString().padStart(2,'0')}. ${d.getDate().toString().padStart(2,'0')}` : '';
+                        const author = question.reWriter || '';
+                        const seat = question.reSeat || '';
+                        const content = question.reContent || '';
+                        
+                        // 해당 질문의 답변들 (서버에서 이미 연결됨)
+                        const questionAnswers = question.answers || [];
+                        
+                        console.log('Question answers for', question.reNum, ':', questionAnswers);
+                        
+                        html += `
+                            <div class="require-item">
+                                <div class="require-header">
+                                    <span class="require-author">${author}${seat ? ` (${seat})` : ''}</span>
+                                    <span class="require-date">${date}</span>
+                                </div>
+                                <div class="require-content">${content}</div>`;
+                        
+                        // 답변들 표시
+                        questionAnswers.forEach(answer => {
+                            html += `
+                                <div class="answer-content">
+                                    ${answer.reWriter}: ${answer.reContent}
+                                </div>`;
+                        });
+                        
+                        html += `
+                            </div>`;
+                    });
+                    if (requireContainer) requireContainer.innerHTML = html;
+                    updateRequirePagination(data);
+                } else {
+                    if (requireContainer) requireContainer.innerHTML = '<div class="no-requires">등록된 요청이 없습니다.</div>';
+                    if (paginationEl) paginationEl.style.display = 'none';
+                }
+            })
+            .catch(() => {
+                if (requireContainer) requireContainer.innerHTML = '<div class="no-requires">요청을 불러올 수 없습니다.</div>';
+                if (paginationEl) paginationEl.style.display = 'none';
+            });
+    }
+    function updateRequirePagination(data) {
+        const pageInfo = document.getElementById('reqPageInfo');
+        const prevBtn = document.getElementById('reqPrevPage');
+        const nextBtn = document.getElementById('reqNextPage');
+        const paginationEl = document.getElementById('requirePagination');
+        requireTotalPages = data.totalPages || 1;
+        requireCurrentPage = data.currentPage || 0;
+        if (pageInfo) pageInfo.textContent = `${requireCurrentPage + 1} / ${requireTotalPages}`;
+        if (prevBtn) prevBtn.disabled = requireCurrentPage === 0;
+        if (nextBtn) nextBtn.disabled = requireCurrentPage === requireTotalPages - 1;
+        if (paginationEl) paginationEl.style.display = requireTotalPages <= 1 ? 'none' : 'flex';
+    }
+    function changeRequirePage(direction) {
+        const newPage = requireCurrentPage + direction;
+        if (newPage >= 0 && newPage < requireTotalPages) {
+            loadRequires(newPage);
+        }
+    }
+    window.changeRequirePage = changeRequirePage;
+    loadRequires(0);
+</script>
+</body>
+</html>
+

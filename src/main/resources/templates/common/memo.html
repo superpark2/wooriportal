@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>메모</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content">
+
+    <link rel="stylesheet" th:href="@{'/style/skin/default/common/memo.css'}">
+
+    <div class="memo-container">
+        <!-- 메모 헤더 -->
+        <div class="memo-header">
+            <h1 class="memo-title">
+                <i class="fas fa-sticky-note"></i>
+                <span th:text="${title} + ' ' + ${subTitle}" class="form-title">타이틀</span>
+            </h1>
+        </div>
+
+        <!-- 메모 목록 -->
+        <div class="memo-list">
+            <div th:each="memo : ${memoList}" class="memo-item">
+                <div class="memo-content">
+                    <div class="memo-text" th:text="${memo.memoContent}">메모 내용</div>
+                    <div class="memo-meta">
+                        <span class="memo-member" th:text="${memo.Member.MemberName}"></span>
+                        <span class="memo-date">
+                            <span th:text="${#temporals.format(memo.createdAt, 'yyyy-MM-dd HH:mm')}">작성일</span>
+                        </span>
+                        <div class="memo-actions">
+                            <button class="btn-icon delete-memo"  th:data-id="${memo.memoNum}">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <!-- 메모 입력 -->
+        <div class="memo-input-container">
+            <form class="memo-input-form" id="memoForm">
+                <input
+                        type="text"
+                        class="memo-input"
+                        id="memoInput"
+                        placeholder="메모를 입력하세요..."
+                        maxlength="500">
+                <button type="submit" class="btn btn-primary">
+                    <i class="fas fa-plus"></i>
+                    등록
+                </button>
+            </form>
+        </div>
+    </div>
+
+</div>
+
+<div layout:fragment="script">
+    <script th:inline="javascript">
+        const group = /*[[${group}]]*/ '';
+        let currentPage = 0;
+        let isLoading = false;
+        let hasMoreMemos = true;
+        let scrollLock = true;
+
+        const memoForm = document.getElementById('memoForm');
+        const memoInput = document.getElementById('memoInput');
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupEvent();
+            setupScroll();
+            setupDelete();
+            // 페이지 로드 시 첫 메모 로드
+            loadMoreMemos();
+        });
+
+        function setupEvent() {
+            memoForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                addMemo();
+            });
+        }
+
+        function setupScroll() {
+            const memoList = document.querySelector('.memo-list');
+            memoList.addEventListener('scroll', function() {
+                if (isLoading || !hasMoreMemos) return;
+
+                const scrollTop = this.scrollTop;
+                const scrollHeight = this.scrollHeight;
+                const clientHeight = this.clientHeight;
+
+                if (scrollTop <= 50) {
+                    loadMoreMemos();
+                }
+            });
+        }
+
+        function loadMoreMemos() {
+            if (isLoading || !hasMoreMemos) return;
+
+            isLoading = true;
+            fetch(`/${group}/memo/load?page=${currentPage}&size=20`)
+                .then(response => response.json())
+                .then(memoList => {
+                    if (memoList && memoList.length > 0) {
+                        const memoListContainer = document.querySelector('.memo-list');
+
+                        memoList.forEach(memo => {
+                            const memoItem = document.createElement('div');
+                            memoItem.className = 'memo-item';
+                            memoItem.innerHTML = `
+                                <div class="memo-content">
+                                    <div class="memo-text">${escapeHtml(memo.memoContent)}</div>
+                                    <div class="memo-meta">
+                                        <span class="memo-member">${escapeHtml(memo.member?.memberName || '탈퇴한 회원')}</span>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+                                        <span class="memo-date">${formatDate(memo.createdAt)}</span>
+                                        <div class="memo-actions">
+                                            <button class="btn-icon delete-memo" data-id="${memo.memoNum}">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                            `;
+                            memoListContainer.prepend(memoItem);
+
+                            const deleteBtn = memoItem.querySelector('.delete-memo');
+                            deleteBtn.addEventListener('click', function() {
+                                deleteMemo(this.getAttribute('data-id'));
+                            });
+                        });
+
+                        currentPage++;
+                    } else {
+                        hasMoreMemos = false;
+                    }
+                })
+                .catch(error => {
+                    console.error('메모 로드 중 오류:', error);
+                })
+                .finally(() => {
+                    isLoading = false;
+
+                    if (scrollLock) {
+                        const memoList = document.querySelector('.memo-list');
+                        if (memoList) {
+                            memoList.scrollTop = memoList.scrollHeight;
+                            scrollLock = false;
+                        }
+                    }
+                });
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        function formatDate(dateString) {
+            const date = new Date(dateString);
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            const hours = String(date.getHours()).padStart(2, '0');
+            const minutes = String(date.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
+        }
+
+        function addMemo() {
+            const content = memoInput.value.trim();
+            if (!content) {
+                alert('메모 내용을 입력해주세요.');
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('memoContent', content);
+
+            fetch(`/${group}/memo/add`, {
+                method: 'POST',
+                body: formData
+            })
+                .then(response => response.text())
+                 .then(data => {
+                     if (data.includes('success')) {
+                         location.reload();
+                     } else {
+                         alert('메모 등록에 실패했습니다.');
+                     }
+                 })
+                .catch(error => {
+                    console.error('메모 등록 중 오류:', error);
+                    alert('메모 등록 중 오류가 발생했습니다.');
+                });
+        }
+
+         function setupDelete() {
+
+             document.querySelectorAll('.delete-memo').forEach(button => {
+                 button.addEventListener('click', function() {
+                     const memoNum = this.getAttribute('data-id');
+                     deleteMemo(memoNum);
+                 });
+             });
+         }
+
+         function deleteMemo(memoNum) {
+             if (!confirm('정말로 이 메모를 삭제하시겠습니까?')) return;
+
+             fetch(`/${group}/memo/delete/${memoNum}`, {
+                 method: 'DELETE'
+             })
+             .then(response => response.text())
+             .then(data => {
+                 if (data.includes('success')) {
+                     // 페이지 새로고침
+                     location.reload();
+                 } else {
+                     alert('메모 삭제에 실패했습니다.');
+                 }
+             })
+             .catch(error => {
+                 console.error('메모 삭제 중 오류:', error);
+                 alert('메모 삭제 중 오류가 발생했습니다.');
+             });
+         }
+
+    </script>
+</div>
+
+</body>
+</html>

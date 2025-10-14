@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+  <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woori Portal Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/style/skin/default/main/main.css" rel="stylesheet">
+</head>
+<body>
+    <div layout:fragment="content" class="dashboard-container">
+
+        <!-- 대시보드 헤더 -->
+        <div class="dashboard-header">
+            <h1 class="dashboard-title">
+                <i class="fas fa-tachometer-alt"></i>
+                <span>대시보드</span>
+            </h1>
+            <p class="dashboard-subtitle">최근 현황</p>
+        </div>
+
+        <!-- 대시보드 그리드 -->
+        <div class="dashboard-grid">
+            
+            <!-- PC 요청건 섹션 -->
+            <div class="dashboard-card" th:if="${not #lists.isEmpty(pcRequireList)}">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-desktop"></i>
+                        최근 PC 요청건
+                    </h3>
+                    <a href="/pcinforequire" class="card-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        전체보기
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="item-list">
+                        <div th:each="item : ${pcRequireList}" class="item-row">
+                            <div class="item-info">
+                                <span class="item-title" th:text="${item.reContent}">PC 요청 내용</span>
+                                <span class="item-meta">
+                                    <span class="item-status" th:class="'status-' + ${item.reStatus}" th:text="${item.reStatus}">상태</span>
+                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 세일즈 게시글 섹션 -->
+            <div class="dashboard-card" th:if="${not #lists.isEmpty(salesList)}">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-chart-line"></i>
+                        최근 세일즈 게시글
+                    </h3>
+                    <a href="/sales/board/list" class="card-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        전체보기
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="item-list">
+                        <div th:each="item : ${salesList}" class="item-row">
+                            <div class="item-info">
+                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
+                                <span class="item-meta">
+                                    <span class="item-category" th:text="${item.category}">카테고리</span>
+                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Facility 게시글 섹션 -->
+            <div class="dashboard-card" th:if="${not #lists.isEmpty(facilityList)}">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-tools"></i>
+                        최근 Facility 게시글
+                    </h3>
+                    <a href="/facility/board/list" class="card-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        전체보기
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="item-list">
+                        <div th:each="item : ${facilityList}" class="item-row">
+                            <div class="item-info">
+                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
+                                <span class="item-meta">
+                                    <span class="item-category" th:text="${item.category}">카테고리</span>
+                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Management 게시글 섹션 -->
+            <div class="dashboard-card" th:if="${not #lists.isEmpty(managementList)}">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        <i class="fas fa-clipboard-list"></i>
+                        최근 Management 게시글
+                    </h3>
+                    <a href="/management/board/list" class="card-link">
+                        <i class="fas fa-external-link-alt"></i>
+                        전체보기
+                    </a>
+                </div>
+                <div class="card-content">
+                    <div class="item-list">
+                        <div th:each="item : ${managementList}" class="item-row">
+                            <div class="item-info">
+                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
+                                <span class="item-meta">
+                                    <span class="item-category" th:text="${item.category}">카테고리</span>
+                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        <!-- 빈 상태 메시지 -->
+        <div class="empty-state" th:if="${#lists.isEmpty(pcRequireList) and #lists.isEmpty(salesList) and #lists.isEmpty(facilityList) and #lists.isEmpty(managementList)}">
+            <div class="empty-icon">
+                <i class="fas fa-inbox"></i>
+            </div>
+            <h3>아직 게시글이 없습니다</h3>
+            <p>새로운 게시글을 작성해보세요!</p>
+        </div>
+
+    </div>
+
+</body>
+</html>

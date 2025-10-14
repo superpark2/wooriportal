@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security"
+      lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woori Facility Management</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link id="skin-css" rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/color.css'}">
+    <link rel="stylesheet" href="/style/skin/default/layout/layout.css">
+    <link rel="icon" type="image/png" sizes="32x32" href="/mol/fabi.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mol/fabi.png">
+</head>
+
+<body class="m-0 p-0">
+
+<header id="header" class="p-0 m-0">
+    <th:block th:replace="~{layouts/header::header}"></th:block>
+</header>
+
+<div id="sidebar-placeholder"></div>
+
+
+<div class="col p-0 m-0">
+
+
+    <div class="row p-0 m-0" style="display: flex; flex-wrap: nowrap;">
+
+        <aside id="sidebar">
+            <th:block th:replace="~{layouts/leftside::leftside}"></th:block>
+        </aside>
+
+        <main id="content" class="p-0" style="margin: 50px 0 0 160px">
+            <th:block layout:fragment="content"></th:block>
+        </main>
+    </div>
+</div>
+
+<div>
+    <th:block layout:fragment="script"></th:block>
+</div>
+
+
+
+<div id="aiPopup" class="ai-popup" style="display:none;">
+    <div class="ai-popup-content">
+        <span class="ai-popup-close" id="aiPopupClose">&times;</span>
+        <div class="ai-avatar">
+            <i class="fas fa-robot"></i>
+        </div>
+        <div id="aiResponse" class="ai-response"></div>
+        <div class="ai-prompt-group mt-3">
+            <textarea id="aiPrompt" placeholder="입력" class="ai-prompt"></textarea>
+            <button id="aiSendBtn" class="ai-send-btn">전송</button>
+        </div>
+    </div>
+</div>
+
+
+<script>      
+    document.querySelectorAll('.submenu-toggle').forEach(toggle => {
+        toggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            const targetId = this.getAttribute('data-target');
+            const submenu = document.getElementById(targetId);
+
+            if (submenu) {
+                submenu.classList.toggle('show');
+                this.classList.toggle('expanded');
+            }
+        });
+    });
+</script>
+
+<script>
+    window.currentSkin = localStorage.getItem('selectedSkin') || 'default';
+
+    function changeSkin(skinName) {
+        document.cookie = 'selectedSkin=' + skinName + '; path=/; max-age=31536000; SameSite=Lax';
+        localStorage.setItem('selectedSkin', skinName);
+        location.reload();
+    }
+
+
+
+    const AI_HISTORY_KEY = 'aiHistory';
+    const SYSTEM_PROMPT = `
+                - "사용자의 비서 AI임."
+                - "내용 분석해서 조언 해야함."
+                - "중요한 포인트 뽑아야함."
+                - "이 화면 기준으로 개선점 바로 알려줘."
+                - "보이는 내용으로 리포트 뽑아줘. 간결하지만 너무 짧지않게"
+                - "이 화면에서 문제점 캐치해서 알려줘."
+                - "이 데이터들을 풀어서 사람처럼 자연스럽게 얘기"
+            `;
+
+    let aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [
+        { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
+    ];
+
+    let lastUserPrompt = '';
+    let isAiRequesting = false;
+    let aiAbortController = null;
+
+    function showAiResponse(text) {
+        document.getElementById('aiResponse').innerHTML =
+            `<div class="ai-user-prompt-small">[명령] ${lastUserPrompt}</div>\n<div>${text}</div>`;
+    }
+
+    function saveAiHistory() {
+        localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
+    }
+
+    function loadAiHistory() {
+        aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [
+            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
+        ];
+    }
+
+    function setAiButtonState(state) {
+        const btn = document.getElementById('aiSendBtn');
+        if (state === 'send') {
+            btn.textContent = '전송';
+            btn.classList.remove('stop');
+            btn.classList.add('send');
+        } else {
+            btn.textContent = '중지';
+            btn.classList.remove('send');
+            btn.classList.add('stop');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+        const aiBtn = document.getElementById('aiBtn');
+        aiBtn.addEventListener('click', function () {
+            const aiPopup = document.getElementById('aiPopup');
+            aiPopup.style.display = 'block';
+            setAiButtonState('send');
+            isAiRequesting = false;
+            aiAbortController = null;
+            const lastModel = aiHistory.slice().reverse().find(m => m.role === 'model');
+            if (lastModel) showAiResponse(lastModel.parts[0].text);
+
+        });
+
+    });
+
+    document.getElementById('aiPopupClose').addEventListener('click', function () {
+        document.getElementById('aiPopup').style.display = 'none';
+    });
+
+    document.getElementById('aiSendBtn').addEventListener('click', async function () {
+        lastUserPrompt = document.getElementById('aiPrompt').value.trim();
+        if (!lastUserPrompt) return;
+
+        if (isAiRequesting) {
+            if (aiAbortController) aiAbortController.abort();
+            isAiRequesting = false;
+            setAiButtonState('send');
+            showAiResponse('요청이 중지되었습니다.');
+            return;
+        }
+
+        isAiRequesting = true;
+        setAiButtonState('stop');
+        aiAbortController = new AbortController();
+
+        const pageContent = document.getElementById('content')?.innerText || '';
+        aiHistory[0] = { role: 'user', parts: [{ text: SYSTEM_PROMPT }] };
+        aiHistory[1] = { role: 'user', parts: [{ text: pageContent }] };
+        aiHistory.push({ role: 'user', parts: [{ text: lastUserPrompt }] });
+
+        let turns = aiHistory.slice(1).filter(m => m.role === 'user' || m.role === 'model');
+        if (turns.length > 3) turns = turns.slice(turns.length - 3);
+        aiHistory = [aiHistory[0],aiHistory[1], ...turns];
+        saveAiHistory();
+
+        document.getElementById('aiPrompt').value = '';
+        document.getElementById('aiPrompt').focus();
+        showAiResponse('응답을 불러오는 중...');
+
+        try {
+            const response = await fetch('/gemini', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ contents: aiHistory }),
+                signal: aiAbortController.signal
+            });
+
+            const data = await response.json();
+            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답이 없습니다.';
+            showAiResponse(aiText);
+            aiHistory.push({ role: 'model', parts: [{ text: aiText }] });
+
+            let limited = aiHistory.slice(2).filter(m => m.role === 'user' || m.role === 'model');
+            if (limited.length > 6) limited = limited.slice(limited.length - 6);
+            aiHistory = [aiHistory[0], ...limited];
+            saveAiHistory();
+
+        } catch (e) {
+            showAiResponse(e.name === 'AbortError' ? '요청이 중지되었습니다.' : '에러 발생: ' + e);
+        } finally {
+            isAiRequesting = false;
+            setAiButtonState('send');
+        }
+    });
+
+    loadAiHistory();
+
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const screenMaxWidth = window.innerWidth * 0.9;
+        const screenMaxHeight = window.innerHeight * 0.9;
+
+        document.querySelectorAll('.image-container img').forEach(img => {
+            img.addEventListener('click', () => {
+                const src = img.dataset.full || img.src;
+
+                const tempImg = new Image();
+                tempImg.src = src;
+                tempImg.onload = () => {
+                    let w = tempImg.width;
+                    let h = tempImg.height;
+
+                    if (w > screenMaxWidth) {
+                        h = h * (screenMaxWidth / w);
+                        w = screenMaxWidth;
+                    }
+                    if (h > screenMaxHeight) {
+                        w = w * (screenMaxHeight / h);
+                        h = screenMaxHeight;
+                    }
+
+                    const left = (window.innerWidth - w) / 2 + window.screenX;
+                    const top = (window.innerHeight - h) / 2 + window.screenY;
+
+                    window.open(
+                        src,
+                        '_blank',
+                        `width=${Math.round(w)},height=${Math.round(h)},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`
+                    );
+                };
+            });
+        });
+    });
+
+</script>
+
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    const skin = /*[[${skin}]]*/ 'default';
+
+    document.addEventListener("DOMContentLoaded", function () {
+        if (skin !== 'maltese') return;
+
+        const canvas = document.getElementById('content');
+        const canvasWidth = canvas.clientWidth;
+        const canvasHeight = canvas.clientHeight;
+
+        const totalImages = 30;
+        const minCount = 5;
+        const maxCount = 12;
+        const imageSize = 100;
+        const actualSize = imageSize * 3;
+
+        const imagePaths = Array.from({ length: totalImages }, (_, i) => `/mol/${i + 1}.png`);
+
+        function shuffle(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+            return array;
+        }
+
+        function isOverlapping(x, y, placed) {
+            for (const rect of placed) {
+                const dx = rect.x - x;
+                const dy = rect.y - y;
+                if (Math.abs(dx) < actualSize && Math.abs(dy) < actualSize) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        function placeImages() {
+            const count = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
+            const selected = shuffle([...imagePaths]).slice(0, count);
+            const placed = [];
+
+            selected.forEach(src => {
+                let tries = 0;
+                let placedSuccessfully = false;
+
+                while (tries < 100 && !placedSuccessfully) {
+                    const x = Math.floor(Math.random() * (window.innerWidth - imageSize));
+                    const y = Math.floor(Math.random() * (window.innerHeight - imageSize));
+
+                    if (!isOverlapping(x, y, placed)) {
+                        const img = document.createElement('img');
+                        img.src = src;
+                        img.className = 'sprite';
+                        img.style.position = 'absolute';
+                        img.style.width = `${imageSize * 2}px`;
+                        img.style.height = 'auto';
+                        img.style.left = `${x}px`;
+                        img.style.top = `${y}px`;
+                        img.style.opacity = '0.5';
+                        img.style.zIndex = '0';      // 최하위로 보내서 컨텐츠 위에 안 올라오게
+                        img.style.pointerEvents = 'none'; // 클릭이나 호버 방해하지 않도록
+
+                        document.body.appendChild(img);  // body에 붙이기
+
+                        placed.push({ x, y });
+                        placedSuccessfully = true;
+                    }
+                    tries++;
+                }
+            });
+        }
+
+        placeImages();
+    });
+    /*]]>*/
+</script>
+
+</body>
+</html>

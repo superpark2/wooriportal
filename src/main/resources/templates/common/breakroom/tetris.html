@@ -1,0 +1,427 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+  <meta charset="utf-8">
+  <title>테트리스</title>
+  <link id="skin-css" rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/color.css'}">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500;700&display=swap');
+
+    /* ==== 전체 구조 ==== */
+
+    body{
+      background-color: var(--text-primary);
+    }
+
+    #content {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 90vh; /* 화면 전체 높이 */
+      min-height: 630px
+    }
+
+    #gameBackGround {
+      display: flex;
+      justify-content: center;
+      background-color: var(--text-primary);;
+      width: 34vw;
+      height: 84vh;
+      min-height: 630px
+    }
+
+    #gameTable {
+      align-items: center;
+      border-collapse: collapse;
+      background-color: var(--shadow-strong);
+      width: 100%;
+      height: 100%;
+
+    }
+
+
+    #gameField {
+      position: relative;
+      border: 2px solid var(--border-strong);
+      border-radius: 10px;
+      padding: 6px;
+      background: var(--text-primary);
+      box-shadow: 0 4px 12px var(--shadow-strong);
+      width: 100%;
+    }
+
+    /* ==== 각 셀 ==== */
+    td {
+      width: 18px;
+      height: 18px;
+      border-radius: 3px;
+      border: 1px solid var(--shadow-strong);
+      background: var(--text-primary);
+      box-shadow: 0 4px 12px var(--shadow-strong);
+    }
+
+    /* ==== 오른쪽 패널 ==== */
+    #scoreField {
+      background: var(--text-primary);
+      border: 2px solid var(--border);
+      border-radius: 10px;
+      padding: 16px;
+      width: 200px;
+      text-align: center;
+      box-shadow: 0 4px 12px var(--shadow-soft);
+    }
+
+    /* ==== 섹션 타이틀 ==== */
+    .sub {
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent-dark);
+      margin-top: 12px;
+    }
+
+    /* ==== 점수 / 레벨 ==== */
+    #score, #level {
+      font-size: 32px;
+      font-weight: 700;
+      color: var(--accent-light);
+      margin: 6px 0;
+    }
+
+    /* ==== 다음 블록 ==== */
+    #nextTable {
+      border-collapse: collapse;
+      margin: 10px auto;
+    }
+    #nextTable td {
+      width: 1dvw;
+      height: 2dvh;
+      border: 2px solid var(--shadow-strong);
+      background: var(--text-primary);
+      box-shadow: 0 4px 12px var(--shadow-strong);
+    }
+
+    /* ==== 도움말 ==== */
+    #help {
+      font-size: 15px;
+      color: var(--accent-light);
+      margin: 4px 0;
+    }
+    #help:hover {
+      color: var(--accent-main);
+    }
+
+    /* ==== 콤보 ==== */
+    #comboField {
+      margin-top: 10px;
+      font-size: 18px;
+      font-weight: bold;
+      color: var(--accent-dark);
+      animation: comboFade 0.8s ease;
+    }
+    @keyframes comboFade {
+      from {opacity: 1;}
+      to {opacity: 0;}
+    }
+
+    /* ==== 일시정지, 게임오버 ==== */
+    #pause, #gameover {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      color: var(--text-inverse);
+      background: rgba(33, 37, 41, 0.85);
+      padding: 40px;
+      border-radius: 12px;
+      border: 2px solid var(--accent-main);
+      visibility: hidden;
+    }
+  </style>
+</head>
+<body>
+
+<div layout:fragment="content">
+  <div id="gameBackGround">
+
+    <div id="gameField">
+      <div id="gameover">
+        <span><h1>GAME OVER</h1><h4>F5로 재시작</h4></span>
+      </div>
+      <div id="pause">
+        <span><h1>일시정지</h1></span>
+      </div>
+    </div>
+
+    <div id="scoreField">
+      <p class="sub">LEVEL</p>
+      <p id="level">1</p>
+      <p class="sub">SCORE</p>
+      <p id="score">0</p>
+      <p class="sub">NEXT</p>
+      <table id="nextTable" border="0">
+        <tr><td id="00"></td><td id="01"></td><td id="02"></td><td id="03"></td></tr>
+        <tr><td id="10"></td><td id="11"></td><td id="12"></td><td id="13"></td></tr>
+        <tr><td id="20"></td><td id="21"></td><td id="22"></td><td id="23"></td></tr>
+        <tr><td id="30"></td><td id="31"></td><td id="32"></td><td id="33"></td></tr>
+      </table>
+      <p class="sub">조작법</p>
+      <p id="help">← ↓ → 이동</p>
+      <p id="help">Space 회전</p>
+      <p id="help">P 일시정지</p>
+      <div id="comboField"></div>
+    </div>
+  </div>
+</div>
+
+<div layout:fragment="script">
+  <script th:inline="none">
+    // ----- 기본 변수 -----
+    const H = 34, W = 20;
+    const tileColor = "rgb(9,17,26)";
+    const wallColor = "rgb(22,41,63)";
+    const shapeColorArray = [
+      "rgb(199,82,82)", "rgb(233,174,43)", "rgb(105,155,55)",
+      "rgb(53,135,145)", "rgb(49,95,151)", "rgb(102,86,167)"
+    ];
+    let shapeArray, shapeRotateMap;
+    let existField = [], shapeCell = [];
+    let shapePoint = [1,1], shapeColor, shapeColorIndex, nextColorIndex = -1;
+    let currentShape, nextShape;
+    let movingThread, movingSpeed;
+    let initSpeed = 500, deltaSpeed = 40, fastSpeed = 25;
+    let fastMode = false;
+    let score = 0, level = 1, levelStack = 0;
+    let isPaused = false;
+
+    // ----- 초기화 -----
+    window.onload = function() {
+      defineShapes();
+      drawField();
+      initExistField();
+      setWall();
+      movingSpeed = initSpeed;
+      chooseNextShape();
+      chooseNextColor();
+      createShape();
+      document.addEventListener('keydown', keyDownEventHandler);
+      document.addEventListener('keyup', keyUpEventHandler);
+    };
+
+    // ----- 도형 데이터 정의 -----
+    function defineShapes() {
+      shapeArray = [
+        [[2,2],[1,2],[1,1],[0,1]],
+        [[1,1],[1,0],[0,2],[0,1]],
+        [[2,1],[1,1],[1,2],[0,2]],
+        [[1,2],[1,1],[0,1],[0,0]],
+        [[1,2],[1,1],[0,2],[0,1]],
+        [[2,0],[1,1],[1,0],[0,0]],
+        [[1,1],[0,2],[0,1],[0,0]],
+        [[2,2],[1,2],[1,1],[0,2]],
+        [[1,2],[1,1],[1,0],[0,1]],
+        [[3,1],[2,1],[1,1],[0,1]],
+        [[1,3],[1,2],[1,1],[1,0]],
+        [[2,2],[2,1],[1,1],[0,1]],
+        [[1,0],[0,2],[0,1],[0,0]],
+        [[2,2],[1,2],[0,2],[0,1]],
+        [[1,2],[1,1],[1,0],[0,2]],
+        [[2,2],[2,1],[1,2],[0,2]],
+        [[2,2],[2,1],[2,0],[1,0]],
+        [[2,1],[1,1],[0,1],[0,2]],
+        [[1,2],[0,2],[0,1],[0,0]]
+      ];
+      shapeRotateMap = [1,0,3,2,4,6,7,8,5,10,9,12,13,14,11,16,17,18,15];
+    }
+
+    // ----- 필드 생성 -----
+    function drawField(){
+      const table = document.createElement('table');
+      table.id = "gameTable";
+      for(let i=0;i<H;i++){
+        const tr = document.createElement('tr');
+        for(let j=0;j<W;j++){
+          const td = document.createElement('td');
+          td.id = `${i} ${j}`;
+          td.style.background = tileColor;
+          tr.appendChild(td);
+        }
+        table.appendChild(tr);
+      }
+      document.getElementById("gameField").prepend(table);
+    }
+
+    function gebi(y,x){ return document.getElementById(`${y} ${x}`); }
+
+    function initExistField(){
+      for(let i=0;i<H;i++){
+        existField[i] = new Array(W).fill(false);
+      }
+    }
+
+    function setWall(){
+      for(let i=0;i<H;i++){
+        gebi(i,0).style.background = wallColor;
+        gebi(i,W-1).style.background = wallColor;
+        existField[i][0]=true;
+        existField[i][W-1]=true;
+      }
+      for(let i=0;i<W;i++){
+        gebi(0,i).style.background = wallColor;
+        gebi(H-1,i).style.background = wallColor;
+        existField[0][i]=true;
+        existField[H-1][i]=true;
+      }
+    }
+
+    // ----- 도형 생성 -----
+    function chooseNextShape(){ nextShape = Math.floor(Math.random() * shapeArray.length); }
+    function chooseNextColor(){ nextColorIndex = (nextColorIndex + 1) % shapeColorArray.length; }
+
+    function createShape(){
+      shapePoint = [1, parseInt(W/2)-2];
+      currentShape = nextShape;
+      shapeColorIndex = nextColorIndex;
+      shapeColor = shapeColorArray[shapeColorIndex];
+      chooseNextShape(); chooseNextColor();
+      displayNextShape();
+      const shape = shapeArray[currentShape];
+      shapeCell = [];
+      for(let [dy, dx] of shape){
+        const y = shapePoint[0]+dy, x = shapePoint[1]+dx;
+        if(!isValid(y,x)) return gameOver();
+        gebi(y,x).style.background = shapeColor;
+        shapeCell.push([y,x]);
+      }
+      levelStack++; leveling();
+      movingThread = setTimeout(moveDown, movingSpeed);
+    }
+
+    function displayNextShape(){
+      for(let y=0;y<4;y++)
+        for(let x=0;x<4;x++)
+          document.getElementById(`${y}${x}`).style.background = "rgb(14,31,49)";
+      const shape = shapeArray[nextShape];
+      const color = shapeColorArray[nextColorIndex];
+      for(let [y,x] of shape)
+        document.getElementById(`${y}${x}`).style.background = color;
+    }
+
+    // ----- 조작 -----
+    function keyDownEventHandler(e){
+      if(isPaused && e.keyCode !== 80) return;
+      switch(e.keyCode){
+        case 37: moveLR(-1); break;
+        case 39: moveLR(1); break;
+        case 32: rotateShape(); break;
+        case 40: moveFast(); break;
+        case 80: togglePause(); break;
+      }
+    }
+    function keyUpEventHandler(e){ if(e.keyCode==40) moveSlow(); }
+
+    function isValid(y,x){ return !(y<=0 || y>=H-1 || x<=0 || x>=W-1 || existField[y][x]); }
+
+    function moveDown(){
+      if(!canMove(1,0)){
+        commitExist(); checkLine();
+        shapeCell=[]; createShape(); return;
+      }
+      removeShape();
+      shapeCell.forEach(c => c[0]++);
+      shapePoint[0]++; showShape();
+      movingThread = setTimeout(moveDown,movingSpeed);
+    }
+    function canMove(dy,dx){
+      return shapeCell.every(([y,x]) => isValid(y+dy, x+dx));
+    }
+    function moveLR(dx){
+      if(!canMove(0,dx)) return;
+      removeShape();
+      shapeCell.forEach(c => c[1]+=dx);
+      shapePoint[1]+=dx;
+      showShape();
+    }
+    function rotateShape(){
+      const nextShapeIdx = shapeRotateMap[currentShape];
+      const nextShape = shapeArray[nextShapeIdx];
+      if(!nextShape.every(([dy,dx]) => isValid(shapePoint[0]+dy, shapePoint[1]+dx))) return;
+      removeShape();
+      shapeCell = nextShape.map(([dy,dx]) => [shapePoint[0]+dy, shapePoint[1]+dx]);
+      currentShape = nextShapeIdx;
+      showShape();
+    }
+
+    function removeShape(){ shapeCell.forEach(([y,x]) => gebi(y,x).style.background = tileColor); }
+    function showShape(){ shapeCell.forEach(([y,x]) => gebi(y,x).style.background = shapeColor); }
+
+    function moveFast(){ if(fastMode) return; clearTimeout(movingThread); movingSpeed = fastSpeed; movingThread = setTimeout(moveDown,movingSpeed); fastMode=true; }
+    function moveSlow(){ if(!fastMode) return; clearTimeout(movingThread); movingSpeed = initSpeed - (level*deltaSpeed); movingThread = setTimeout(moveDown,movingSpeed); fastMode=false; }
+
+    // ----- 점수 / 레벨 -----
+    function commitExist(){ shapeCell.forEach(([y,x]) => existField[y][x]=true); }
+
+    function checkLine(){
+      let plus = level*100, combo=0, total=0;
+      for(let i=H-2;i>1;i--){
+        if(isFull(i)){ removeLine(i); i++; total += updateScore(plus,++combo); }
+      }
+      if(combo>0) displayCombo(combo,total);
+    }
+
+    function isFull(line){ for(let i=1;i<W-1;i++) if(!existField[line][i]) return false; return true; }
+
+    function removeLine(line){
+      for(let i=line-1;i>=1;i--){
+        for(let j=1;j<W-1;j++){
+          gebi(i+1,j).style.background = gebi(i,j).style.background;
+          existField[i+1][j] = existField[i][j];
+        }
+      }
+    }
+
+    function leveling(){
+      if(level==10) return;
+      if(levelStack == level * 10){
+        level++; levelStack=0;
+        if(!fastMode) movingSpeed = initSpeed - (level*deltaSpeed);
+      }
+      document.getElementById("level").innerText = level;
+    }
+
+    function updateScore(plus,combo){
+      const add = plus * combo;
+      score += add;
+      document.getElementById("score").innerText = score;
+      return add;
+    }
+
+    function displayCombo(combo,score){
+      const el = document.getElementById("comboField");
+      el.innerText = `${combo} COMBO +${score}`;
+      setTimeout(()=>el.innerText="",700);
+    }
+
+    // ----- 상태 -----
+    function gameOver(){
+      clearTimeout(movingThread);
+      alert(`[게임 종료]\n레벨: ${level}\n점수: ${score}`);
+      document.getElementById("gameField").style.visibility="hidden";
+      document.getElementById("gameover").style.visibility="visible";
+    }
+    function togglePause(){
+      if(isPaused){
+        movingThread = setTimeout(moveDown,movingSpeed);
+        document.getElementById("pause").style.visibility="hidden";
+        isPaused=false;
+      } else {
+        clearTimeout(movingThread);
+        document.getElementById("pause").style.visibility="visible";
+        isPaused=true;
+      }
+    }
+  </script>
+</div>
+</body>
+</html>

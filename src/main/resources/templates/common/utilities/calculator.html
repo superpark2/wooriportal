@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8" />
+    <title>계산기</title>
+    <link rel="stylesheet" href="/style/skin/default/common/utilities/calculator.css">
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="calculator">
+        <div class="top">
+            <input id="display" class="display" type="text" value="0" readonly />
+            <div id="preview" class="sub"></div>
+        </div>
+
+        <div class="grid" id="pad">
+            <!-- 1 -->
+            <button type="button" class="btn op" data-v="CE">CE</button>
+            <button type="button" class="btn op" data-v="C">C</button>
+            <button type="button" class="btn op" data-v="(">(</button>
+            <button type="button" class="btn op" data-v=")">)</button>
+            <button type="button" class="btn op" data-v="%">%</button>
+            <button type="button" class="btn op" data-v="^">^</button>
+            <button type="button" class="btn op" data-v="/">÷</button>
+
+            <!-- 2 -->
+            <button type="button" class="btn op" data-v="sin">sin</button>
+            <button type="button" class="btn op" data-v="cos">cos</button>
+            <button type="button" class="btn op" data-v="tan">tan</button>
+            <button type="button" class="btn" data-v="7">7</button>
+            <button type="button" class="btn" data-v="8">8</button>
+            <button type="button" class="btn" data-v="9">9</button>
+            <button type="button" class="btn op" data-v="*">×</button>
+
+            <!-- 3 -->
+            <button type="button" class="btn op" data-v="ln">ln</button>
+            <button type="button" class="btn op" data-v="log">log</button>
+            <button type="button" class="btn op" data-v="sqrt">√</button>
+            <button type="button" class="btn" data-v="4">4</button>
+            <button type="button" class="btn" data-v="5">5</button>
+            <button type="button" class="btn" data-v="6">6</button>
+            <button type="button" class="btn op" data-v="-">-</button>
+
+            <!-- 4 -->
+            <button type="button" class="btn op" data-v="pi">π</button>
+            <button type="button" class="btn op" data-v="e">e</button>
+            <button type="button" class="btn op" data-v="x2">x²</button>
+            <button type="button" class="btn" data-v="1">1</button>
+            <button type="button" class="btn" data-v="2">2</button>
+            <button type="button" class="btn" data-v="3">3</button>
+            <button type="button" class="btn op" data-v="+">+</button>
+
+            <!-- 5 -->
+            <button type="button" class="btn"></button>
+            <button type="button" class="btn op warn colspan-2" data-v="BKSP">←</button>
+            <button type="button" class="btn" data-v="0">0</button>
+            <button type="button" class="btn" data-v=".">.</button>
+            <button type="button" class="btn equals colspan-2" data-v="=">=</button>
+        </div>
+    </div>
+</div>
+
+<div layout:fragment="script">
+    <script>
+        /* ===================== Safe Parser (No eval) ===================== */
+        function isNumber(t){ return /^[0-9]+(\.[0-9]+)?$/.test(t); }
+        function isFunc(t){ return ['sin','cos','tan','ln','log','sqrt'].includes(t); }
+
+        function tokenize(expr){
+            expr = expr.replace(/π/g, 'pi');
+
+            const tokens=[]; let i=0;
+            const isDigit = c => c >= '0' && c <= '9';
+            const isSpace = c => c === ' ' || c === '\t';
+
+            while(i < expr.length){
+                const c = expr[i];
+                if(isSpace(c)){ i++; continue; }
+
+                if(isDigit(c) || (c==='.' && isDigit(expr[i+1]))){
+                    let j=i+1; while(j<expr.length && (isDigit(expr[j]) || expr[j]==='.')) j++;
+                    tokens.push(expr.slice(i,j)); i=j; continue;
+                }
+
+                if('+-*/()%^'.includes(c)){ tokens.push(c); i++; continue; }
+
+                if(expr.startsWith('sin', i)){ tokens.push('sin'); i+=3; continue; }
+                if(expr.startsWith('cos', i)){ tokens.push('cos'); i+=3; continue; }
+                if(expr.startsWith('tan', i)){ tokens.push('tan'); i+=3; continue; }
+                if(expr.startsWith('ln',  i)){ tokens.push('ln');  i+=2; continue; }
+                if(expr.startsWith('log', i)){ tokens.push('log'); i+=3; continue; }
+                if(expr.startsWith('sqrt',i)){ tokens.push('sqrt');i+=4; continue; }
+
+                if(expr.startsWith('pi', i)){ tokens.push('3.141592653589793'); i+=2; continue; }
+                if(expr.startsWith('e',  i)){ tokens.push('2.718281828459045'); i+=1; continue; }
+
+                throw new Error('유효하지 않은 문자');
+            }
+
+            const out=[];
+            for(let k=0;k<tokens.length;k++){
+                const t=tokens[k];
+                if(t==='-' && (k===0 || ['+','-','*','/','^','(','%'].includes(tokens[k-1]) || isFunc(tokens[k-1]))){
+                    out.push('0','-');
+                }else out.push(t);
+            }
+            return out;
+        }
+
+        function toRPN(tokens){
+            const out=[], op=[];
+            const prec={ '%':4, '^':3, '*':2, '/':2, '+':1, '-':1 };
+            const rightAssoc={ '^':true };
+            const isOp = t => Object.prototype.hasOwnProperty.call(prec,t);
+
+            for(const t of tokens){
+                if(isNumber(t)) out.push(t);
+                else if(isFunc(t)) op.push(t);
+                else if(t==='(') op.push(t);
+                else if(t===')'){
+                    while(op.length && op[op.length-1] !== '(') out.push(op.pop());
+                    if(!op.length) throw new Error('괄호 불일치');
+                    op.pop();
+
+                    if(op.length && isFunc(op[op.length-1])) out.push(op.pop());
+                }
+                else if(t==='%'){ out.push('%'); } // postfix
+                else if(isOp(t)){
+                    while(op.length){
+                        const top=op[op.length-1];
+                        if(isOp(top) && ( (!rightAssoc[t] && prec[t] <= prec[top]) || (rightAssoc[t] && prec[t] < prec[top]) )){
+                            out.push(op.pop());
+                        }else break;
+                    }
+                    op.push(t);
+                } else {
+                    throw new Error('토큰 오류');
+                }
+            }
+            while(op.length){
+                const t=op.pop();
+                if(t==='(') throw new Error('괄호 불일치');
+                out.push(t);
+            }
+            return out;
+        }
+
+        function evalRPN(rpn){
+            const st=[];
+            for(const t of rpn){
+                if(isNumber(t)) st.push(Number(t));
+                else if(t==='%'){
+                    if(!st.length) throw new Error('퍼센트 오류');
+                    st.push(st.pop()/100);
+                }
+                else if(isFunc(t)){
+                    const a=st.pop();
+                    if(a===undefined) throw new Error('함수 인수 부족');
+                    let v;
+                    switch(t){
+                        case 'sin': v=Math.sin(a); break;
+                        case 'cos': v=Math.cos(a); break;
+                        case 'tan': v=Math.tan(a); break;
+                        case 'ln' : v=Math.log(a); break;
+                        case 'log': v=Math.log10 ? Math.log10(a) : (Math.log(a)/Math.LN10); break;
+                        case 'sqrt': v=Math.sqrt(a); break;
+                        default: throw new Error('함수 오류');
+                    }
+                    if(!Number.isFinite(v)) throw new Error('계산 불가');
+                    st.push(v);
+                }
+                else {
+                    const b=st.pop(), a=st.pop();
+                    if(a===undefined || b===undefined) throw new Error('수식 오류');
+                    let v;
+                    switch(t){
+                        case '+': v=a+b; break;
+                        case '-': v=a-b; break;
+                        case '*': v=a*b; break;
+                        case '/': v=(b===0? NaN : a/b); break;
+                        case '^': v=a**b; break;
+                        default: throw new Error('연산자 오류');
+                    }
+                    if(!Number.isFinite(v)) throw new Error('계산 불가');
+                    st.push(v);
+                }
+            }
+            if(st.length!==1) throw new Error('수식 오류');
+            return st[0];
+        }
+
+        function safeEvaluate(expr){
+            const tokens=tokenize(expr);
+            const rpn=toRPN(tokens);
+            return evalRPN(rpn);
+        }
+
+        const display = document.getElementById('display');
+        const preview = document.getElementById('preview');
+        const pad = document.getElementById('pad');
+
+        let expr = '0';
+
+        function setExpr(next){
+            expr = next || '0';
+            if(expr==='') expr='0';
+            display.value = expr;
+            try{
+                const v = safeEvaluate(expr);
+                preview.textContent = Number.isFinite(v) ? '= ' + v : '';
+            }catch{ preview.textContent=''; }
+        }
+        function append(s){
+            if(expr==='0' && /[0-9.]/.test(s)) setExpr(s);
+            else setExpr(expr + s);
+        }
+        function backspace(){
+            if(expr.length<=1){ setExpr('0'); return; }
+            setExpr(expr.slice(0,-1));
+        }
+        function clearAll(){ setExpr('0'); }
+        function clearEntry(){ setExpr('0'); }
+        function insertConst(name){
+            if(name==='pi') append('3.141592653589793');
+            if(name==='e')  append('2.718281828459045');
+        }
+        function wrapFunc(fn){ append(fn + '('); }
+        function squareNow(){
+            try{
+                const v = safeEvaluate(expr);
+                setExpr(String(v**2));
+            }catch{/* ignore */}
+        }
+        function equalsNow(){
+            try{
+                const v = safeEvaluate(expr);
+                setExpr(String(v));
+            }catch(e){
+                preview.textContent = '';
+                alert('유효하지 않은 수식입니다.');
+            }
+        }
+
+        pad.addEventListener('click', (e)=>{
+            const btn = e.target.closest('button');
+            if(!btn) return;
+            const v = btn.dataset.v;
+            if(!v) return;
+
+            switch(v){
+                case 'CE': clearEntry(); break;
+                case 'C' : clearAll(); break;
+                case 'BKSP': backspace(); break;
+                case '=': equalsNow(); break;
+                case 'sin': case 'cos': case 'tan': case 'ln': case 'log': case 'sqrt':
+                    wrapFunc(v); break;
+                case 'x2': squareNow(); break;
+                case 'pi': insertConst('pi'); break;
+                case 'e' : insertConst('e'); break;
+                default:
+                    append(v);
+            }
+        });
+
+        function mapNumpadKey(e) {
+            switch (e.code) {
+                case 'Numpad0': return '0';
+                case 'Numpad1': return '1';
+                case 'Numpad2': return '2';
+                case 'Numpad3': return '3';
+                case 'Numpad4': return '4';
+                case 'Numpad5': return '5';
+                case 'Numpad6': return '6';
+                case 'Numpad7': return '7';
+                case 'Numpad8': return '8';
+                case 'Numpad9': return '9';
+                case 'NumpadDecimal': return '.';
+                case 'NumpadComma': return '.'; // 로케일에 따라 , 인 경우 점으로 매핑
+                case 'NumpadAdd': return '+';
+                case 'NumpadSubtract': return '-';
+                case 'NumpadMultiply': return '*';
+                case 'NumpadDivide': return '/';
+                case 'NumpadEnter': return '=';
+                default: return null;
+            }
+        }
+
+        window.addEventListener('keydown', (e)=>{
+            const np = mapNumpadKey(e);
+            if (np !== null) {
+                e.preventDefault();
+                if (np === '=') { equalsNow(); return; }
+                if (/^[0-9]$/.test(np)) { append(np); return; }
+                if (np==='.' || np==='+' || np==='-' || np==='*' || np==='/' ) { append(np); return; }
+                return;
+            }
+
+            const k = e.key;
+
+            if (k === 'Enter' || k === '='){ e.preventDefault(); equalsNow(); return; }
+            if (k === 'Escape'){ e.preventDefault(); clearAll(); return; }
+            if (k === 'Backspace'){ e.preventDefault(); backspace(); return; }
+            if (k === 'Delete'){ e.preventDefault(); clearEntry(); return; }
+
+            if (/^[0-9]$/.test(k)){ append(k); return; }
+            if (k==='.' || k==='+' || k==='-' || k==='*' || k==='/' || k==='(' || k===')' || k==='%' || k==='^'){
+                append(k); return; }
+        });
+
+        setExpr(expr);
+    </script>
+</div>
+</body>
+</html>

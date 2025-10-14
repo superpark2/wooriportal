@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PC 정보 관리</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/style/skin/default/common/pcinfo.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content" class="pcinfo-container">
+
+    <div class="pcinfo-header">
+        <h1 class="pcinfo-title">
+            <i class="fas fa-desktop"></i>
+            <span th:text="${title} + ' ' + ${subTitle}" class="form-title">PC 정보 관리</span>
+        </h1>
+        <div class="header-controls">
+            <button class="btn btn-primary" id="addBuildingBtn">
+                <i class="fas fa-plus"></i>
+                건물 추가
+            </button>
+            <button class="btn btn-primary" id="addRoomBtn">
+                <i class="fas fa-plus"></i>
+                방 추가
+            </button>
+        </div>
+    </div>
+
+    <div class="building-section">
+        <div class="carousel-wrap">
+            <button class="carousel-btn carousel-prev" type="button" aria-label="이전 건물"><i class="fas fa-chevron-left"></i></button>
+            <div class="carousel-viewport">
+                <div class="building-list h-scroll">
+                </div>
+            </div>
+            <button class="carousel-btn carousel-next" type="button" aria-label="다음 건물"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div class="room-section" id="roomSection" style="display: none;">
+            <span class="selected-building" id="selectedBuildingName"></span>
+        <div class="carousel-wrap">
+            <button class="carousel-btn carousel-prev" type="button" aria-label="이전 방"><i class="fas fa-chevron-left"></i></button>
+            <div class="carousel-viewport">
+                <div class="room-list h-scroll" id="roomList">
+                </div>
+            </div>
+            <button class="carousel-btn carousel-next" type="button" aria-label="다음 방"><i class="fas fa-chevron-right"></i></button>
+        </div>
+    </div>
+
+    <div class="pc-table-section" id="pcTableSection" style="display: none;">
+        <div class="table-header">
+            <h3 class="table-title">
+                <i class="fas fa-desktop"></i>
+                PC 목록
+                <span class="selected-room" id="selectedRoomName"></span>
+            </h3>
+            <div class="table-controls">
+                <button class="btn btn-primary" id="btn-add">
+                    <i class="fas fa-plus"></i>
+                    PC 추가
+                </button>
+            </div>
+        </div>
+
+        <table class="pc-table">
+            <thead>
+            <tr>
+                <th class="col-1">Image</th>
+                <th class="col-1">#</th>
+                <th class="col-3">CPU</th>
+                <th class="col-1">RAM</th>
+                <th class="col-1">Storage</th>
+                <th class="col-2">VGA</th>
+                <th class="col-1">Monitor</th>
+                <th class="col-1">IP</th>
+                <th class="col-1">추가</th>
+            </tr>
+            </thead>
+            <tbody id="pcTableBody" class="pc-table-body">
+
+            </tbody>
+        </table>
+    </div>
+
+
+    <div class="modal-overlay" id="editModal" style="display:none;">
+        <div class="modal-content">
+            <h3 class="modal-title" id="editModalTitle">PC 정보 수정</h3>
+            <div class="modal-body">
+                <div class="image-upload-section">
+                    <div class="image-preview" id="editPcImagePreview">
+                        <img id="editPcPreviewImg" src="" alt="PC 이미지 미리보기">
+                    </div>
+                    <label><input type="file" id="editPcImage" accept="image/*"></label>
+                    <div class="image-delete-section" id="editPcImageDeleteSection" style="display: none;">
+                        <label><input type="checkbox" id="editPcImageDelete"> 기존 사진 삭제</label>
+                    </div>
+                </div>
+                <label>#: <input type="text" id="editPcSeat"></label><br>
+                <label>CPU: <input type="text" id="editPcCpu"></label><br>
+                <label>RAM: <input type="text" id="editPcRam"></label><br>
+                <label>Storage: <input type="text" id="editPcStorage"></label><br>
+                <label>VGA: <input type="text" id="editPcVga"></label><br>
+                <label>Monitor: <input type="text" id="editPcMonitor"></label><br>
+                <label>IP: <input type="text" id="editPcIp"></label><br>
+                <label>건물: 
+                    <select id="editPcBuilding"></select>
+                </label>
+                <label>방: 
+                    <select id="editPcRoom"></select>
+                </label>
+                <input id="editPcLocation" hidden>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" id="modalQrBtn"><i class="fas fa-qrcode"></i> QR</button>
+                <button class="btn btn-primary" id="modalSaveBtn">저장</button>
+                <button class="btn btn-danger" id="modalDeleteBtn">삭제</button>
+                <button class="btn btn-secondary" id="modalCancelEditBtn">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- === 이미지 뷰어 === -->
+    <div class="modal-overlay" id="imageViewer" style="display:none;">
+        <div class="modal-content" style="background: transparent; border:none; box-shadow:none; width:auto; max-width:none; padding:0;">
+            <img id="imageViewerImg" src="" alt="이미지" style="max-width:80dvw; max-height:80dvh; display:block; border-radius:8px;">
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="editLocationModal" style="display:none;">
+        <div class="modal-content">
+            <h3 class="modal-title" id="editLocationTitle">장소 수정</h3>
+            <div class="modal-body">
+                <div class="image-upload-section">
+                    <div class="image-preview" id="editLocationImagePreview">
+                        <img id="editLocationPreviewImg" src="" alt="장소 이미지 미리보기">
+                    </div>
+                    <label><input type="file" id="editLocationImage" accept="image/*"></label>
+                    <div class="image-delete-section" id="editLocationImageDeleteSection" style="display: none;">
+                        <label><input type="checkbox" id="editLocationImageDelete"> 기존 사진 삭제</label>
+                    </div>
+                </div>
+                <div id="editLocationBuildingSection" style="display: none;">
+                    <label>건물 선택: 
+                        <select id="editLocationBuilding">
+                            <option value="">건물을 선택하세요</option>
+                        </select>
+                    </label><br>
+                </div>
+                <label>이름: <input type="text" id="editLocationName"></label><br>
+                <label>설명: <input type="text" id="editLocationDescription"></label>
+                <input id="editLocationId" hidden>
+                <input id="editLocationType" hidden>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="modalSaveLocationBtn">수정</button>
+                <button class="btn btn-danger" id="modalDeleteLocationBtn">삭제</button>
+                <button class="btn btn-secondary" id="modalCancelLocationEditBtn">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal-overlay" id="qrModal" style="display:none;">
+        <div class="modal-content">
+            <h3 class="modal-title">QR 코드</h3>
+            <div class="modal-body" style="text-align:center;">
+                <div id="qrCodeContainer" style="display:flex; justify-content:center; width:100%;"></div>
+                <div id="qrLinkText" style="margin-top:12px; font-size:12px; color: var(--text-muted); word-break:break-all;"></div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-primary" id="qrGoLinkBtn">링크이동</button>
+                <button class="btn btn-success" id="qrSaveBtn">QR 저장</button>
+                <button class="btn btn-secondary" id="qrCloseBtn">취소</button>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div layout:fragment="script">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script th:inline="javascript">
+        const group = /*[[${group}]]*/ '';
+        let currentBuildingNum = null;
+        let currentRooms = [];
+        let selectedRoomNum = null;
+        let allBuildings = [];
+        let currentQrUrl = '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            getBuildingList();
+            
+            document.getElementById('addBuildingBtn').addEventListener('click', () => {
+                openLocationModal('building');
+            });
+            
+            document.getElementById('addRoomBtn').addEventListener('click', () => {
+                openLocationModal('room');
+            });
+
+            // 캐러셀 초기화 (빌딩 섹션은 최초 1회, 룸은 데이터 로드 후 재조정)
+            initCarousel(document.querySelector('.building-section'));
+        })
+
+        function getBuildingList() {
+            fetch('/location/list?type=building', {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(dto => {
+                    allBuildings = dto || [];
+                    const container = document.querySelector('.building-section .building-list');
+                    let html = '';
+                    dto.forEach(dto => {
+                        html += `
+                    <div class="building-card" data-building-num="${dto.locationNum}" 
+                         data-building-name="${dto.locationName}" 
+                         data-building-description="${dto.locationDescription}"
+                         data-building-image="${dto.locationImageMeta || ''}">
+                        <div class="building-icon">
+                            ${dto.locationImageMeta ? `<img src="${dto.locationImageMeta}" alt="${dto.locationName}">` : '<i class="fas fa-building"></i>'}
+                        </div>
+                        <div class="building-info">
+                            <h3 class="building-name">${dto.locationName}</h3>
+                            <p class="building-description">${dto.locationDescription}</p>
+                        </div>
+                    </div>
+                `;
+                    });
+                    container.innerHTML = html;
+                    // 빌딩 리스트 드래그 스크롤 및 버튼 상태 갱신
+                    refreshCarousel(document.querySelector('.building-section'));
+                    clickBuildingCard();
+                })
+                .catch(() => {});
+        }
+
+
+        function clickBuildingCard() {
+            const buildingCard = document.querySelectorAll('.building-card');
+            
+            buildingCard.forEach((buildingCard) => {
+                const selectBuilding = buildingCard.dataset.buildingNum;
+                
+                buildingCard.addEventListener('click', () => {
+                    getRoomList(selectBuilding);
+                });
+                
+                const buildingIcon = buildingCard.querySelector('.building-icon');
+                
+                if (buildingIcon) {
+                    buildingIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const buildingData = {
+                            locationNum: buildingCard.dataset.buildingNum,
+                            locationName: buildingCard.dataset.buildingName,
+                            locationDescription: buildingCard.dataset.buildingDescription,
+                            locationImageMeta: buildingCard.dataset.buildingImage
+                        };
+                        openLocationModal('building', buildingData);
+                    });
+                }
+            })
+        }
+
+        function getRoomList(selectBuilding) {
+            fetch('/location/list?type=room&buildingNum=' + selectBuilding, {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(dto => {
+                    currentBuildingNum = selectBuilding;
+                    currentRooms = dto || [];
+                    const container = document.querySelector('.room-section .room-list');
+                    let html = '';
+                    dto.forEach(dto => {
+                        html += `
+                    <div class="room-card" data-room-num="${dto.locationNum}"
+                         data-room-name="${dto.locationName}" 
+                         data-room-description="${dto.locationDescription}"
+                         data-room-image="${dto.locationImageMeta || ''}"
+                         data-room-parent="${dto.locationParent ? dto.locationParent.locationNum : ''}">
+                        <div class="room-icon">
+                            ${dto.locationImageMeta ? `<img src="${dto.locationImageMeta}" alt="${dto.locationName}">` : '<i class="fas fa-door-open"></i>'}
+                        </div>
+                        <div class="room-info">
+                            <h3 class="room-name">${dto.locationName}</h3>
+                            <p class="room-description">${dto.locationDescription}</p>
+                        </div>
+                    </div>
+                `;
+                    });
+                    container.innerHTML = html;
+                    const roomSection = document.querySelector('.room-section');
+                    roomSection.style.display = 'block';
+                    // 룸 리스트 캐러셀 갱신
+                    refreshCarousel(roomSection);
+                    clickRoomCard();
+                })
+                .catch(() => {});
+        }
+
+        //추가
+        function populateRoomSelect(targetSelectId, selectedRoomId) {
+            const select = document.getElementById(targetSelectId);
+            if (!select) return;
+            select.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '방을 선택하세요';
+            select.appendChild(placeholder);
+
+            currentRooms.forEach(room => {
+                const opt = document.createElement('option');
+                opt.value = room.locationNum;
+                opt.textContent = room.locationName;
+                if (String(room.locationNum) === String(selectedRoomId)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        //수정
+        function loadRoomsForBuilding(buildingId, selectedRoomId) {
+            if (!buildingId) {
+                currentRooms = [];
+                populateRoomSelect('editPcRoom', '');
+                return;
+            }
+            fetch('/location/list?type=room&buildingNum=' + buildingId)
+                .then(res => res.json())
+                .then(rooms => {
+                    currentRooms = rooms || [];
+                    populateRoomSelect('editPcRoom', selectedRoomId || '');
+                })
+                .catch(() => {});
+        }
+
+        //수정
+        function populateBuildingSelect(targetSelectId, selectedBuildingId) {
+            const select = document.getElementById(targetSelectId);
+            if (!select) return;
+            select.innerHTML = '';
+            const placeholder = document.createElement('option');
+            placeholder.value = '';
+            placeholder.textContent = '건물을 선택하세요';
+            select.appendChild(placeholder);
+
+            allBuildings.forEach(b => {
+                const opt = document.createElement('option');
+                opt.value = b.locationNum;
+                opt.textContent = b.locationName;
+                if (String(b.locationNum) === String(selectedBuildingId)) {
+                    opt.selected = true;
+                }
+                select.appendChild(opt);
+            });
+        }
+
+        function ensureBuildingsThen(cb) {
+            if (allBuildings && allBuildings.length > 0) {
+                cb();
+                return;
+            }
+            fetch('/location/list?type=building', { method: 'GET' })
+                .then(res => res.json())
+                .then(list => { allBuildings = list || []; cb(); })
+                .catch(() => cb());
+        }
+
+        //수정
+        function clickRoomCard() {
+            const roomCard = document.querySelectorAll('.room-card');
+            
+            roomCard.forEach(roomCard => {
+                const selectRoom = roomCard.dataset.roomNum;
+                
+                roomCard.addEventListener('click', () => {
+                    selectedRoomNum = selectRoom;
+                    getPcInfo(selectRoom);
+                });
+
+                const roomIcon = roomCard.querySelector('.room-icon');
+                
+                if (roomIcon) {
+                    roomIcon.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        const roomData = {
+                            locationNum: roomCard.dataset.roomNum,
+                            locationName: roomCard.dataset.roomName,
+                            locationDescription: roomCard.dataset.roomDescription,
+                            locationImageMeta: roomCard.dataset.roomImage,
+                            locationParent: roomCard.dataset.roomParent
+                        };
+                        openLocationModal('room', roomData);
+                    });
+                }
+            })
+        }
+
+        //수정
+        function getPcInfo(selectRoom) {
+            fetch('/facility/pcinfo/pclist?location=' + selectRoom, {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(pc => {
+                    
+                    let html = '';
+                    const container = document.querySelector('.pc-table-body');
+                    pc.forEach(pc => {
+                        html += `
+                                    <tr>
+                                        <td class="col-image">${pc.pcInfoImageMeta ? `<div class="pc-image"><img class=\"pc-thumb\" src=\"${pc.pcInfoImageMeta}\" alt=\"PC\"></div>` : '—'}</td>
+                                        <td class="col-room">${pc.pcInfoSeatNum}</td>
+                                        <td class="col-cpu">${pc.pcInfoCpu}</td>
+                                        <td class="col-ram">${pc.pcInfoRam}</td>
+                                        <td class="col-storage">${pc.pcInfoStorage}</td>
+                                        <td class="col-vga">${pc.pcInfoVga}</td>
+                                        <td class="col-monitor">${pc.pcInfoMonitor}</td>
+                                        <td class="col-ip">${pc.pcInfoIp}</td>
+                                        <td class="col-actions">
+                                            <button class="btn btn-primary btn-edit" 
+                                                    data-pc-info-num="${pc.pcInfoNum}"
+                                                    data-pc-seat="${pc.pcInfoSeatNum}"
+                                                    data-pc-cpu="${pc.pcInfoCpu}"
+                                                    data-pc-ram="${pc.pcInfoRam}"
+                                                    data-pc-storage="${pc.pcInfoStorage}"
+                                                    data-pc-vga="${pc.pcInfoVga}"
+                                                    data-pc-monitor="${pc.pcInfoMonitor}"
+                                                    data-pc-ip="${pc.pcInfoIp}"
+                                                    data-pc-image="${pc.pcInfoImageMeta || ''}"
+                                                    data-pc-location="${pc.locationNum}"
+                                                    data-pc-building="${currentBuildingNum}">수정</button>
+                                        </td>
+                                    </tr>
+                            `;
+                    })
+
+                    container.innerHTML = html;
+                    document.querySelector('.pc-table-section').style.display = 'block';
+
+                    container.querySelectorAll('.btn-edit').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const pcData = {
+                                pcInfoNum: btn.dataset.pcInfoNum,
+                                pcInfoSeatNum: btn.dataset.pcSeat,
+                                pcInfoCpu: btn.dataset.pcCpu,
+                                pcInfoRam: btn.dataset.pcRam,
+                                pcInfoStorage: btn.dataset.pcStorage,
+                                pcInfoVga: btn.dataset.pcVga,
+                                pcInfoMonitor: btn.dataset.pcMonitor,
+                                pcInfoIp: btn.dataset.pcIp,
+                                pcInfoImageMeta: btn.dataset.pcImage,
+                                locationNum: btn.dataset.pcLocation,
+                                pcBuilding: btn.dataset.pcBuilding
+                            };
+                            openPcModal(pcData);
+                        });
+                    });
+
+                    // 이미지 클릭 확대 보기
+                    container.querySelectorAll('.pc-image img').forEach(img => {
+                        img.style.cursor = 'zoom-in';
+                        img.addEventListener('click', () => openImageViewer(img.src));
+                    });
+
+                    document.getElementById('btn-add').addEventListener('click', () => {
+                        openPcModal(null, selectRoom);
+                    });
+
+                    container.querySelectorAll('.btn-delete').forEach(btn => {
+                        btn.addEventListener('click', () => {
+                            const pcNum = btn.dataset.pcInfoNum;
+                            if (confirm(`${pcNum}번 PC 정보를 삭제하시겠습니까?`)) {
+                                    fetch('/facility/pcinfo/delete?pcInfoNum=' + pcNum, { method: 'DELETE' })
+                                        .then(() => getPcInfo(selectRoom)) // 삭제 후 목록 갱신
+                                        .catch(() => {});
+                                }
+                        });
+                    });
+                })
+        }
+
+        //수정
+        function openPcModal(pcData = null, roomNum = null) {
+            const modal = document.getElementById('editModal');
+            modal.style.display = 'flex';
+
+            // 입력 필드 초기화
+            const fields = ['Seat', 'Cpu', 'Ram', 'Storage', 'Vga', 'Monitor', 'Ip'];
+            fields.forEach(id => document.getElementById(`editPc${id}`).value = '');
+            document.getElementById('editPcImage').value = '';
+            document.getElementById('editPcImagePreview').style.display = 'none';
+            document.getElementById('editPcImageDeleteSection').style.display = 'none';
+
+            // 삭제 버튼 기본 숨김
+            const deleteBtn = document.getElementById('modalDeleteBtn');
+            deleteBtn.style.display = 'none';
+
+            const saveBtn = document.getElementById('modalSaveBtn');
+            const qrBtn = document.getElementById('modalQrBtn');
+            const title = document.getElementById('editModalTitle');
+
+            // --- 수정 모드 ---
+            if (pcData) {
+                title.textContent = 'PC 정보 수정';
+                deleteBtn.style.display = 'inline-flex';
+                if (qrBtn) {
+                    qrBtn.style.display = 'inline-flex';
+                    qrBtn.onclick = () => openQrModal(pcData.pcInfoNum);
+                }
+
+                // 값 채우기
+                document.getElementById('editPcSeat').value = pcData.pcInfoSeatNum;
+                document.getElementById('editPcCpu').value = pcData.pcInfoCpu;
+                document.getElementById('editPcRam').value = pcData.pcInfoRam;
+                document.getElementById('editPcStorage').value = pcData.pcInfoStorage;
+                document.getElementById('editPcVga').value = pcData.pcInfoVga;
+                document.getElementById('editPcMonitor').value = pcData.pcInfoMonitor;
+                document.getElementById('editPcIp').value = pcData.pcInfoIp;
+                document.getElementById('editPcLocation').value = pcData.locationNum;
+                // 건물/방 셀렉트 채우기
+                // pcData.locationNum은 방 번호이므로, 해당 방의 parent 건물을 추정: currentRooms에서 찾거나 fallback으로 currentBuildingNum 사용
+                let buildingForRoom = pcData.pcBuilding || currentBuildingNum;
+                populateBuildingSelect('editPcBuilding', buildingForRoom);
+                // 건물 선택이 보이도록 보장 및 방 목록 동기화
+                const buildingSelect = document.getElementById('editPcBuilding');
+                buildingSelect.style.display = '';
+                document.querySelector('label select#editPcBuilding')?.parentElement?.removeAttribute('style');
+                // 반드시 해당 건물의 방 목록으로 로드하여 현재 방을 선택
+                loadRoomsForBuilding(buildingForRoom, pcData.locationNum);
+
+                // 건물 변경 시 방 목록 갱신
+                document.getElementById('editPcBuilding').onchange = (e) => {
+                    const b = e.target.value;
+                    if (!b) return;
+                    fetch('/location/list?type=room&buildingNum=' + b)
+                        .then(res => res.json())
+                        .then(rooms => {
+                            currentRooms = rooms || [];
+                            populateRoomSelect('editPcRoom', '');
+                        });
+                };
+
+                if (pcData.pcInfoImageMeta) {
+                    const previewImgEl = document.getElementById('editPcPreviewImg');
+                    previewImgEl.src = pcData.pcInfoImageMeta;
+                    document.getElementById('editPcImagePreview').style.display = 'flex';
+                    document.getElementById('editPcImageDeleteSection').style.display = 'block';
+                    previewImgEl.style.cursor = 'zoom-in';
+                    previewImgEl.onclick = () => openImageViewer(previewImgEl.src);
+                } else {
+                    const previewImgEl = document.getElementById('editPcPreviewImg');
+                    previewImgEl.src = '';
+                    previewImgEl.onclick = null;
+                    previewImgEl.style.cursor = 'default';
+                    document.getElementById('editPcImagePreview').style.display = 'none';
+                    document.getElementById('editPcImageDeleteSection').style.display = 'none';
+                }
+
+                // 삭제 이벤트
+                deleteBtn.onclick = () => {
+                    if (!confirm("PC를 삭제하시겠습니까?")) return;
+                    fetch(`/facility/pcinfo/delete?pcInfoNum=${pcData.pcInfoNum}`, { method: 'DELETE' })
+                        .then(() => {
+                            modal.style.display = 'none';
+                            getPcInfo(pcData.locationNum);
+                        })
+                        .catch(() => {});
+                };
+            }
+
+            // --- 추가 ---
+            else {
+                title.textContent = 'PC 정보 추가';
+                if (qrBtn) {
+                    qrBtn.style.display = 'none';
+                    qrBtn.onclick = null;
+                }
+                document.getElementById('editPcLocation').value = roomNum;
+                populateBuildingSelect('editPcBuilding', currentBuildingNum);
+                const buildingSelect2 = document.getElementById('editPcBuilding');
+                buildingSelect2.style.display = '';
+                document.querySelector('label select#editPcBuilding')?.parentElement?.removeAttribute('style');
+                loadRoomsForBuilding(currentBuildingNum, roomNum);
+                document.getElementById('editPcBuilding').onchange = (e) => {
+                    const b = e.target.value;
+                    if (!b) return;
+                    fetch('/location/list?type=room&buildingNum=' + b)
+                        .then(res => res.json())
+                        .then(rooms => {
+                            currentRooms = rooms || [];
+                            populateRoomSelect('editPcRoom', '');
+                        });
+                };
+            }
+
+            // 저장
+            saveBtn.onclick = () => {
+                const selectedRoom = document.getElementById('editPcRoom').value || (pcData ? pcData.locationNum : roomNum);
+                const fieldMap = { Seat: 'pcInfoSeatNum', Cpu: 'pcInfoCpu', Ram: 'pcInfoRam', Storage: 'pcInfoStorage', Vga: 'pcInfoVga', Monitor: 'pcInfoMonitor', Ip: 'pcInfoIp' };
+                const formData = new FormData();
+                formData.append('locationNum', selectedRoom);
+                fields.forEach(id => { formData.append(fieldMap[id], document.getElementById(`editPc${id}`).value); });
+                if (pcData) formData.append('pcInfoNum', pcData.pcInfoNum);
+
+                const imageFile = document.getElementById('editPcImage').files[0];
+                if (imageFile) formData.append('pcInfoImage', imageFile);
+                if (document.getElementById('editPcImageDelete').checked) formData.append('imageDelete', 'true');
+
+                const confirmText = pcData ? "PC 정보를 수정하시겠습니까?" : "새 PC를 추가하시겠습니까?";
+                if (!confirm(confirmText)) return;
+
+                fetch('/facility/pcinfo/add', { method: 'POST', body: formData })
+                    .then(() => {
+                        modal.style.display = 'none';
+                        // 수정 시에는 방이 바뀌었을 수 있으니, 최신 선택값으로 목록 갱신
+                        const refreshRoom = pcData ? (document.getElementById('editPcRoom').value || pcData.locationNum) : roomNum;
+                        getPcInfo(refreshRoom);
+                    })
+                    .catch(() => {});
+            };
+
+            document.getElementById('editPcImage').addEventListener('change', (e) => {
+                handleImagePreview(e, 'editPcPreviewImg', 'editPcImagePreview');
+                const previewImgEl = document.getElementById('editPcPreviewImg');
+                if (previewImgEl && previewImgEl.src) {
+                    previewImgEl.style.cursor = 'zoom-in';
+                    previewImgEl.onclick = () => openImageViewer(previewImgEl.src);
+                }
+            });
+
+            document.getElementById('modalCancelEditBtn').onclick = () => modal.style.display = 'none';
+            modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+        }
+
+
+        //수정
+        function openLocationModal(locationType, locationData = null) {
+            const modal = document.getElementById('editLocationModal');
+            modal.style.display = 'flex';
+
+            document.getElementById('editLocationId').value = locationData?.locationNum || '';
+            document.getElementById('editLocationName').value = locationData?.locationName || '';
+            document.getElementById('editLocationDescription').value = locationData?.locationDescription || '';
+            document.getElementById('editLocationImage').value = '';
+            document.getElementById('editLocationImageDelete').checked = false;
+            document.getElementById('editLocationType').value = locationType;
+
+            const title = locationData ? `${locationData.locationName} 수정` : (locationType === 'building' ? '건물 추가' : '방 추가');
+            document.getElementById('editLocationTitle').textContent = title;
+
+            const buildingSection = document.getElementById('editLocationBuildingSection');
+            const buildingSelectEl = document.getElementById('editLocationBuilding');
+            if (locationType === 'room') {
+                if (locationData) {
+                    buildingSection.style.display = 'none';
+                } else {
+                    buildingSection.style.display = 'block';
+                    if (buildingSelectEl) buildingSelectEl.disabled = false;
+                    loadBuildingSelect('editLocationBuilding', locationData?.locationParent || '');
+                }
+            } else {
+                buildingSection.style.display = 'none';
+                if (buildingSelectEl) buildingSelectEl.disabled = false;
+            }
+
+            const preview = document.getElementById('editLocationImagePreview');
+            const previewImg = document.getElementById('editLocationPreviewImg');
+            const deleteSection = document.getElementById('editLocationImageDeleteSection');
+
+            if (locationData?.locationImageMeta) {
+                previewImg.src = locationData.locationImageMeta;
+                preview.style.display = 'flex';
+                deleteSection.style.display = 'block';
+                previewImg.style.cursor = 'zoom-in';
+                previewImg.onclick = () => openImageViewer(previewImg.src);
+            } else {
+                previewImg.src = '';
+                preview.style.display = 'none';
+                deleteSection.style.display = 'none';
+                previewImg.onclick = null;
+                previewImg.style.cursor = 'default';
+            }
+
+            // 삭제
+            const deleteBtn = document.getElementById('modalDeleteLocationBtn');
+            deleteBtn.style.display = locationData ? 'inline-flex' : 'none';
+
+            // 저장
+            document.getElementById('modalSaveLocationBtn').onclick = () => {
+                if (!confirm(locationData ? "장소 정보를 수정하시겠습니까?" : "새 장소를 추가하시겠습니까?")) return;
+
+                const formData = new FormData();
+                if (locationData?.locationNum) formData.append('locationNum', locationData.locationNum);
+                formData.append('locationName', document.getElementById('editLocationName').value);
+                formData.append('locationDescription', document.getElementById('editLocationDescription').value);
+                formData.append('locationType', locationType);
+
+                if (locationType === 'room') {
+                    const buildingSectionVisible = document.getElementById('editLocationBuildingSection').style.display !== 'none';
+                    if (buildingSectionVisible) {
+                        const parent = document.getElementById('editLocationBuilding').value;
+                        if (!parent) {
+                            alert('건물을 선택해주세요.');
+                            return;
+                        }
+                        formData.append('locationParent.locationNum', parent);
+                    } else {
+                        if (locationData?.locationParent) {
+                            formData.append('locationParent.locationNum', locationData.locationParent);
+                        }
+                    }
+                }
+
+                const imageFile = document.getElementById('editLocationImage').files[0];
+                if (imageFile) formData.append('locationImage', imageFile);
+                if (document.getElementById('editLocationImageDelete').checked) formData.append('imageDelete', 'true');
+
+                fetch('/location/add', { method: 'POST', body: formData })
+                    .then(() => {
+                        modal.style.display = 'none';
+                        getBuildingList();
+                        if (locationType === 'room' && currentBuildingNum) {
+                            getRoomList(currentBuildingNum);
+                        }
+                    })
+                    .catch(() => {});
+            };
+
+            deleteBtn.onclick = () => {
+                if (!confirm("정말 삭제하시겠습니까?")) return;
+                const fd = new FormData();
+                fd.append('locationNum', locationData.locationNum);
+                fetch('/location/delete', { method: 'POST', body: fd })
+                    .then(() => {
+                        modal.style.display = 'none';
+                        getBuildingList();
+                        if (currentBuildingNum) {
+                            getRoomList(currentBuildingNum);
+                        }
+                    })
+                    .catch(() => {});
+            };
+
+            document.getElementById('editLocationImage').onchange = (e) => {
+                handleImagePreview(e, 'editLocationPreviewImg', 'editLocationImagePreview');
+                const previewImg2 = document.getElementById('editLocationPreviewImg');
+                if (previewImg2 && previewImg2.src) {
+                    previewImg2.style.cursor = 'zoom-in';
+                    previewImg2.onclick = () => openImageViewer(previewImg2.src);
+                }
+            };
+            document.getElementById('modalCancelLocationEditBtn').onclick = () => modal.style.display = 'none';
+            modal.onclick = (e) => { if (e.target === modal) modal.style.display = 'none'; };
+        }
+
+
+        //수정
+        function loadBuildingSelect(selectId, selectedBuildingId = null) {
+            fetch('/location/list?type=building', {
+                method: 'GET'
+            }).then(response => response.json())
+                .then(buildings => {
+                    const select = document.getElementById(selectId);
+                    select.innerHTML = '<option value="">건물을 선택하세요</option>';
+                    
+                    buildings.forEach(building => {
+                        const option = document.createElement('option');
+                        option.value = building.locationNum;
+                        option.textContent = building.locationName;
+                        if (selectedBuildingId && building.locationNum == selectedBuildingId) {
+                            option.selected = true;
+                        }
+                        select.appendChild(option);
+                    });
+                })
+                .catch(() => {});
+        }
+
+        //수정
+        function handleImagePreview(event, imgId, previewId) {
+            const file = event.target.files[0];
+            const previewImg = document.getElementById(imgId);
+            const previewDiv = document.getElementById(previewId);
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewImg.src = e.target.result;
+                    previewDiv.style.display = 'flex';
+                };
+                reader.readAsDataURL(file);
+            } else {
+                previewDiv.style.display = 'none';
+            }
+        }
+
+        //삭제
+        function openImageViewer(src) {
+            const viewer = document.getElementById('imageViewer');
+            const img = document.getElementById('imageViewerImg');
+            img.src = src;
+            viewer.style.display = 'flex';
+            viewer.onclick = (e) => {
+                if (e.target === viewer) viewer.style.display = 'none';
+            };
+        }
+
+
+        function openQrModal(pcInfoNum) {
+            const overlay = document.getElementById('qrModal');
+            const container = document.getElementById('qrCodeContainer');
+            const linkText = document.getElementById('qrLinkText');
+            if (!overlay || !container) return;
+
+            container.innerHTML = '';
+            const urlPath = `/pcinfo/view/${pcInfoNum}`;
+            const url = location.origin + urlPath;
+            currentQrUrl = url;
+
+            try {
+                new QRCode(container, {
+                    text: url,
+                    width: 240,
+                    height: 240,
+                    correctLevel: QRCode.CorrectLevel.H
+                });
+            } catch (e) { /* ignore */ }
+
+            if (linkText) linkText.textContent = url;
+            overlay.style.display = 'flex';
+        }
+
+        const qrGoBtn = document.getElementById('qrGoLinkBtn');
+        if (qrGoBtn) qrGoBtn.onclick = () => { if (currentQrUrl) location.href = currentQrUrl; };
+
+        const qrSaveBtn = document.getElementById('qrSaveBtn');
+        if (qrSaveBtn) qrSaveBtn.onclick = () => {
+            const container = document.getElementById('qrCodeContainer');
+            if (!container) return;
+            const canvas = container.querySelector('canvas');
+            let dataUrl = '';
+            if (canvas && canvas.toDataURL) {
+                dataUrl = canvas.toDataURL('image/png');
+            } else {
+                const img = container.querySelector('img');
+                if (img && img.src) dataUrl = img.src;
+            }
+            if (!dataUrl) return;
+            const a = document.createElement('a');
+            a.href = dataUrl;
+            a.download = 'pcinfo_qr.png';
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+        };
+
+        const qrCloseBtn = document.getElementById('qrCloseBtn');
+        if (qrCloseBtn) qrCloseBtn.onclick = () => {
+            const overlay = document.getElementById('qrModal');
+            if (overlay) overlay.style.display = 'none';
+        };
+
+        const qrOverlay = document.getElementById('qrModal');
+        if (qrOverlay) qrOverlay.onclick = (e) => {
+            if (e.target === qrOverlay) qrOverlay.style.display = 'none';
+        };
+
+
+        // === 캐러셀 유틸 ===
+        function initCarousel(sectionEl) {
+            if (!sectionEl) return;
+            const viewport = sectionEl.querySelector('.carousel-viewport');
+            const listEl = sectionEl.querySelector('.building-list, .room-list');
+            const prevBtn = sectionEl.querySelector('.carousel-prev');
+            const nextBtn = sectionEl.querySelector('.carousel-next');
+            if (!viewport || !listEl || !prevBtn || !nextBtn) return;
+
+            enableDragScroll(viewport);
+
+            const scrollAmount = () => Math.max(200, Math.floor(viewport.clientWidth * 0.8));
+
+            prevBtn.onclick = () => viewport.scrollBy({ left: -scrollAmount(), behavior: 'smooth' });
+            nextBtn.onclick = () => viewport.scrollBy({ left: scrollAmount(), behavior: 'smooth' });
+
+            const updateDisabled = () => {
+                const maxScrollLeft = viewport.scrollWidth - viewport.clientWidth - 1;
+                prevBtn.disabled = viewport.scrollLeft <= 0;
+                nextBtn.disabled = viewport.scrollLeft >= maxScrollLeft;
+            };
+            viewport.addEventListener('scroll', updateDisabled, { passive: true });
+            window.addEventListener('resize', updateDisabled);
+            setTimeout(updateDisabled, 0);
+        }
+
+        function refreshCarousel(sectionEl) {
+            // 데이터가 다시 렌더된 후 드래그 및 버튼 상태 재적용
+            initCarousel(sectionEl);
+        }
+
+        function enableDragScroll(scrollEl) {
+            if (!scrollEl) return;
+            let isDown = false;
+            let startX = 0;
+            let startScrollLeft = 0;
+            let hasMoved = false;
+
+            const onDown = (e) => {
+                isDown = true;
+                hasMoved = false;
+                startX = (e.touches ? e.touches[0].pageX : e.pageX);
+                startScrollLeft = scrollEl.scrollLeft;
+                scrollEl.classList.add('dragging');
+            };
+            const onMove = (e) => {
+                if (!isDown) return;
+                const x = (e.touches ? e.touches[0].pageX : e.pageX);
+                const walk = (x - startX) * -1; // 반대로 이동
+                if (Math.abs(walk) > 2) hasMoved = true;
+                scrollEl.scrollLeft = startScrollLeft + walk;
+                // 즉시 스크롤 반영 및 기본 제스처 차단
+                if (e.cancelable) e.preventDefault();
+            };
+            const onUp = (e) => {
+                isDown = false;
+                scrollEl.classList.remove('dragging');
+            };
+
+            // 마우스
+            scrollEl.addEventListener('mousedown', onDown);
+            scrollEl.addEventListener('mousemove', onMove);
+            window.addEventListener('mouseup', onUp);
+
+            // 터치
+            scrollEl.addEventListener('touchstart', onDown, { passive: true });
+            scrollEl.addEventListener('touchmove', onMove, { passive: false });
+            scrollEl.addEventListener('touchend', onUp);
+
+            // 드래그 후 클릭 억제 (즉시 반응성 개선 및 오동작 방지)
+            scrollEl.addEventListener('click', (e) => {
+                if (hasMoved) {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    hasMoved = false;
+                }
+            }, true);
+        }
+    </script>
+</div>
+
+</body>
+</html>

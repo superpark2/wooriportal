@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<!--/*@thymesVar id="board" type="com.park.welstory.wooriportal.common.board.BoardDTO"*/-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Woori Portal Dashboard</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/style/skin/default/common/board/list.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content" class="dashboard-container">
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main-content">
+
+
+        <!-- 테이블 섹션 -->
+        <section class="table-section">
+            <div class="table-header">
+                <h3 th:text="${title} + ' ' + ${subTitle}" class="form-title">타이틀</h3>
+                <div class="table-controls">
+                    <select class="entries-selector">
+                        <option value="10">페이지당 10개 항목</option>
+                        <option value="25">페이지당 25개 항목</option>
+                        <option value="50">페이지당 50개 항목</option>
+                        <option value="100">페이지당 100개 항목</option>
+                    </select>
+                    <input type="text" class="search-box" placeholder="검색...">
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th class="col-1">종류</th>
+                    <th class="col-5">제목</th>
+                    <th class="col-2">작성자</th>
+                    <th class="col-2">작성일</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                <tr th:each="board : ${boardList.getContent()}">
+                    <td th:text="${board.Category}"></td>
+                    <td><a th:href="@{|/${group}/${category}/detail/${board.BoardNum}|}"
+                           th:text="${board.BoardTitle}"></a></td>
+                    <td th:text="${board.Member.MemberName}"></td>
+                    <td th:text="${#temporals.format(board.createdAt, 'yyyy-MM-dd HH:mm')}"></td>
+                </tr>
+
+                <tr th:if="${boardList.isEmpty()}">
+                    <td colspan="5" class="empty-data">
+                        데이터가 없습니다. 새 항목을 추가해주세요.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!--페이징-->
+            <div class="row m-0 p-0 mt-3" th:if="${boardList.totalPages > 0}">
+                <div class="col-3"></div>
+                <ul class="col-6 pagination justify-content-center col">
+                    <!-- 처음 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${boardList.number == 0} ? 'disabled'">
+                        <a class="page-link" th:href="@{|/${group}/${category}/list?page=0|}">처음</a>
+                    </li>
+
+                    <!-- 이전 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${!boardList.hasPrevious()} ? 'disabled'">
+                        <a class="page-link" th:href="@{|/${group}/${category}/list?page=${boardList.number - 1}|}">이전</a>
+                    </li>
+
+                    <!-- 현재 페이지 기준 앞 4개, 뒤 5개 -->
+                    <li class="page-item"
+                        th:each="pageNum : ${#numbers.sequence(
+                (boardList.number - 4 > 0 ? boardList.number - 4 : 0),
+                (boardList.number + 5 < boardList.totalPages - 1 ? boardList.number + 5 : boardList.totalPages - 1)
+            )}"
+                        th:classappend="${pageNum == boardList.number} ? 'active'">
+                        <a class="page-link" th:href="@{|/${group}/${category}/list?page=${pageNum}|}" th:text="${pageNum + 1}"></a>
+                    </li>
+
+                    <!-- 다음 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${!boardList.hasNext()} ? 'disabled'">
+                        <a class="page-link" th:href="@{|/${group}/${category}/list?page=${boardList.number + 1}|}">다음</a>
+                    </li>
+
+                    <!-- 마지막 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${boardList.number == boardList.totalPages - 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{|/${group}/${category}/list?page=${boardList.totalPages - 1}|}">마지막</a>
+                    </li>
+                </ul>
+
+            </div>
+
+
+
+
+
+
+
+        </section>
+    </main>
+
+    <div class="button-container">
+    <a class="write-button" th:href="'/' + ${group} + '/' + ${category} + '/write'">작성</a>
+    </div>
+
+</div>
+
+
+</body>
+</html>

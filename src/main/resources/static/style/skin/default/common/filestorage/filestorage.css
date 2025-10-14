@@ -1,0 +1,232 @@
+.filestorage-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 20px;
+}
+
+.page-title-center {
+    text-align: center;
+    color: var(--text-primary);
+    margin-top: 0;
+    margin-bottom: 10px;
+    font-size: 28px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+.filestorage-topbar {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    flex-wrap: wrap;
+}
+
+.filestorage-actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.filestorage-btn {
+    font-size: 15px;
+    font-weight: bold;
+    border-radius: 6px;
+    border: 2px solid var(--accent-main);
+    background: linear-gradient(145deg, var(--bg-surface), var(--bg-surface));
+    color: var(--text-primary);
+    padding: 10px 20px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    white-space: nowrap;
+    text-decoration: none;
+    display: inline-block;
+    box-shadow: 0 2px 8px var(--shadow-soft);
+}
+
+.filestorage-btn:hover {
+    background: linear-gradient(145deg, var(--bg-surface), var(--bg-hover));
+    color: var(--text-primary);
+    border-color: var(--accent-dark);
+    box-shadow: 0 0 15px var(--shadow-strong);
+}
+
+.filestorage-search-section {
+    margin-bottom: 20px;
+}
+
+.filestorage-search {
+    width: 100%;
+}
+
+.filestorage-tree-container {
+    background: linear-gradient(90deg, var(--bg-surface), var(--bg-body));
+    border: 1px solid var(--border-strong);
+    border-radius: 12px;
+    padding: 20px;
+    min-height: 500px;
+    box-shadow:
+            inset 0 0 0 1px color-mix(in srgb, var(--accent-main) 12%, transparent),
+            inset 0 8px 24px var(--shadow-soft),
+            0 10px 24px var(--shadow-strong),
+            0 0 24px color-mix(in srgb, var(--accent-light) 10%, transparent);
+}
+
+.filestorage-search input {
+    width: 96%;
+    padding: 12px 16px;
+    border: 1.5px solid var(--border-light);
+    border-radius: 8px;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    font-size: 14px;
+    transition: all 0.3s ease;
+    box-shadow:
+            inset 0 2px 8px var(--shadow-soft),
+            inset 0 0 0 1px color-mix(in srgb, var(--border) 60%, transparent);
+}
+
+.filestorage-search input:focus {
+    outline: none;
+    border-color: var(--accent-main);
+    background: var(--bg-body);
+    box-shadow:
+            0 0 0 2px color-mix(in srgb, var(--accent-main) 45%, transparent),
+            0 0 20px color-mix(in srgb, var(--accent-light) 30%, transparent),
+            inset 0 2px 10px var(--shadow-soft);
+}
+
+.filestorage-search input::placeholder {
+    color: color-mix(in srgb, var(--text-muted) 55%, transparent);
+}
+
+.filestorage-context-menu {
+    position: absolute;
+    background: linear-gradient(90deg, var(--bg-surface), var(--bg-body));
+    border: 1px solid var(--border-light);
+    border-radius: 6px;
+    padding: 8px 0;
+    box-shadow:
+            0 8px 32px var(--shadow-strong),
+            0 0 20px color-mix(in srgb, var(--accent-light) 30%, transparent);
+    z-index: 1000;
+    display: none;
+    min-width: 150px;
+}
+
+.filestorage-context-menu-item {
+    padding: 10px 16px;
+    color: var(--text-primary);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+}
+
+.filestorage-context-menu-item:hover {
+    background: color-mix(in srgb, var(--accent-main) 10%, transparent);
+    color: var(--accent-main);
+    box-shadow: inset 0 0 10px color-mix(in srgb, var(--accent-light) 20%, transparent);
+}
+
+.filestorage-file-input-hidden {
+    display: none;
+}
+
+@media (max-width: 768px) {
+    .filestorage-container {
+        padding: 10px;
+    }
+    .filestorage-header {
+        flex-direction: column;
+        gap: 10px;
+        align-items: stretch;
+    }
+    .filestorage-actions {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    .filestorage-tree-container {
+        padding: 15px;
+    }
+    .filestorage-upload-area {
+        padding: 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .filestorage-actions {
+        flex-direction: column;
+    }
+    .filestorage-header .btn-primary {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}
+
+.jstree-default .jstree-anchor:hover,
+.jstree-default .jstree-clicked {
+    background: transparent !important;
+    color: inherit !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+}
+
+.loading-gif {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 10px;
+}
+
+.filestorage-modal {
+    display: none;
+    position: fixed;
+    z-index: 1000;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.5);
+}
+
+.filestorage-modal-content {
+    background: linear-gradient(90deg, var(--bg-surface), var(--bg-body));
+    border: 1px solid var(--border-strong);
+    margin: auto;
+    padding: 20px;
+    border-radius: 12px;
+    width: 400px;
+    max-width: 90%;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 8px 20px var(--shadow-strong);
+}
+
+.filestorage-modal-header h3 {
+    margin: 0;
+}
+
+.filestorage-modal-close {
+    text-align: center;
+    cursor: pointer;
+    font-size: 20px;
+}
+
+.upload-loading-gif {
+    display: none;
+    margin: 10px auto;
+    text-align: center;
+}
+
+.upload-loading-gif img {
+    width: 400px;
+    height: auto;
+}
+
+.filestorage-progress-container {
+    margin-top: 10px;
+}

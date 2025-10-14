@@ -1,0 +1,347 @@
+/* ==== 메모 컨테이너 ==== */
+.memo-container {
+    max-width: 1400px;
+    margin: 20px auto 0 auto;
+    padding: 20px;
+    background: var(--bg-surface);
+    border-radius: 12px;
+    box-shadow: 0 2px 10px var(--shadow-soft);
+}
+
+/* ==== 메모 헤더 ==== */
+.memo-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 2px solid var(--border-light);
+}
+
+.memo-title {
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.memo-title i {
+    color: var(--accent-main);
+    font-size: 24px;
+}
+
+.memo-actions {
+    display: flex;
+    gap: 10px;
+}
+
+/* ==== 메모 입력 ==== */
+.memo-input-container {
+    margin-top: 30px;
+    padding: 20px;
+    background: var(--bg-hover);
+    border-radius: 12px;
+    border: 2px solid var(--border-light);
+}
+
+.memo-input-form {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+.memo-input {
+    flex: 1;
+    padding: 12px 15px;
+    border: 2px solid var(--border-light);
+    border-radius: 8px;
+    font-size: 16px;
+    font-family: inherit;
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    transition: all 0.3s ease;
+}
+
+.memo-input:focus {
+    outline: none;
+    border-color: var(--accent-main);
+    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.1);
+}
+
+.memo-input::placeholder {
+    color: var(--text-muted);
+}
+
+/* ==== 메모 목록 ==== */
+.memo-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 60dvh;
+    overflow-y: auto;
+    padding-right: 10px;
+}
+
+.memo-item {
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border-light);
+    padding: 4px 10px;
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.memo-item:hover {
+    border-color: var(--accent-light);
+    box-shadow: 0 4px 15px var(--shadow-soft);
+    transform: translateY(-2px);
+}
+
+.memo-content {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.memo-text {
+    flex: 1;
+    min-width: 0;
+    font-size: 16px;
+    line-height: 1.6;
+    color: var(--text-primary);
+    word-wrap: break-word;
+    white-space: pre-wrap;
+}
+
+.memo-meta {
+    display: flex;
+}
+
+.memo-date {
+    display: flex;
+    gap: 6px;
+    font-size: 16px;
+    color: var(--text-muted);
+}
+
+.memo-date i {
+    font-size: 12px;
+    color: var(--accent-main);
+}
+
+.memo-actions {
+    display: flex;
+    gap: 8px;
+}
+
+/* ==== 버튼 스타일 ==== */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    white-space: nowrap;
+}
+
+.btn-primary {
+    background: var(--btn-bg-primary);
+    color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+    background: var(--btn-bg-primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(77, 171, 247, 0.3);
+}
+
+.btn-secondary {
+    background: var(--btn-bg-secondary);
+    color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+    background: var(--btn-bg-secondary-hover);
+    transform: translateY(-1px);
+}
+
+.btn-danger {
+    background: var(--btn-bg-danger);
+    color: var(--text-inverse);
+}
+
+.btn-danger:hover {
+    background: var(--btn-bg-danger-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+}
+
+.btn-icon {
+    display: flex;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding-top: 4px;
+    border: none;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-icon:hover {
+    background: var(--bg-hover);
+    color: var(--accent-main);
+    transform: scale(1.1);
+}
+
+.edit-memo:hover {
+    color: var(--accent-main);
+}
+
+.delete-memo:hover {
+    color: var(--danger);
+}
+
+
+/* ==== 반응형 디자인 ==== */
+@media (max-width: 768px) {
+    .memo-container {
+        margin: 10px;
+        padding: 15px;
+    }
+    
+    .memo-header {
+        flex-direction: column;
+        gap: 15px;
+        align-items: stretch;
+    }
+    
+    .memo-title {
+        font-size: 24px;
+        justify-content: center;
+    }
+    
+    .memo-actions {
+        justify-content: center;
+    }
+    
+    
+    .memo-meta {
+        flex-direction: column;
+        gap: 10px;
+        align-items: flex-start;
+    }
+    
+    .memo-actions {
+        align-self: flex-end;
+    }
+}
+
+@media (max-width: 480px) {
+    .memo-container {
+        margin: 5px;
+        padding: 10px;
+    }
+    
+    .memo-item {
+        padding: 15px;
+    }
+    
+    .memo-text {
+        font-size: 15px;
+    }
+    
+    .btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+/* ==== 애니메이션 ==== */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.memo-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+/* ==== 스크롤바 스타일링 ==== */
+.memo-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.memo-list::-webkit-scrollbar-track {
+    background: var(--bg-hover);
+    border-radius: 3px;
+}
+
+.memo-list::-webkit-scrollbar-thumb {
+    background: var(--border-light);
+    border-radius: 3px;
+}
+
+.memo-list::-webkit-scrollbar-thumb:hover {
+    background: var(--accent-light);
+}
+
+/* ==== 포커스 스타일 ==== */
+.memo-input:focus,
+.btn:focus,
+.btn-icon:focus {
+    outline: 2px solid var(--accent-main);
+    outline-offset: 2px;
+}
+
+/* ==== 호버 효과 개선 ==== */
+.memo-item:hover .memo-actions {
+    opacity: 1;
+}
+
+.memo-actions {
+    opacity: 0.7;
+    transition: opacity 0.3s ease;
+}
+
+/* ==== 텍스트 선택 스타일 ==== */
+.memo-text::selection {
+    background: var(--accent-light);
+    color: var(--text-primary);
+}
+
+/* ==== 접근성 개선 ==== */
+@media (prefers-reduced-motion: reduce) {
+    .memo-item,
+    .btn,
+    .btn-icon {
+        transition: none;
+    }
+    
+    .memo-item:hover {
+        transform: none;
+    }
+    
+    .btn:hover,
+    .btn-icon:hover {
+        transform: none;
+    }
+}

@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>파일 스토리지</title>
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/mol/fabi.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="/mol/fabi.png">
+    <link rel="stylesheet" th:href="@{'/style/skin/default/layout/color.css'}">
+    <link rel="stylesheet" th:href="@{'/style/skin/default/common/filestorage/filestorage.css'}">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+</head>
+<body>
+
+<style>
+    body {display: block}
+    /* jsTree 기본 아이콘 숨기기 */
+    .jstree-themeicon { background: none !important; }
+
+    /* 폴더 */
+    .jstree-icon.folder-emoji::before { content: "📁"; display: inline-block; width: 1em; text-align: center; }
+    /* 일반 파일 */
+    .jstree-icon.file-emoji::before { content: "📄"; display: inline-block; width: 1em; text-align: center; }
+    /* 이미지 */
+    .jstree-icon.image-emoji::before { content: "🖼️"; display: inline-block; width: 1em; text-align: center; }
+    /* PDF */
+    .jstree-icon.pdf-emoji::before { content: "📕"; display: inline-block; width: 1em; text-align: center; }
+    /* DOC/DOCX */
+    .jstree-icon.doc-emoji::before { content: "📄"; display: inline-block; width: 1em; text-align: center; }
+    /* 엑셀 */
+    .jstree-icon.xls-emoji::before { content: "📊"; display: inline-block; width: 1em; text-align: center; }
+    /* 영상 */
+    .jstree-icon.video-emoji::before { content: "🎬"; display: inline-block; width: 1em; text-align: center; }
+    /* 오디오 */
+    .jstree-icon.audio-emoji::before { content: "🎵"; display: inline-block; width: 1em; text-align: center; }
+
+</style>
+
+
+<div class="content-wrapper" style="padding: 2% 5%;">
+    <h1 class="page-title-center">File Storage</h1>
+
+    <div class="filestorage-topbar">
+        <div class="filestorage-actions">
+            <button id="refresh-btn" class="filestorage-btn">새로고침</button>
+            <button id="upload-btn" class="filestorage-btn">파일 업로드</button>
+            <button id="create-root-folder-btn" class="filestorage-btn">폴더 생성</button>
+
+            <input type="file" id="file-input" multiple class="filestorage-file-input-hidden">
+        </div>
+    </div>
+
+    <div class="filestorage-tree-container">
+        <div class="filestorage-search-section">
+            <div class="filestorage-search">
+                <input type="text" id="filestorage-search" placeholder="파일 검색...">
+            </div>
+        </div>
+        <div id="filestorage-tree"></div>
+    </div>
+
+    <div id="filestorage-context-menu" class="filestorage-context-menu">
+        <div class="filestorage-context-menu-item" data-action="download">다운로드</div>
+        <div class="filestorage-context-menu-item" data-action="delete">삭제</div>
+    </div>
+
+    <!-- 업로드 확인 모달 -->
+    <div id="upload-confirm-modal" class="filestorage-modal">
+        <div class="filestorage-modal-content">
+            <div class="filestorage-modal-header">
+                <h3>파일 업로드 확인</h3>
+            </div>
+            <div class="filestorage-modal-body">
+                <p>다음 파일들을 업로드하시겠습니까?</p>
+                <div id="selected-files-list" class="filestorage-selected-files"></div>
+            </div><br>
+            <div class="filestorage-modal-footer">
+                <button id="confirm-upload-btn" class="filestorage-btn">업로드</button>
+                <button id="cancel-upload-btn" class="filestorage-btn filestorage-btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 업로드 진행 모달 -->
+    <div id="upload-progress-modal" class="filestorage-modal">
+        <div class="filestorage-modal-content">
+            <div class="filestorage-modal-header">
+                <h3>파일 업로드 중...</h3>
+            </div><br>
+            <div class="filestorage-modal-body">
+                <!-- GIF 먼저 -->
+                <div class="upload-loading-gif" id="upload-loading-gif">
+                    <img th:src="@{/loading/{skin}.gif(skin=${skin})}" alt="loading...">
+                </div><br>
+                <!-- 퍼센트바 -->
+                <div class="filestorage-progress-container">
+                    <!-- 파일명 표시 -->
+                    <div id="upload-file-info" class="filestorage-upload-file-info"></div>
+
+                    <div class="filestorage-progress-bar">
+                        <div id="upload-progress" class="filestorage-progress-fill"></div>
+                    </div>
+                    <div id="upload-progress-text" class="filestorage-progress-text">0%</div>
+                </div>
+
+                <div id="upload-status" class="filestorage-upload-status">업로드 준비 중...</div><br>
+                <button id="abort-upload-btn" class="filestorage-btn filestorage-btn-secondary" style="text-align: center">취소</button>
+            </div>
+        </div>
+    </div>
+
+
+
+    <script>
+        let filestorageTree;
+        let currentPath = "/";
+        let selectedFiles = [];
+        let currentUploadXhr = null; // 업로드 추적용 XHR
+
+        function initFileStorageTree() {
+            filestorageTree = $('#filestorage-tree').jstree({
+                'core': {
+                    'data': {
+                        'url': '/filestorage/filelist',
+                        'data': function (node) {
+                            return { 'path': node.id === '#' ? '/' : node.id };
+                        }
+                    },
+                    'check_callback': true
+                },
+                'plugins': ['dnd', 'contextmenu', 'search', 'types'],
+                'dnd': { 'is_draggable': () => true },
+                'contextmenu': {
+                    'items': function(node) {
+                        const items = {};
+                        if (node.type === "default") { // 폴더일 경우
+                            items.createFolder = { label: '새 폴더', action: () => createFolder(node.id) };
+                            items.rename = { label: '이름 변경', action: () => renameItem(node.id, true) };
+                            items.upload = {
+                                label: '업로드',
+                                action: () => {
+                                    currentPath = node.id;
+                                    $('#file-input').click();
+                                }
+                            };
+                            items.delete = { label: '삭제', action: () => deleteItem(node.id, true) };
+                            // 다운로드 항목은 제외
+                        } else { // 파일일 경우
+                            items.download = { label: '다운로드', action: () => downloadFile(node.id) };
+                            items.rename = { label: '이름 변경', action: () => renameItem(node.id, false) };
+                            items.delete = { label: '삭제', action: () => deleteItem(node.id, false) };
+                        }
+                        return items;
+                    }
+                },
+                'types': {
+                    'default': { 'icon': 'folder-emoji' },
+                    'file': { 'icon': 'file-emoji' },
+                    'image': { 'icon': 'image-emoji' },
+                    'pdf': { 'icon': 'pdf-emoji' },
+                    'doc': { 'icon': 'doc-emoji' },
+                    'xls': { 'icon': 'xls-emoji' },
+                    'video': { 'icon': 'video-emoji' },
+                    'audio': { 'icon': 'audio-emoji' },
+                },
+                'search': { 'case_insensitive': true, 'show_only_matches': true }
+            });
+            setupTreeEvents();
+            setupButtonEvents();
+            hideLockedFolders();
+        }
+
+        function setupTreeEvents() {
+            // jQuery 객체에 이벤트를 붙이기
+            $('#filestorage-tree')
+                .on('select_node.jstree', function (e, data) {
+                    const node = data.node;
+                    currentPath = node.id;
+                    if (node.original && node.original.directory && (!node.children || node.children.length === 0)) {
+                        $('#filestorage-tree').jstree('load_node', node);
+                    }
+                })
+                .on('move_node.jstree', function (e, data) {
+                    const from = (data.node.id === '#') ? '/' : data.node.id;
+                    const to = (data.parent === '#') ? '/' : data.parent;
+
+                    fetch("/filestorage/move", {
+                        method: "POST",
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({from: from, to: to})
+                    }).then(() => $('#filestorage-tree').jstree('refresh'));
+                });
+        }
+
+
+        function setupButtonEvents() {
+            $('#refresh-btn').click(() => filestorageTree.jstree('refresh'));
+            $('#upload-btn').click(() => $('#file-input').click());
+            $('#file-input').change(e => {
+                const files = e.target.files;
+                if (files.length > 0) { selectedFiles = Array.from(files); showUploadConfirmModal(); }
+            });
+
+            $('#upload-modal-close, #cancel-upload-btn').click(() => {
+                $('#upload-confirm-modal').hide();
+                $('#file-input').val(''); selectedFiles = [];
+            });
+
+            $('#confirm-upload-btn').click(() => uploadFiles(selectedFiles));
+
+            $('#abort-upload-btn').click(() => {
+                if (currentUploadXhr) {
+                    currentUploadXhr.abort();
+                    $('#upload-status').text('업로드 취소됨');
+                    $('#upload-progress').css('width','0%');
+                    $('#upload-loading-gif').hide();
+                    currentUploadXhr = null;
+                    setTimeout(() => { $('#upload-progress-modal').hide(); }, 800);
+                }
+            });
+
+            $(document).click(e => {
+                const modal = document.getElementById('upload-confirm-modal');
+                if (e.target === modal) { modal.style.display = 'none'; $('#file-input').val(''); selectedFiles = []; }
+            });
+
+            $('.filestorage-context-menu-item').click(function() {
+                const action = $(this).data('action');
+                const selectedNode = filestorageTree.jstree('get_selected')[0];
+                if (!selectedNode) return alert('파일을 선택해주세요.');
+                const node = filestorageTree.jstree('get_node', selectedNode);
+                if (action === 'download') downloadFile(node.id);
+                else if (action === 'delete') deleteItem(node.id, node.original.directory);
+                $('#filestorage-context-menu').hide();
+            });
+        }
+
+        function showUploadConfirmModal() {
+            const filesList = document.getElementById('selected-files-list');
+            filesList.innerHTML = '';
+            selectedFiles.forEach(file => {
+                const fileItem = document.createElement('div');
+                fileItem.className = 'filestorage-file-item';
+                fileItem.innerHTML = `<span class="filestorage-file-name">${file.name}</span>
+                                <span class="filestorage-file-size">${formatFileSize(file.size)}</span>`;
+                filesList.appendChild(fileItem);
+            });
+            $('#upload-confirm-modal').show();
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024, sizes = ['Bytes','KB','MB','GB'], i = Math.floor(Math.log(bytes)/Math.log(k));
+            return parseFloat((bytes/Math.pow(k,i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        function uploadFiles(files) {
+            $('#upload-confirm-modal').hide();
+            $('#upload-progress-modal').show();
+            $('#upload-status').text('업로드 준비 중...');
+            $('#upload-progress').css('width','0%');
+            $('#upload-loading-gif').show();
+
+            // ✅ 파일명 + 크기 표시
+            if (files.length > 0) {
+                const f = files[0];
+                $('#upload-file-info').text(`${f.name} (${formatFileSize(f.size)})`);
+            }
+
+            const formData = new FormData();
+            files.forEach(f => formData.append('files', f));
+            formData.append('path', currentPath);
+
+            const xhr = new XMLHttpRequest();
+            currentUploadXhr = xhr;
+
+            xhr.upload.addEventListener('progress', e => {
+                if (e.lengthComputable) {
+                    const percentComplete = (e.loaded / e.total) * 100;
+                    $('#upload-progress').css('width', percentComplete+'%');
+                    $('#upload-progress-text').text(Math.round(percentComplete)+'%');
+                    $('#upload-status').text(`업로드 중...`);
+                }
+            });
+            xhr.addEventListener('load', () => {
+                currentUploadXhr = null; //
+                if (xhr.status===200) {
+                    $('#upload-progress').css('width','100%'); $('#upload-status').text('업로드 완료!');
+                    $('#upload-loading-gif').hide();
+                    setTimeout(() => { $('#upload-progress-modal').hide(); filestorageTree.jstree('refresh'); alert('업로드 완료'); }, 800);
+                } else {
+                    $('#upload-status').text('업로드 실패');
+                    $('#upload-loading-gif').hide();
+                    alert('업로드 실패');
+                }
+            });
+            xhr.open('POST','/filestorage/upload');
+            xhr.send(formData);
+        }
+
+        function downloadFile(path) { window.location.href = `/filestorage/download?path=${encodeURIComponent(path)}`; }
+        function deleteItem(path, isDir) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+            const password = prompt('비밀번호를 입력하세요:');
+            if (!password) return;
+            fetch('/filestorage/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path, directory: isDir, password: password })
+            })
+                .then(async res => {
+                    const text = await res.text();
+                    if (res.ok) {
+                        filestorageTree.jstree('refresh');
+                        // 파일 삭제 후 업로드 초기화
+                        $('#file-input').val('');
+                        selectedFiles = [];
+                        alert(text || '삭제 완료');
+                    }
+                    else { alert(text || '삭제 실패'); }
+                })
+                .catch(err => alert('삭제 실패: ' + err.message));
+        }
+
+
+        function createFolder(parentPath) {
+            const folderName = prompt("새 폴더 이름을 입력하세요:");
+            if (!folderName) return;
+
+            fetch('/filestorage/create-folder', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: folderName, path: parentPath }) // 부모 폴더 경로 사용
+            })
+                .then(async res => {
+                    if (res.ok) {
+                        alert("폴더 생성 완료");
+                        filestorageTree.jstree('refresh', parentPath); // 부모 폴더만 새로고침
+                    } else {
+                        const text = await res.text();
+                        alert(text || "폴더 생성 실패");
+                    }
+                })
+                .catch(err => alert("오류 발생: " + err.message));
+        }
+
+        function renameItem(path, isDir) {
+            const currentName = path.split('/').pop();
+            const newName = prompt(`${isDir ? '폴더' : '파일'} 이름을 입력하세요:`, currentName);
+            if (!newName || newName === currentName) return;
+
+            const password = prompt('비밀번호를 입력하세요:');
+            if (!password) return;
+
+            fetch('/filestorage/rename', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path, newName: newName, directory: isDir, password: password })
+            })
+                .then(async res => {
+                    const text = await res.text();
+                    if (res.ok) {
+                        alert("이름 변경 완료");
+                        filestorageTree.jstree('refresh');
+                    } else {
+                        alert(text || "이름 변경 실패");
+                    }
+                })
+                .catch(err => alert("오류 발생: " + err.message));
+        }
+
+
+
+
+        function deleteItem(path, isDir) {
+            if (!confirm('정말 삭제하시겠습니까?')) return;
+
+            const password = prompt('비밀번호를 입력하세요:'); // 필요시
+            if (!password) return;
+
+            fetch('/filestorage/delete', {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ path: path, directory: isDir, password: password })
+            })
+                .then(async res => {
+                    const text = await res.text();
+                    if (res.ok) {
+                        filestorageTree.jstree('refresh');
+                        alert(text || '삭제 완료');
+                    } else {
+                        alert(text || '삭제 실패');
+                    }
+                })
+                .catch(err => alert('삭제 실패: ' + err.message));
+        }
+
+        // 숨길 폴더 목록 (이미 선언되어 있으면 중복 선언하지 마세요)
+        const hiddenFolders = ["보안자료", "시험자료", "WebServer", "PC재원", "프로그램"];
+        let unlockedFolders = [];
+
+        // 트리 로드/갱신 시 숨김 적용
+        function hideLockedFolders() {
+            const tree = $('#filestorage-tree').jstree(true);
+            if (!tree) return;
+            try {
+                tree.get_json('#', { flat: true })
+                    .filter(node => hiddenFolders.includes(node.text) && !unlockedFolders.includes(node.text))
+                    .forEach(node => tree.hide_node(node.id));
+            } catch (e) {
+                // console.log('hideLockedFolders error', e);
+            }
+        }
+
+
+        function revealAllHiddenFolders() {
+            const tree = $('#filestorage-tree').jstree(true);
+            if (!tree) return;
+            hiddenFolders.forEach(name => {
+                if (!unlockedFolders.includes(name)) unlockedFolders.push(name);
+            });
+            try {
+                tree.get_json('#', { flat: true })
+                    .filter(node => hiddenFolders.includes(node.text))
+                    .forEach(node => tree.show_node(node.id));
+            } catch (e) {}
+        }
+
+        $(document).ready(function() {
+            initFileStorageTree();
+            $('#filestorage-search').on('keyup', function(){ filestorageTree.jstree('search', $(this).val()); });
+
+            $('#filestorage-tree').on('ready.jstree refresh.jstree load_node.jstree', function() {
+                hideLockedFolders();
+            });
+
+            setTimeout(hideLockedFolders, 500);
+        });
+
+        //비번검증
+        (function() {
+            const sequence = [
+                'ArrowUp','ArrowUp','ArrowUp',
+                'ArrowDown','ArrowDown','ArrowDown',
+                // 위 7번:
+                'ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp'
+            ];
+            let buffer = [];
+
+            document.addEventListener('keydown', function(e) {
+                const key = e.key;
+                buffer.push(key);
+                if (buffer.length > sequence.length) buffer.shift();
+                if (JSON.stringify(buffer) === JSON.stringify(sequence)) {
+                    buffer = [];
+                    triggerSecretPasswordPrompt();
+                }
+            });
+
+            function triggerSecretPasswordPrompt() {
+                const password = prompt("접근 비밀번호를 입력하세요:");
+                if (password === null) return; // 취소
+
+                // 서버에 검증을 요청합니다.
+                fetch('/filestorage/secret-access', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password: password })
+                })
+                    .then(async res => {
+                        if (res.ok) {
+                            // 서버 검증 성공 → 숨김 폴더 표시
+                            revealAllHiddenFolders();
+                            alert("접근 허용 — 숨김 폴더가 표시됩니다.");
+                        } else {
+                            const text = await res.text();
+                            alert(text || "비밀번호가 올바르지 않습니다.");
+                        }
+                    })
+                    .catch(err => alert("오류 발생: " + err.message));
+            }
+        })();
+
+        $('#create-root-folder-btn').click(() => createFolder("/"));
+
+    </script>
+</div>
+</body>
+</html>
+

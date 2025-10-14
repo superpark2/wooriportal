@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8" />
+    <title>단위변환기</title>
+    <link rel="stylesheet" href="/style/skin/default/common/utilities/formatter.css">
+</head>
+<body>
+<div layout:fragment="content">
+    <div class="converter">
+        <h2>단위변환기</h2>
+
+        <div class="row">
+            <select id="category" onchange="updateUnits()"></select>
+        </div>
+
+        <div class="row">
+            <select id="fromUnit"></select>
+            <select id="toUnit"></select>
+        </div>
+
+        <div class="row">
+            <input type="number" id="inputValue" placeholder="값 입력" oninput="convert()" />
+            <input type="text" id="outputValue" placeholder="결과" readonly />
+        </div>
+
+        <div>
+            <div class="result-box">결과 : <span id="value"></span></div>
+        </div>
+    </div>
+</div>
+
+<div layout:fragment="script">
+    <script>
+        const categoryMap = {
+            "길이": "length",
+            "무게": "weight",
+            "용량": "storage",
+            "시간": "time",
+            "온도": "temperature",
+            "에너지": "energy",
+            "압력": "pressure",
+            "속도": "speed",
+            "면적": "area",
+            "부피": "volume",
+            "화폐": "currency",
+            "각도": "angle",
+            "주파수": "frequency"
+        };
+
+        const units = {
+            length: { mm: 0.1, cm: 1, m: 100, km: 100000, inch: 2.54, ft: 30.48, yd: 91.44, mile: 160934 },
+            weight: { mg: 0.001, g: 1, kg: 1000, ton: 1000000, oz: 28.3495, lb: 453.592, carat: 0.2 },
+            storage: { bit: 1, byte: 8, KB: 8192, MB: 8388608, GB: 8589934592, TB: 8796093022208 },
+            time: { ms: 0.001, sec: 1, min: 60, hour: 3600, day: 86400 },
+            temperature: { C: 'C', F: 'F', K: 'K' },
+            energy: { J: 1, cal: 4.184, kWh: 3600000 },
+            pressure: { Pa: 1, atm: 101325, bar: 100000, psi: 6894.76, mmHg: 133.322, Torr: 133.322 },
+            speed: { 'm/s': 1, 'km/h': 0.277778, mph: 0.44704, knot: 0.514444 },
+            area: { 'mm²': 0.01, 'cm²': 1, 'm²': 10000, 'km²': 100000000, 평: 3305.8, acre: 404685.6, 'ft²': 929.0304 },
+            volume: { ml: 1, L: 1000, 'm³': 1000000, gallon: 3785.41, 'ft³': 28316.8 },
+            currency: { KRW: 1, USD: 'USD', EUR: 'EUR', JPY: 'JPY', GBP: 'GBP' },
+            angle: { degree: 1, radian: 57.2958 },
+            frequency: { Hz: 1, kHz: 1000, MHz: 1000000, GHz: 1000000000 }
+        };
+
+        function updateUnits() {
+            const categoryKor = document.getElementById("category").value;
+            const category = categoryMap[categoryKor];
+            const fromSelect = document.getElementById("fromUnit");
+            const toSelect = document.getElementById("toUnit");
+
+            fromSelect.innerHTML = "";
+            toSelect.innerHTML = "";
+
+            Object.keys(units[category]).forEach(unit => {
+                const option1 = document.createElement("option");
+                option1.value = unit;
+                option1.textContent = unit;
+                fromSelect.appendChild(option1);
+
+                const option2 = document.createElement("option");
+                option2.value = unit;
+                option2.textContent = unit;
+                toSelect.appendChild(option2);
+            });
+
+            convert();
+        }
+
+        function convert() {
+            const categoryKor = document.getElementById("category").value;
+            const category = categoryMap[categoryKor];
+            const fromUnit = document.getElementById("fromUnit").value;
+            const toUnit = document.getElementById("toUnit").value;
+            const inputValue = parseFloat(document.getElementById("inputValue").value);
+
+            if (isNaN(inputValue)) {
+                document.getElementById("outputValue").value = "";
+                document.getElementById("value").innerText = "";
+                return;
+            }
+
+            let result;
+
+            if (category === "temperature") {
+                result = convertTemperature(inputValue, fromUnit, toUnit);
+            } else {
+                const base = inputValue * units[category][fromUnit];
+                result = base / units[category][toUnit];
+            }
+
+            document.getElementById("outputValue").value = result.toFixed(4);
+            document.getElementById("value").innerText = result.toFixed(4) + ' ' + document.getElementById("toUnit").value;
+        }
+
+        function convertTemperature(value, from, to) {
+            if (from === to) return value;
+            if (from === "C" && to === "F") return (value * 9/5) + 32;
+            if (from === "F" && to === "C") return (value - 32) * 5/9;
+            if (from === "C" && to === "K") return value + 273.15;
+            if (from === "K" && to === "C") return value - 273.15;
+            if (from === "F" && to === "K") return (value - 32) * 5/9 + 273.15;
+            if (from === "K" && to === "F") return (value - 273.15) * 9/5 + 32;
+            return 0;
+        }
+
+        function initCategories() {
+            const categorySelect = document.getElementById("category");
+            Object.keys(categoryMap).forEach(kor => {
+                const option = document.createElement("option");
+                option.value = kor;
+                option.textContent = kor;
+                categorySelect.appendChild(option);
+            });
+            updateUnits();
+        }
+
+        initCategories();
+    </script>
+</div>
+</body>

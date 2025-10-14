@@ -1,0 +1,148 @@
+/* ===== Calculator – Blue Themed, Soft Elevation ===== */
+.calculator{
+    width: 400px;
+    margin: 40px auto 0;
+    box-sizing: border-box;
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    background: linear-gradient(180deg, var(--bg-surface), var(--bg-body));
+    box-shadow: 0 8px 24px var(--shadow-soft), inset 0 1px 0 var(--shadow-soft);
+    overflow: hidden;
+}
+.calculator:hover{
+    box-shadow: 0 12px 28px var(--shadow-strong);
+}
+
+/* Top area (display) */
+.calculator .top{
+    background: linear-gradient(180deg, var(--bg-surface), var(--bg-hover));
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border-light);
+}
+.display{
+    width: 100%;
+    height: 64px;
+    font-size: 28px;
+    font-variant-numeric: tabular-nums;
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    text-align: right;
+    padding: 10px 14px;
+    box-sizing: border-box;
+    outline: none;
+    box-shadow: inset 0 1px 2px var(--shadow-soft);
+}
+.display:focus{
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-light) 45%, transparent), inset 0 1px 2px var(--shadow-soft);
+}
+.sub{
+    margin-top: 8px;
+    height: 18px;
+    font-size: 12px;
+    color: var(--text-secondary);
+    text-align: right;
+    overflow: hidden;
+}
+
+/* Key grid */
+.grid{
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    padding: 14px;
+    background: var(--bg-surface);
+}
+
+/* Base button */
+button.btn{
+    height: 48px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    border-radius: 12px;
+    cursor: pointer;
+    box-shadow: 0 1px 0 var(--shadow-soft), 0 2px 8px var(--shadow-soft);
+    transition: transform .06s ease, box-shadow .15s ease, background .15s ease, border-color .15s ease, color .15s ease;
+    user-select: none;
+    -webkit-tap-highlight-color: transparent;
+}
+button.btn:hover{
+    background: var(--bg-hover);
+    box-shadow: 0 2px 10px var(--shadow-strong);
+}
+button.btn:active{
+    transform: translateY(1px);
+    box-shadow: 0 1px 6px var(--shadow-strong) inset;
+}
+button.btn:focus-visible{
+    outline: none;
+    border-color: var(--border-strong);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-light) 45%, transparent), 0 2px 8px var(--shadow-strong);
+}
+
+/* Operator (secondary) */
+button.op{
+    background: linear-gradient(180deg, var(--bg-surface), var(--bg-hover));
+    color: var(--text-secondary);
+    border-color: var(--border-light);
+}
+button.op:hover{
+    background: var(--bg-hover);
+    color: var(--text-primary);
+    border-color: var(--border);
+}
+
+/* Equals (primary) */
+button.equals{
+    background: linear-gradient(180deg, var(--btn-bg-primary), var(--accent-dark));
+    color: var(--text-inverse);
+    border-color: var(--accent-main);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-main) 40%, transparent);
+}
+button.equals:hover{
+    background: var(--btn-bg-primary-hover);
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--accent-main) 55%, transparent);
+}
+button.equals:active{
+    transform: translateY(1px);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--accent-dark) 55%, transparent) inset;
+}
+
+/* Danger / Backspace etc. */
+button.warn{
+    background: linear-gradient(180deg, var(--btn-bg-danger), color-mix(in srgb, var(--btn-bg-danger) 85%, var(--danger)));
+    color: var(--text-inverse);
+    border-color: var(--btn-bg-danger);
+    box-shadow: 0 2px 10px color-mix(in srgb, var(--danger) 40%, transparent);
+}
+button.warn:hover{
+    background: var(--btn-bg-danger-hover);
+    box-shadow: 0 4px 18px color-mix(in srgb, var(--danger) 55%, transparent);
+}
+
+/* Spans */
+.colspan-2{ grid-column: span 2; }
+
+/* Subtle badges (optional for sin/cos/tan etc.) */
+button.op[data-v="sin"],
+button.op[data-v="cos"],
+button.op[data-v="tan"],
+button.op[data-v="ln"],
+button.op[data-v="log"],
+button.op[data-v="sqrt"]{
+    position: relative;
+}
+button.op[data-v]:after{
+    content: attr(data-v);
+    position: absolute;
+    right: 8px;
+    bottom: 6px;
+    font-size: 10px;
+    color: var(--text-muted);
+    opacity: .6;
+}

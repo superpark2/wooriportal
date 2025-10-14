@@ -1,0 +1,41 @@
+:root {
+    /* ==== 기본 배경 ==== */
+    --bg-body: #fcfaf6;
+    --bg-surface: #ffffff;
+    --bg-hover: #fff7e9;
+    --bg-accent: #ffebd4;
+
+    /* ==== 기본 텍스트 ==== */
+    --text-primary: #4b3832;
+    --text-secondary: #654844;
+    --text-muted: #7a5e57;
+    --text-inverse: #ffffff;
+
+    /* ==== 포인트 컬러 ==== */
+    --accent-light: #fff1d2;
+    --accent-main: #ef9f93;
+    --accent-dark: #ff7575;
+
+    /* ==== 상태 색상 ==== */
+    --success: #ffd9a3;
+    --warning: #ffe6a7;
+    --danger: #ff7575;
+    --info: #99e0e8;
+
+    /* ==== 테두리 ==== */
+    --border-light: #f2e8dc;
+    --border: #f2e8dc;
+    --border-strong: #ffcc99;
+
+    /* ==== 버튼 ==== */
+    --btn-bg-primary: #ff7575;
+    --btn-bg-primary-hover: #ffb3a7;
+    --btn-bg-secondary: #fff1d2;
+    --btn-bg-secondary-hover: #ffebd4;
+    --btn-bg-danger: #ff9999;
+    --btn-bg-danger-hover: #ff7575;
+
+    /* ==== 그림자 ==== */
+    --shadow-soft: rgba(0, 0, 0, 0.05);
+    --shadow-strong: rgba(0, 0, 0, 0.1);
+}
