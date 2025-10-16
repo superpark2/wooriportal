@@ -32,7 +32,6 @@ public class LogController {
     }
 
 
-    // QR 로그 목록 API (페이징)
     @GetMapping("/logs")
     @ResponseBody
     public Map<String, Object> getQrLogs(
@@ -53,7 +52,7 @@ public class LogController {
     }
 
 
-    @GetMapping("/log/ppcinfo/{pcinfoNum}")
+    @GetMapping("/log/pcinfo/{pcinfoNum}")
     @ResponseBody
     public Map<String, Object> getPcQrLogs(
             @PathVariable Long pcinfoNum,
@@ -74,8 +73,6 @@ public class LogController {
     }
 
 
-    // === Mobile pc detail page APIs ===
-    // GET logs by pc
     @GetMapping("/api/pc/{pcinfoNum}")
     @ResponseBody
     public Map<String, Object> getPcLogsForMobile(
@@ -93,7 +90,6 @@ public class LogController {
         return response;
     }
 
-    // POST add log
     @PostMapping("/api/pc/{pcinfoNum}")
     @ResponseBody
     public Map<String, Object> addPcLogForMobile(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
@@ -105,7 +101,7 @@ public class LogController {
     }
 
 
-    @PostMapping("/log/pcimfo/{pcinfoNum}")
+    @PostMapping("/log/pcinfo/{pcinfoNum}")
     @ResponseBody
     public Map<String, Object> savePcQrLog(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
         String content = body.get("content");

@@ -14,7 +14,6 @@
     <link rel="stylesheet" th:href="@{'/style/skin/default/common/memo.css'}">
 
     <div class="memo-container">
-        <!-- 메모 헤더 -->
         <div class="memo-header">
             <h1 class="memo-title">
                 <i class="fas fa-sticky-note"></i>
@@ -22,7 +21,6 @@
             </h1>
         </div>
 
-        <!-- 메모 목록 -->
         <div class="memo-list">
             <div th:each="memo : ${memoList}" class="memo-item">
                 <div class="memo-content">
@@ -43,7 +41,6 @@
         </div>
 
 
-        <!-- 메모 입력 -->
         <div class="memo-input-container">
             <form class="memo-input-form" id="memoForm">
                 <input
@@ -76,7 +73,6 @@
             setupEvent();
             setupScroll();
             setupDelete();
-            // 페이지 로드 시 첫 메모 로드
             loadMoreMemos();
         });
 

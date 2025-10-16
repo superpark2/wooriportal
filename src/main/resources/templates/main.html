@@ -13,7 +13,6 @@
 <body>
     <div layout:fragment="content" class="dashboard-container">
 
-        <!-- 대시보드 헤더 -->
         <div class="dashboard-header">
             <h1 class="dashboard-title">
                 <i class="fas fa-tachometer-alt"></i>
@@ -22,10 +21,8 @@
             <p class="dashboard-subtitle">최근 현황</p>
         </div>
 
-        <!-- 대시보드 그리드 -->
         <div class="dashboard-grid">
-            
-            <!-- PC 요청건 섹션 -->
+
             <div class="dashboard-card" th:if="${not #lists.isEmpty(pcRequireList)}">
                 <div class="card-header">
                     <h3 class="card-title">
@@ -52,7 +49,6 @@
                 </div>
             </div>
 
-            <!-- 세일즈 게시글 섹션 -->
             <div class="dashboard-card" th:if="${not #lists.isEmpty(salesList)}">
                 <div class="card-header">
                     <h3 class="card-title">
@@ -79,7 +75,6 @@
                 </div>
             </div>
 
-            <!-- Facility 게시글 섹션 -->
             <div class="dashboard-card" th:if="${not #lists.isEmpty(facilityList)}">
                 <div class="card-header">
                     <h3 class="card-title">
@@ -106,7 +101,6 @@
                 </div>
             </div>
 
-            <!-- Management 게시글 섹션 -->
             <div class="dashboard-card" th:if="${not #lists.isEmpty(managementList)}">
                 <div class="card-header">
                     <h3 class="card-title">
@@ -135,7 +129,6 @@
 
         </div>
 
-        <!-- 빈 상태 메시지 -->
         <div class="empty-state" th:if="${#lists.isEmpty(pcRequireList) and #lists.isEmpty(salesList) and #lists.isEmpty(facilityList) and #lists.isEmpty(managementList)}">
             <div class="empty-icon">
                 <i class="fas fa-inbox"></i>

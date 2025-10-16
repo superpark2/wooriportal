@@ -88,7 +88,21 @@
     <input type="hidden" id="pcNumHidden" th:value="${pc.pcInfoNum}">
 </div>
 
-<!-- 비밀번호 모달 제거됨 -->
+
+<div id="passwordModal" class="pcinfo-modal">
+    <div class="pcinfo-modal-content">
+        <h2 class="pcinfo-modal-title">비밀번호 입력</h2>
+        <div class="pcinfo-form-group">
+            <label for="passwordInput"></label>
+            <input type="password" id="passwordInput" class="pcinfo-input" placeholder="비밀번호를 입력하세요" />
+        </div>
+        <div class="pcinfo-modal-btns">
+            <button id="passwordModalOk" class="pcinfo-btn-primary">확인</button>
+            <button id="passwordModalCancel" class="pcinfo-btn-secondary">취소</button>
+        </div>
+        <div id="passwordModalError" class="pcinfo-error-message">비밀번호가 일치하지 않습니다.</div>
+    </div>
+</div>
 
 <div id="editModal" class="pcinfo-modal">
     <div class="pcinfo-modal-content">
@@ -118,7 +132,7 @@
                 <select id="editBuilding" class="pcinfo-input" required th:data-selected="${pc.buildingNum}"></select>
             </div>
             <div class="pcinfo-form-group">
-                <label for="editRoom">룸</label>
+                <label for="editRoom">장소</label>
                 <select id="editRoom" class="pcinfo-input" name="locationNum" required th:data-selected="${pc.locationNum}"></select>
             </div>
             <div class="pcinfo-form-group">
@@ -253,33 +267,108 @@
 
     function bindEvents() {
         const editBtn = document.getElementById('editBtn');
+        const deleteBtn = document.getElementById('deleteBtn');
         const editModal = document.getElementById('editModal');
         const editCancel = document.getElementById('editModalCancel');
         const pcContainer = document.querySelector('.container.pcinfo-view');
         const editForm = document.getElementById('editForm');
 
-        if (editBtn) editBtn.addEventListener('click', () => {
-            const preview = document.getElementById('editImagePreview');
-            const nameEl = document.getElementById('editImageName');
-            const delLabel = document.getElementById('editDeleteImageLabel');
-            const fileName = preview?.src ? preview.src.substring(preview.src.lastIndexOf('/') + 1) : '';
-            
-            if (preview) {
-                preview.style.display = preview.src ? 'block' : 'none';
-            }
-            if (nameEl) {
-                nameEl.textContent = fileName;
-                nameEl.style.display = preview?.src ? 'inline' : 'none';
-            }
-            if (delLabel) delLabel.style.display = preview?.src ? 'inline' : 'none';
+        const passwordModal = document.getElementById('passwordModal');
+        const passwordInput = document.getElementById('passwordInput');
+        const passwordModalOk = document.getElementById('passwordModalOk');
+        const passwordModalCancel = document.getElementById('passwordModalCancel');
+        const passwordModalError = document.getElementById('passwordModalError');
 
-            const buildingSelect = document.getElementById('editBuilding');
-            const roomSelect = document.getElementById('editRoom');
-            const buildingNum = buildingSelect?.getAttribute('data-selected');
-            const roomNum = roomSelect?.getAttribute('data-selected');
+        // 비밀번호 검증 함수
+        function verifyPassword(callback) {
+            const password = passwordInput.value.trim();
+            if (!password) {
+                passwordModalError.style.display = 'block';
+                return;
+            }
             
-            loadBuildingOptions(buildingNum, roomNum);
-            editModal?.classList.add('show');
+            fetch('/facility/pcinfo/verify-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/plain' },
+                body: password
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    passwordModal.classList.remove('show');
+                    passwordInput.value = '';
+                    passwordModalError.style.display = 'none';
+                    callback();
+                } else {
+                    passwordModalError.style.display = 'block';
+                }
+            })
+            .catch(() => {
+                passwordModalError.style.display = 'block';
+            });
+        }
+
+        if (passwordModalOk) passwordModalOk.addEventListener('click', () => {
+            const action = passwordModal.getAttribute('data-action');
+            if (action === 'edit') {
+                verifyPassword(() => {
+                    const preview = document.getElementById('editImagePreview');
+                    const nameEl = document.getElementById('editImageName');
+                    const delLabel = document.getElementById('editDeleteImageLabel');
+                    const fileName = preview?.src ? preview.src.substring(preview.src.lastIndexOf('/') + 1) : '';
+                    
+                    if (preview) {
+                        preview.style.display = preview.src ? 'block' : 'none';
+                    }
+                    if (nameEl) {
+                        nameEl.textContent = fileName;
+                        nameEl.style.display = preview?.src ? 'inline' : 'none';
+                    }
+                    if (delLabel) delLabel.style.display = preview?.src ? 'inline' : 'none';
+
+                    const buildingSelect = document.getElementById('editBuilding');
+                    const roomSelect = document.getElementById('editRoom');
+                    const buildingNum = buildingSelect?.getAttribute('data-selected');
+                    const roomNum = roomSelect?.getAttribute('data-selected');
+                    
+                    loadBuildingOptions(buildingNum, roomNum);
+                    editModal?.classList.add('show');
+                });
+            } else if (action === 'delete') {
+                verifyPassword(() => {
+                    const pcNum = document.getElementById('pcNumHidden')?.value;
+                    if (confirm('정말로 이 PC 정보를 삭제하시겠습니까?')) {
+                        fetch(`/facility/pcinfo/delete?pcInfoNum=${pcNum}`, { method: 'DELETE' })
+                            .then(() => {
+                                alert('PC 정보가 삭제되었습니다.');
+                                window.location.href = '/facility/pcinfo/list';
+                            })
+                            .catch(() => alert('삭제에 실패했습니다.'));
+                    }
+                });
+            }
+        });
+
+        if (passwordModalCancel) passwordModalCancel.addEventListener('click', () => {
+            passwordModal.classList.remove('show');
+            passwordInput.value = '';
+            passwordModalError.style.display = 'none';
+        });
+
+        if (editBtn) editBtn.addEventListener('click', () => {
+            passwordModal.setAttribute('data-action', 'edit');
+            passwordModal.classList.add('show');
+            passwordInput.value = '';
+            passwordModalError.style.display = 'none';
+            passwordInput.focus();
+        });
+
+        if (deleteBtn) deleteBtn.addEventListener('click', () => {
+            passwordModal.setAttribute('data-action', 'delete');
+            passwordModal.classList.add('show');
+            passwordInput.value = '';
+            passwordModalError.style.display = 'none';
+            passwordInput.focus();
         });
 
         if (editCancel) editCancel.addEventListener('click', () => editModal?.classList.remove('show'));
@@ -394,8 +483,7 @@
                 });
                 const el = document.getElementById('editBuilding');
                 if (el) el.innerHTML = options;
-                
-                // 건물이 선택되어 있으면 해당 건물의 방 목록을 로드
+
                 if (selectedBuildingNum) {
                     loadRoomOptions(selectedBuildingNum, selectedRoomNum);
                 } else {
@@ -453,7 +541,6 @@
             .then(data => {
                 if (data.content && data.content.length > 0) {
                     let html = '';
-                    // 질문만 필터링 (Type Q)
                     const questions = data.content.filter(req => req.reType === 'Q');
                     
                     console.log('Questions:', questions);
@@ -465,8 +552,7 @@
                         const author = question.reWriter || '';
                         const seat = question.reSeat || '';
                         const content = question.reContent || '';
-                        
-                        // 해당 질문의 답변들 (서버에서 이미 연결됨)
+
                         const questionAnswers = question.answers || [];
                         
                         console.log('Question answers for', question.reNum, ':', questionAnswers);
@@ -478,8 +564,7 @@
                                     <span class="require-date">${date}</span>
                                 </div>
                                 <div class="require-content">${content}</div>`;
-                        
-                        // 답변들 표시
+
                         questionAnswers.forEach(answer => {
                             html += `
                                 <div class="answer-content">

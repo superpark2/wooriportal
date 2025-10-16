@@ -57,7 +57,7 @@
                          class="member-image" 
                          alt="프로필">
                     <i th:unless="${member.memberPictureMeta}" 
-                       class="fas fa-user-circle" 
+                       class="fas fa-user-circle mgmt-picture"
                        style="font-size: 40px; color: var(--text-muted);"></i>
                 </td>
                 <td class="col-id" th:text="${member.memberId}">user123</td>
@@ -139,6 +139,43 @@
                         console.error('Error:', error);
                         alert('오류가 발생했습니다.');
                     });
+                });
+            });
+        });
+
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const screenMaxWidth = window.innerWidth * 0.9;
+            const screenMaxHeight = window.innerHeight * 0.9;
+
+            document.querySelectorAll('.col-image img').forEach(img => {
+                img.addEventListener('click', () => {
+                    const src = img.dataset.full || img.src;
+
+                    const tempImg = new Image();
+                    tempImg.src = src;
+                    tempImg.onload = () => {
+                        let w = tempImg.width;
+                        let h = tempImg.height;
+
+                        if (w > screenMaxWidth) {
+                            h = h * (screenMaxWidth / w);
+                            w = screenMaxWidth;
+                        }
+                        if (h > screenMaxHeight) {
+                            w = w * (screenMaxHeight / h);
+                            h = screenMaxHeight;
+                        }
+
+                        const left = (window.innerWidth - w) / 2 + window.screenX;
+                        const top = (window.innerHeight - h) / 2 + window.screenY;
+
+                        window.open(
+                            src,
+                            '_blank',
+                            `width=${Math.round(w)},height=${Math.round(h)},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`
+                        );
+                    };
                 });
             });
         });

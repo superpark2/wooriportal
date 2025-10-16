@@ -1,0 +1,41 @@
+:root {
+    /* ==== 기본 배경 ==== */
+    --bg-body: #0d0d0f;
+    --bg-surface: #171721;
+    --bg-hover: #222233;
+    --bg-accent: #1b1035;       /* 보랏빛으로 약간 이동 */
+
+    /* ==== 기본 텍스트 ==== */
+    --text-primary: #e9e6f5;    /* 약간 보라 섞인 화이트 */
+    --text-secondary: #c6c1d8;
+    --text-muted: #9d97b3;
+    --text-inverse: #111015;
+
+    /* ==== 엑센트 컬러 계열 (메인 테마) ==== */
+    --accent-light: #cfa6ff;    /* 밝은 네온 라벤더 */
+    --accent-main: #9b5bff;     /* 메인 보라 (네온 바이올렛) */
+    --accent-dark: #6b32cc;     /* 깊은 퍼플 */
+
+    /* ==== 상태 색상 ==== */
+    --success: #4be39e;
+    --warning: #ffd966;
+    --danger: #ff5f87;
+    --info: #7b8fff;            /* 보라빛 하늘색 */
+
+    /* ==== 테두리 ==== */
+    --border-light: #2a2a3a;
+    --border: var(--accent-light);
+    --border-strong: var(--accent-main);
+
+    /* ==== 버튼 ==== */
+    --btn-bg-primary: var(--accent-main);          /* 기본 보라 */
+    --btn-bg-primary-hover: var(--accent-dark);    /* 어두운 퍼플로 깊이감 */
+    --btn-bg-secondary: #3a3050;                   /* 그레이퍼플 */
+    --btn-bg-secondary-hover: #4a3c65;
+    --btn-bg-danger: #d84a9c;                      /* 핑크보라 톤 */
+    --btn-bg-danger-hover: #c03b87;
+
+    /* ==== 그림자 ==== */
+    --shadow-soft: rgba(80, 60, 120, 0.4);
+    --shadow-strong: rgba(140, 100, 200, 0.7);
+}

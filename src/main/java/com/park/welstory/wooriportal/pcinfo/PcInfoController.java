@@ -9,7 +9,9 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @RequiredArgsConstructor
 @Controller
@@ -28,7 +30,6 @@ public class PcInfoController {
         return "common/pcinfo";
     }
 
-    // 모바일/QR 전용 상세보기
     @GetMapping("/pcinfo/view/{pcInfoNum}")
     public String pcinfoMobileView(@PathVariable Long pcInfoNum, Model model) {
         try {
@@ -59,5 +60,19 @@ public class PcInfoController {
     public ResponseEntity<String> pcInfoDeleteById(@RequestParam Long pcInfoNum) {
         pcinfoService.pcInfoDelete(pcInfoNum);
         return ResponseEntity.ok("success");
+    }
+
+    @PostMapping("/facility/pcinfo/verify-password")
+    @ResponseBody
+    public ResponseEntity<Object> verifyPassword(@RequestBody String password) {
+        log.info("ㅅㅂ");
+        log.info(password);
+        Map<String, Object> response = new HashMap<>();
+        if (password.equals("2004")) {
+            response.put("success", true);
+        } else {
+            response.put("success", false);
+        }
+        return ResponseEntity.ok(response);
     }
 }

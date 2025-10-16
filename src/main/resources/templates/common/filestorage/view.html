@@ -67,7 +67,6 @@
         <div class="filestorage-context-menu-item" data-action="delete">삭제</div>
     </div>
 
-    <!-- 업로드 확인 모달 -->
     <div id="upload-confirm-modal" class="filestorage-modal">
         <div class="filestorage-modal-content">
             <div class="filestorage-modal-header">
@@ -84,7 +83,6 @@
         </div>
     </div>
 
-    <!-- 업로드 진행 모달 -->
     <div id="upload-progress-modal" class="filestorage-modal">
         <div class="filestorage-modal-content">
             <div class="filestorage-modal-header">
@@ -174,7 +172,6 @@
         }
 
         function setupTreeEvents() {
-            // jQuery 객체에 이벤트를 붙이기
             $('#filestorage-tree')
                 .on('select_node.jstree', function (e, data) {
                     const node = data.node;

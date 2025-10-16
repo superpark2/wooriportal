@@ -36,6 +36,14 @@
     font-size: 32px;
 }
 
+.building-section,
+.room-section {
+user-select: none;
+-webkit-user-select: none;
+-moz-user-select: none;
+-ms-user-select: none;
+}
+
 /* 섹션 공통 스타일 */
 .building-section,
 .room-section,

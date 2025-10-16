@@ -189,6 +189,8 @@
         let currentBuildingNum = null;
         let currentRooms = [];
         let selectedRoomNum = null;
+        let selectedRoomName = null;
+        let selectedBuildingName = null;
         let allBuildings = [];
         let currentQrUrl = '';
 
@@ -203,7 +205,6 @@
                 openLocationModal('room');
             });
 
-            // 캐러셀 초기화 (빌딩 섹션은 최초 1회, 룸은 데이터 로드 후 재조정)
             initCarousel(document.querySelector('.building-section'));
         })
 
@@ -232,7 +233,6 @@
                 `;
                     });
                     container.innerHTML = html;
-                    // 빌딩 리스트 드래그 스크롤 및 버튼 상태 갱신
                     refreshCarousel(document.querySelector('.building-section'));
                     clickBuildingCard();
                 })
@@ -242,11 +242,12 @@
 
         function clickBuildingCard() {
             const buildingCard = document.querySelectorAll('.building-card');
-            
+
             buildingCard.forEach((buildingCard) => {
                 const selectBuilding = buildingCard.dataset.buildingNum;
                 
                 buildingCard.addEventListener('click', () => {
+                    selectedBuildingName = buildingCard.dataset.buildingName;
                     getRoomList(selectBuilding);
                 });
                 
@@ -296,14 +297,12 @@
                     container.innerHTML = html;
                     const roomSection = document.querySelector('.room-section');
                     roomSection.style.display = 'block';
-                    // 룸 리스트 캐러셀 갱신
                     refreshCarousel(roomSection);
                     clickRoomCard();
                 })
                 .catch(() => {});
         }
 
-        //추가
         function populateRoomSelect(targetSelectId, selectedRoomId) {
             const select = document.getElementById(targetSelectId);
             if (!select) return;
@@ -324,7 +323,6 @@
             });
         }
 
-        //수정
         function loadRoomsForBuilding(buildingId, selectedRoomId) {
             if (!buildingId) {
                 currentRooms = [];
@@ -340,7 +338,6 @@
                 .catch(() => {});
         }
 
-        //수정
         function populateBuildingSelect(targetSelectId, selectedBuildingId) {
             const select = document.getElementById(targetSelectId);
             if (!select) return;
@@ -372,15 +369,16 @@
                 .catch(() => cb());
         }
 
-        //수정
         function clickRoomCard() {
             const roomCard = document.querySelectorAll('.room-card');
             
             roomCard.forEach(roomCard => {
                 const selectRoom = roomCard.dataset.roomNum;
+                const selectRoomName = roomCard.dataset.roomName;
                 
                 roomCard.addEventListener('click', () => {
                     selectedRoomNum = selectRoom;
+                    selectedRoomName = selectRoomName;
                     getPcInfo(selectRoom);
                 });
 
@@ -402,7 +400,6 @@
             })
         }
 
-        //수정
         function getPcInfo(selectRoom) {
             fetch('/facility/pcinfo/pclist?location=' + selectRoom, {
                 method: 'GET'
@@ -410,6 +407,11 @@
                 .then(pc => {
                     
                     let html = '';
+                    document.querySelector('.table-title').innerHTML = `
+                        <i class="fas fa-desktop"></i>
+                        <span>${selectedBuildingName} ${selectedRoomName} PC 목록</span>
+                        <span class="selected-room" id="selectedRoomName"></span>
+                    `
                     const container = document.querySelector('.pc-table-body');
                     pc.forEach(pc => {
                         html += `
@@ -462,7 +464,6 @@
                         });
                     });
 
-                    // 이미지 클릭 확대 보기
                     container.querySelectorAll('.pc-image img').forEach(img => {
                         img.style.cursor = 'zoom-in';
                         img.addEventListener('click', () => openImageViewer(img.src));
@@ -485,19 +486,16 @@
                 })
         }
 
-        //수정
         function openPcModal(pcData = null, roomNum = null) {
             const modal = document.getElementById('editModal');
             modal.style.display = 'flex';
 
-            // 입력 필드 초기화
             const fields = ['Seat', 'Cpu', 'Ram', 'Storage', 'Vga', 'Monitor', 'Ip'];
             fields.forEach(id => document.getElementById(`editPc${id}`).value = '');
             document.getElementById('editPcImage').value = '';
             document.getElementById('editPcImagePreview').style.display = 'none';
             document.getElementById('editPcImageDeleteSection').style.display = 'none';
 
-            // 삭제 버튼 기본 숨김
             const deleteBtn = document.getElementById('modalDeleteBtn');
             deleteBtn.style.display = 'none';
 
@@ -505,7 +503,6 @@
             const qrBtn = document.getElementById('modalQrBtn');
             const title = document.getElementById('editModalTitle');
 
-            // --- 수정 모드 ---
             if (pcData) {
                 title.textContent = 'PC 정보 수정';
                 deleteBtn.style.display = 'inline-flex';
@@ -514,7 +511,6 @@
                     qrBtn.onclick = () => openQrModal(pcData.pcInfoNum);
                 }
 
-                // 값 채우기
                 document.getElementById('editPcSeat').value = pcData.pcInfoSeatNum;
                 document.getElementById('editPcCpu').value = pcData.pcInfoCpu;
                 document.getElementById('editPcRam').value = pcData.pcInfoRam;
@@ -523,11 +519,9 @@
                 document.getElementById('editPcMonitor').value = pcData.pcInfoMonitor;
                 document.getElementById('editPcIp').value = pcData.pcInfoIp;
                 document.getElementById('editPcLocation').value = pcData.locationNum;
-                // 건물/방 셀렉트 채우기
-                // pcData.locationNum은 방 번호이므로, 해당 방의 parent 건물을 찾기
                 let buildingForRoom = null;
                 
-                // currentRooms에서 현재 방의 부모 건물 찾기
+
                 if (currentRooms && currentRooms.length > 0) {
                     const currentRoom = currentRooms.find(room => room.locationNum == pcData.locationNum);
                     if (currentRoom && currentRoom.locationParent) {
@@ -535,23 +529,21 @@
                     }
                 }
                 
-                // 찾지 못한 경우 fallback으로 pcData.pcBuilding 또는 currentBuildingNum 사용
+
                 if (!buildingForRoom) {
                     buildingForRoom = pcData.pcBuilding || currentBuildingNum;
                 }
                 
-                // 건물 목록이 없으면 먼저 로드
+
                 ensureBuildingsThen(() => {
                     populateBuildingSelect('editPcBuilding', buildingForRoom);
-                    // 건물 선택이 보이도록 보장 및 방 목록 동기화
+
                     const buildingSelect = document.getElementById('editPcBuilding');
                     buildingSelect.style.display = '';
                     document.querySelector('label select#editPcBuilding')?.parentElement?.removeAttribute('style');
-                    // 반드시 해당 건물의 방 목록으로 로드하여 현재 방을 선택
                     loadRoomsForBuilding(buildingForRoom, pcData.locationNum);
                 });
 
-                // 건물 변경 시 방 목록 갱신
                 document.getElementById('editPcBuilding').onchange = (e) => {
                     const b = e.target.value;
                     if (!b) return;
@@ -579,7 +571,6 @@
                     document.getElementById('editPcImageDeleteSection').style.display = 'none';
                 }
 
-                // 삭제 이벤트
                 deleteBtn.onclick = () => {
                     if (!confirm("PC를 삭제하시겠습니까?")) return;
                     fetch(`/facility/pcinfo/delete?pcInfoNum=${pcData.pcInfoNum}`, { method: 'DELETE' })
@@ -591,7 +582,6 @@
                 };
             }
 
-            // --- 추가 ---
             else {
                 title.textContent = 'PC 정보 추가';
                 if (qrBtn) {
@@ -616,7 +606,6 @@
                 };
             }
 
-            // 저장
             saveBtn.onclick = () => {
                 const selectedRoom = document.getElementById('editPcRoom').value || (pcData ? pcData.locationNum : roomNum);
                 const fieldMap = { Seat: 'pcInfoSeatNum', Cpu: 'pcInfoCpu', Ram: 'pcInfoRam', Storage: 'pcInfoStorage', Vga: 'pcInfoVga', Monitor: 'pcInfoMonitor', Ip: 'pcInfoIp' };
@@ -656,7 +645,6 @@
         }
 
 
-        //수정
         function openLocationModal(locationType, locationData = null) {
             const modal = document.getElementById('editLocationModal');
             modal.style.display = 'flex';
@@ -704,11 +692,9 @@
                 previewImg.style.cursor = 'default';
             }
 
-            // 삭제
             const deleteBtn = document.getElementById('modalDeleteLocationBtn');
             deleteBtn.style.display = locationData ? 'inline-flex' : 'none';
 
-            // 저장
             document.getElementById('modalSaveLocationBtn').onclick = () => {
                 if (!confirm(locationData ? "장소 정보를 수정하시겠습니까?" : "새 장소를 추가하시겠습니까?")) return;
 
@@ -777,7 +763,6 @@
         }
 
 
-        //수정
         function loadBuildingSelect(selectId, selectedBuildingId = null) {
             fetch('/location/list?type=building', {
                 method: 'GET'
@@ -799,7 +784,6 @@
                 .catch(() => {});
         }
 
-        //수정
         function handleImagePreview(event, imgId, previewId) {
             const file = event.target.files[0];
             const previewImg = document.getElementById(imgId);
@@ -817,7 +801,6 @@
             }
         }
 
-        //삭제
         function openImageViewer(src) {
             const viewer = document.getElementById('imageViewer');
             const img = document.getElementById('imageViewerImg');
@@ -889,7 +872,6 @@
         };
 
 
-        // === 캐러셀 유틸 ===
         function initCarousel(sectionEl) {
             if (!sectionEl) return;
             const viewport = sectionEl.querySelector('.carousel-viewport');
@@ -916,7 +898,7 @@
         }
 
         function refreshCarousel(sectionEl) {
-            // 데이터가 다시 렌더된 후 드래그 및 버튼 상태 재적용
+
             initCarousel(sectionEl);
         }
 
@@ -940,7 +922,7 @@
                 const walk = (x - startX) * -1; // 반대로 이동
                 if (Math.abs(walk) > 2) hasMoved = true;
                 scrollEl.scrollLeft = startScrollLeft + walk;
-                // 즉시 스크롤 반영 및 기본 제스처 차단
+
                 if (e.cancelable) e.preventDefault();
             };
             const onUp = (e) => {
@@ -948,17 +930,14 @@
                 scrollEl.classList.remove('dragging');
             };
 
-            // 마우스
             scrollEl.addEventListener('mousedown', onDown);
             scrollEl.addEventListener('mousemove', onMove);
             window.addEventListener('mouseup', onUp);
 
-            // 터치
             scrollEl.addEventListener('touchstart', onDown, { passive: true });
             scrollEl.addEventListener('touchmove', onMove, { passive: false });
             scrollEl.addEventListener('touchend', onUp);
 
-            // 드래그 후 클릭 억제 (즉시 반응성 개선 및 오동작 방지)
             scrollEl.addEventListener('click', (e) => {
                 if (hasMoved) {
                     e.stopPropagation();

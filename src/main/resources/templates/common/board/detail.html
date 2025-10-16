@@ -21,7 +21,7 @@
             <div class="detail-meta">
                 <div class="detail-meta-item">
                     <i class="fas fa-user"></i>
-                    <span th:text="${board.getBoardTitle}">작성자</span>
+                    <span th:text="${board.member.memberName}">작성자</span>
                 </div>
                 <div class="detail-meta-item">
                     <i class="fas fa-calendar"></i>
@@ -99,6 +99,42 @@
         const group = /*[[${group}]]*/ '';
         const category = /*[[${category}]]*/ '';
         const boardNum = /*[[${board.BoardNum}]]*/ '';
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const screenMaxWidth = window.innerWidth * 0.9;
+            const screenMaxHeight = window.innerHeight * 0.9;
+
+            document.querySelectorAll('.detail-content img').forEach(img => {
+                img.addEventListener('click', () => {
+                    const src = img.dataset.full || img.src;
+
+                    const tempImg = new Image();
+                    tempImg.src = src;
+                    tempImg.onload = () => {
+                        let w = tempImg.width;
+                        let h = tempImg.height;
+
+                        if (w > screenMaxWidth) {
+                            h = h * (screenMaxWidth / w);
+                            w = screenMaxWidth;
+                        }
+                        if (h > screenMaxHeight) {
+                            w = w * (screenMaxHeight / h);
+                            h = screenMaxHeight;
+                        }
+
+                        const left = (window.innerWidth - w) / 2 + window.screenX;
+                        const top = (window.innerHeight - h) / 2 + window.screenY;
+
+                        window.open(
+                            src,
+                            '_blank',
+                            `width=${Math.round(w)},height=${Math.round(h)},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`
+                        );
+                    };
+                });
+            });
+        });
     </script>
 </div>
 

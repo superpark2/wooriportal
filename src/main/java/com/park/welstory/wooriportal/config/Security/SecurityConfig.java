@@ -33,7 +33,9 @@ public class SecurityConfig {
                                 "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**",
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
-                                    "/facility/pcinfo/delete", "/location/list"
+                                "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
+                                "/qrlog/api/**", "/pcinfo/require/**", "/location/**"
+
                         ).permitAll()
 
                         .requestMatchers("/bg/**", "/file/**", "/font/**", "/js/**", "/loading/**",

@@ -1,0 +1,42 @@
+:root {
+    /* ==== 기본 배경 ==== */
+    --bg-body: #FAF9F2;       /* 밝은 화이트, 톤 다운 */
+    --bg-surface: #FFF5A8;    /* 연한 노랑 카드/패널 */
+    --bg-hover: #FFEB33;      /* 마우스 오버 시 조명 느낌 */
+    --bg-accent: #FFD700;     /* 강한 호머 옐로우 포인트 */
+
+    /* ==== 기본 텍스트 ==== */
+    --text-primary: #1C1C1C;  /* 진한 블랙 */
+    --text-secondary: #3A3A3A;/* 약간 부드러운 블랙 */
+    --text-muted: #666666;    /* 톤 다운된 회색 */
+    --text-inverse: #FFFFFF;  /* 컬러 배경용 반전 텍스트 */
+
+    /* ==== 액센트 컬러 (호머 스타일) ==== */
+    --accent-yellow: #FFD700; /* 피부 톤 노랑 */
+    --accent-blue: #0050CC;   /* 바지/셔츠 블루 – 진하게 */
+    --accent-orange: #FF6600; /* 도넛/강조 오렌지 */
+    --accent-red: #CC0033;    /* 입술/포인트 레드 */
+
+    /* ==== 상태 색상 ==== */
+    --success: #00AA33;       /* 그린 */
+    --warning: #FF9900;       /* 경고 오렌지 */
+    --danger: var(--accent-red);
+    --info: var(--accent-blue);
+
+    /* ==== 테두리 ==== */
+    --border-light: #FFDD33;  /* 연한 노랑 테두리 */
+    --border: #003399;        /* 짙은 블루 */
+    --border-strong: #990022; /* 강조 레드 */
+
+    /* ==== 버튼 ==== */
+    --btn-bg-primary: var(--accent-blue);
+    --btn-bg-primary-hover: var(--accent-orange);
+    --btn-bg-secondary: var(--accent-yellow);
+    --btn-bg-secondary-hover: #FFDD33;
+    --btn-bg-danger: var(--danger);
+    --btn-bg-danger-hover: #880022;
+
+    /* ==== 그림자 ==== */
+    --shadow-soft: rgba(0,0,0,0.2);
+    --shadow-strong: rgba(0,0,0,0.35);
+}

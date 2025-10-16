@@ -138,8 +138,7 @@
                         })
                         .catch(()=>alert('상태 변경 중 오류가 발생했습니다.'));
                 }
-                
-                // 답변 삭제
+
                 if(t.classList.contains('btn-delete-answer')){
                     const answerNum = t.getAttribute('data-renum');
                     if(!answerNum) return;

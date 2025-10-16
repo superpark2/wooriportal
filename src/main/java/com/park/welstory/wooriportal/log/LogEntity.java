@@ -7,7 +7,7 @@ import lombok.Setter;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "qr_log")
+@Table(name = "log")
 @Getter
 @Setter
 public class LogEntity {

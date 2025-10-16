@@ -9,6 +9,7 @@ import javax.imageio.ImageIO;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.FileSystemException;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
@@ -81,8 +82,23 @@ public class ImageService {
             File permFile = new File(permFolder, fileName);
             if (tempFile.exists()) {
                 try {
-                    Files.move(tempFile.toPath(), permFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
-                } catch (IOException e) {
+                    int maxRetries = 5;
+                    int retryDelayMs = 100; // 0.1초 간격으로 재시도
+
+                    for (int i = 0; i < maxRetries; i++) {
+                        try {
+                            Files.move(tempFile.toPath(), permFile.toPath(), StandardCopyOption.REPLACE_EXISTING);
+                            break; // 성공 시 빠져나감
+                        } catch (FileSystemException e) {
+                            // 파일이 잠겨 있는 경우 약간 기다렸다가 다시 시도
+                            if (i < maxRetries - 1) {
+                                Thread.sleep(retryDelayMs);
+                            } else {
+                                throw new RuntimeException("파일 이동 실패 (잠김): " + tempFile.getName(), e);
+                            }
+                        }
+                    }
+                } catch (IOException | InterruptedException e) {
                     throw new RuntimeException("파일 이동 실패: " + tempFile.getName(), e);
                 }
 
