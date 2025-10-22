@@ -236,7 +236,6 @@
             .catch(err => {
                 mainCard.innerHTML = '현재 기온 정보를 불러오지 못했습니다.';
                 container.innerHTML = '예보 정보를 불러오지 못했습니다.';
-                console.error(err);
             });
     }
 
@@ -244,7 +243,6 @@
         try {
             const res = await fetch("https://ipapi.co/json/");
             const ipData = await res.json();
-            console.log("IP 기반 위치:", ipData.region);
 
             let matchedKey = null;
 
@@ -260,13 +258,11 @@
                 document.getElementById("city-select").value = matchedKey;
                 fetchForecast(nx, ny, name);
             } else {
-                console.warn("IP 기반 매칭 실패 → 인천으로 설정");
                 document.getElementById("city-select").value = "incheon";
                 const { nx, ny, name } = cityCoords["incheon"];
                 fetchForecast(nx, ny, name);
             }
         } catch (e) {
-            console.error("IP API 호출 실패:", e);
             document.getElementById("city-select").value = "incheon";
             const { nx, ny, name } = cityCoords["incheon"];
             fetchForecast(nx, ny, name);

@@ -27,9 +27,6 @@ public class LocationService {
 
     public List<LocationDTO> getListLocation(String type, Long buildingNum){
 
-        log.info("섹스" + type);
-        log.info("섹스" + buildingNum);
-
         List<LocationEntity> entityList;
         if (buildingNum == null) {
             entityList = locationRepository.findByLocationType(type);
@@ -41,7 +38,6 @@ public class LocationService {
             LocationDTO dto = modelMapper.map(entity, LocationDTO.class);
             dtoList.add(dto);
         }
-        log.info("{}시팔년", dtoList);
         return dtoList;
     }
 

@@ -87,7 +87,7 @@ public class FileStorageController {
             path = "";
         }
 
-        Path newFolderPath = Paths.get("C:/Users/Administrator/Desktop/wooriFTP", path, name);
+        Path newFolderPath = Paths.get("D:/WebStorage", path, name);
 
         try {
             if (!Files.exists(newFolderPath)) {

@@ -1,11 +1,14 @@
 package com.park.welstory.wooriportal.pcinfo;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.park.welstory.wooriportal.location.LocationEntity;
+import com.park.welstory.wooriportal.util.LogUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -18,6 +21,7 @@ import java.util.UUID;
 
 @RequiredArgsConstructor
 @Service
+@Log4j2
 public class PcinfoService {
 
     private final ModelMapper modelMapper = new ModelMapper();
@@ -33,24 +37,24 @@ public class PcinfoService {
         return list;
     }
 
+    @Transactional
     public void pcInfoAdd (PcInfoDTO pcInfoDTO, String imageDelete) {
-        // 공용 로직: 생성/수정 모두 처리
         MultipartFile newImage = pcInfoDTO.getPcInfoImage();
         String existingMeta = null;
         Long targetLocationNum = pcInfoDTO.getLocationNum();
+        PcInfoEntity originalEntity = null;
 
         if (pcInfoDTO.getPcInfoNum() != null) {
             Optional<PcInfoEntity> existingOpt = pcInfoRepository.findById(pcInfoDTO.getPcInfoNum());
             if (existingOpt.isPresent()) {
-                PcInfoEntity existing = existingOpt.get();
-                existingMeta = existing.getPcInfoImageMeta();
-                if (targetLocationNum == null && existing.getLocation() != null) {
-                    targetLocationNum = existing.getLocation().getLocationNum();
+                originalEntity = existingOpt.get();
+                existingMeta = originalEntity.getPcInfoImageMeta();
+                if (targetLocationNum == null && originalEntity.getLocation() != null) {
+                    targetLocationNum = originalEntity.getLocation().getLocationNum();
                 }
             }
         }
 
-        // 새 이미지 업로드가 있는 경우 → 기존 이미지 삭제 후 저장
         if (newImage != null && !newImage.isEmpty()) {
             if (existingMeta != null) {
                 deleteLocalFileByMeta(existingMeta);
@@ -58,34 +62,43 @@ public class PcinfoService {
             String savedMeta = savePcImageToLocal(newImage, targetLocationNum);
             pcInfoDTO.setPcInfoImageMeta(savedMeta);
         } else {
-            // 새 이미지 없고, 삭제 체크한 경우 → 기존 파일 삭제 및 메타 제거
             if ("true".equalsIgnoreCase(imageDelete) && existingMeta != null) {
                 deleteLocalFileByMeta(existingMeta);
                 pcInfoDTO.setPcInfoImageMeta(null);
-            } else {
-                // 그대로 유지
-                if (existingMeta != null) {
-                    pcInfoDTO.setPcInfoImageMeta(existingMeta);
-                }
+            } else if (existingMeta != null) {
+                pcInfoDTO.setPcInfoImageMeta(existingMeta);
             }
         }
 
         PcInfoEntity entity = modelMapper.map(pcInfoDTO, PcInfoEntity.class);
-        // DTO의 locationNum을 ManyToOne 연관관계에 명시적으로 매핑
         if (pcInfoDTO.getLocationNum() != null) {
             LocationEntity locRef = new LocationEntity();
             locRef.setLocationNum(pcInfoDTO.getLocationNum());
             entity.setLocation(locRef);
         }
-        pcInfoRepository.save(entity);
+        
+        PcInfoEntity savedEntity = pcInfoRepository.save(entity);
+        
+        // 수정인 경우 변경사항 로그 기록
+        if (originalEntity != null) {
+            LogUtil.logPcSpecChange(originalEntity, savedEntity);
+        }
     }
 
+    @Transactional
     public void pcInfoDelete (Long pcInfoNum) {
-        // 삭제 시 로컬 이미지도 함께 제거
-        pcInfoRepository.findById(pcInfoNum).ifPresent(e -> {
-            if (e.getPcInfoImageMeta() != null) deleteLocalFileByMeta(e.getPcInfoImageMeta());
+        var pcEntity = pcInfoRepository.findById(pcInfoNum);
+        if (pcEntity.isPresent()) {
+            var entity = pcEntity.get();
+            
+            // 이미지 파일이 있으면 로컬에서 삭제
+            if (entity.getPcInfoImageMeta() != null) {
+                deleteLocalFileByMeta(entity.getPcInfoImageMeta());
+            }
+            
+            // PC 정보 삭제
             pcInfoRepository.deleteById(pcInfoNum);
-        });
+        }
     }
 
     public PcInfoDTO getById(Long pcInfoNum) {
@@ -99,7 +112,6 @@ public class PcinfoService {
     }
 
     public void pcInfoUpdate(PcInfoDTO pcInfoDTO, String imageDelete) {
-        // add 로직이 통합 처리하므로 이 메서드는 add를 위임 호출
         pcInfoAdd(pcInfoDTO, imageDelete);
     }
 
@@ -124,11 +136,11 @@ public class PcinfoService {
     
 
     private void deleteLocalFileByMeta(String metaPath) {
-        // metaPath 예: /file/pcinfo/{locationNum}/xxxx_name.ext → 로컬은 ./file/pcinfo/... 로 매핑
         File f = new File("." + metaPath);
         if (f.exists()) {
-            //noinspection ResultOfMethodCallIgnored
             f.delete();
         }
     }
+    
+
 }

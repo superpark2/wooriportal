@@ -19,7 +19,6 @@ import java.util.Map;
 public class PcInfoController {
 
     private final PcinfoService pcinfoService;
-    private final LocationService locationService; // reserved for future use
 
     @GetMapping("/facility/pcinfo/list")
     public String pcinfoView(HttpServletRequest request, Model model){
@@ -58,15 +57,17 @@ public class PcInfoController {
 
     @DeleteMapping("/facility/pcinfo/delete")
     public ResponseEntity<String> pcInfoDeleteById(@RequestParam Long pcInfoNum) {
-        pcinfoService.pcInfoDelete(pcInfoNum);
-        return ResponseEntity.ok("success");
+        try {
+            pcinfoService.pcInfoDelete(pcInfoNum);
+            return ResponseEntity.ok("success");
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("삭제 실패");
+        }
     }
 
     @PostMapping("/facility/pcinfo/verify-password")
     @ResponseBody
     public ResponseEntity<Object> verifyPassword(@RequestBody String password) {
-        log.info("ㅅㅂ");
-        log.info(password);
         Map<String, Object> response = new HashMap<>();
         if (password.equals("2004")) {
             response.put("success", true);

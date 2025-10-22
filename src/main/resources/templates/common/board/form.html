@@ -75,7 +75,6 @@
           ['fullScreen', 'preview', 'codeView']
         ],
 
-        // 이미지 세팅
         imageUploadUrl: `/${group}/${category}/image/upload`,
         imageUploadSizeLimit: 20 * 1024 * 1024, // 20MB
         imageAccept: '.jpg,.jpeg,.png,.gif,.bmp,.webp,.ico,.tiff,.tif,.svg',
@@ -84,7 +83,6 @@
         // }
       });
 
-      // 제출
       const form = document.getElementById('boardForm');
       form.addEventListener('submit', function(e) {
         document.getElementById('editor-content').value = editor.getContents();
@@ -93,7 +91,6 @@
 
 
 
-    // 파일 첨부
     function addFileInput() {
       const container = document.getElementById('fileContainer');
       const fileCount = container.children.length;
@@ -113,7 +110,6 @@
       container.appendChild(fileItem);
     }
 
-    // 파일 삭제
     function removeFileInput(button) {
       button.parentElement.remove();
       document.getElementById('fileNotAdd').style.display = 'none';

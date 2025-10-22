@@ -1,6 +1,7 @@
 package com.park.welstory.wooriportal.pcinfo;
 
 import com.park.welstory.wooriportal.location.LocationEntity;
+import com.park.welstory.wooriportal.util.LogUtil;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
@@ -13,6 +14,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Setter
 @Entity
 @Table(name="pcinfo")
+@EntityListeners(LogUtil.class)
 public class PcInfoEntity {
 
     @Id

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>요일별 스케줄</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&family=Prompt:wght@500&display=swap');
+
+        body {
+            margin: 0;
+            padding: 60px;
+            background: linear-gradient(135deg, #f3f6fb, #e9eff5);
+            font-family: 'Prompt', sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 70px;
+            color: #2e3a46;
+        }
+
+        /* 카드 글로우 */
+        .glow-wrap {
+            position: relative;
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+        .glow-wrap::before {
+            content: "";
+            position: absolute;
+            width: 90%;
+            height: 120%;
+            border-radius: 25px;
+            background: radial-gradient(circle at 50% 50%, rgba(200,230,255,0.6), transparent 70%);
+            filter: blur(35px);
+            opacity: 0.4;
+            z-index: -1;
+        }
+
+        /* 테이블 스타일 */
+        table {
+            border-collapse: collapse;
+            width: 90%;
+            max-width: 950px;
+            border-radius: 24px;
+            overflow: hidden;
+            background: rgba(255,255,255,0.65);
+            box-shadow:
+                    10px 10px 30px rgba(0,0,0,0.15),
+                    -10px -10px 30px rgba(255,255,255,0.9),
+                    inset 1px 1px 3px rgba(255,255,255,0.7),
+                    inset -2px -2px 5px rgba(0,0,0,0.05);
+            backdrop-filter: blur(18px);
+            transition: all 0.4s ease;
+        }
+        table:hover {
+            transform: translateY(-5px);
+            box-shadow:
+                    0 25px 70px rgba(0,0,0,0.2),
+                    inset 2px 2px 6px rgba(255,255,255,0.8),
+                    inset -2px -2px 8px rgba(0,0,0,0.08);
+        }
+
+        /* 제목 */
+        caption {
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2em;
+            margin-bottom: 25px;
+            color: #304452;
+            text-shadow:
+                    1px 1px 3px rgba(255,255,255,0.9),
+                    2px 3px 8px rgba(0,0,0,0.2);
+            letter-spacing: 2px;
+        }
+
+        /* 셀 기본 */
+        th, td {
+            padding: 25px 20px;
+            text-align: center;
+            font-size: 1.5em;
+            color: #2c3b45;
+            position: relative;
+            transition: all 0.3s ease;
+        }
+
+        /* 상단 헤더 */
+        th {
+            background: linear-gradient(180deg, #e5ebf1, #d7dfe6);
+            text-shadow: 1px 1px 2px rgba(255,255,255,0.8),
+            2px 2px 4px rgba(0,0,0,0.1);
+            border-bottom: 1px solid rgba(0,0,0,0.1);
+        }
+
+        /* 일반 셀 */
+        td {
+            background: rgba(255,255,255,0.35);
+            backdrop-filter: blur(6px);
+            border-right: 1px solid rgba(0,0,0,0.05);
+            border-bottom: 1px solid rgba(0,0,0,0.05);
+            border-radius: 10px;
+            text-shadow:
+                    1px 1px 3px rgba(255,255,255,0.8),
+                    2px 2px 6px rgba(0,0,0,0.15);
+        }
+
+        /* 마지막 셀 오른쪽 보더 제거 */
+        td:last-child {
+            border-right: none;
+        }
+
+        /* 행 호버 */
+        tr:hover td {
+            background: rgba(225,235,250,0.6);
+            color: #1a2934;
+            text-shadow:
+                    1px 1px 3px rgba(255,255,255,0.9),
+                    3px 3px 8px rgba(0,0,0,0.25);
+        }
+
+        /* 아이콘 */
+        .icon {
+            font-size: 1.3em;
+            opacity: 0.8;
+            margin-right: 6px;
+            filter: drop-shadow(1px 1px 2px rgba(255,255,255,0.7));
+        }
+
+        /* 부드러운 빛 흐름 애니메이션 */
+        @keyframes shimmer {
+            0% { background-position: -500px 0; }
+            100% { background-position: 500px 0; }
+        }
+        table::after {
+            content: "";
+            position: absolute;
+            top: 0;
+            left: -50%;
+            width: 200%;
+            height: 100%;
+            background: linear-gradient(120deg, transparent 30%, rgba(255,255,255,0.25) 50%, transparent 70%);
+            background-size: 200% 100%;
+            animation: shimmer 5s infinite linear;
+            opacity: 0.25;
+            pointer-events: none;
+            border-radius: 25px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="glow-wrap">
+    <table>
+        <caption>야간 업무</caption>
+        <tr>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+        </tr>
+        <tr>
+            <td><span class="icon">💼</span>장민규</td>
+            <td><span class="icon">🚀</span>목진우</td>
+            <td><span class="icon">💼</span>장민규</td>
+            <td><span class="icon">🛰️</span>박인규</td>
+            <td><span class="icon">💼</span>장민규</td>
+        </tr>
+    </table>
+</div>
+
+<div class="glow-wrap">
+    <table>
+        <caption>쓰레기통 청소당번</caption>
+        <tr>
+            <th>월</th>
+            <th>화</th>
+            <th>수</th>
+            <th>목</th>
+            <th>금</th>
+        </tr>
+        <tr>
+            <td><span class="icon">🧹</span>박종우</td>
+            <td><span class="icon">🧽</span>박인규</td>
+            <td><span class="icon">🧴</span>김은비</td>
+            <td><span class="icon">🪣</span>목진우</td>
+            <td><span class="icon">🧼</span>장민규</td>
+        </tr>
+    </table>
+</div>
+
+<div style="
+  position: relative;
+  display: inline-block;
+  overflow: hidden;
+  border-radius: 12px;
+">
+    <img src="/loading/zerg.gif" style="
+    display: block;
+    width: 300px;
+    height: auto;
+    border-radius: 12px;
+  ">
+
+    <div style="
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -75%;
+    width: 50%;
+    height: 100%;
+    background: linear-gradient(120deg, rgba(255,255,255,0) 50%, rgba(255,255,255,0.6) 75%, rgba(255,255,255,0) 100%);
+    animation: shine 2s infinite;
+  "></div>
+</div>
+
+<script>
+    const style = document.createElement('style');
+    style.textContent = `
+    @keyframes shine {
+      0% { left: -75%; }
+      100% { left: 125%; }
+    }
+  `;
+    document.head.appendChild(style);
+</script>
+
+
+
+</body>
+</html>

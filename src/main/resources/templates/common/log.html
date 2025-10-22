@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<!--/*@thymesVar id="board" type="com.park.welstory.wooriportal.board.board.BoardDTO"*/-->
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>𝓦𝓸𝓸𝓻𝓲</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <link href="/style/skin/default/common/board/list.css" rel="stylesheet">
+</head>
+<body>
+<div layout:fragment="content" class="dashboard-container">
+
+    <!-- 메인 콘텐츠 -->
+    <main class="main-content">
+
+
+        <!-- 테이블 섹션 -->
+        <section class="table-section">
+            <div class="table-header">
+                <h3 th:text="${title} + ' ' + ${subTitle}" class="form-title">타이틀</h3>
+                <div class="table-controls">
+                    <select class="entries-selector">
+                        <option value="10">페이지당 10개 항목</option>
+                        <option value="25">페이지당 25개 항목</option>
+                        <option value="50">페이지당 50개 항목</option>
+                        <option value="100">페이지당 100개 항목</option>
+                    </select>
+                    <input type="text" class="search-box" placeholder="검색...">
+                </div>
+            </div>
+
+            <table class="data-table">
+                <thead>
+                <tr>
+                    <th class="col-8">내용</th>
+                    <th class="col-4">날짜</th>
+                </tr>
+                </thead>
+                <tbody>
+
+                <tr th:each="log : ${logs.getContent()}">
+                    <td th:text="${log.logContent}"></td>
+                    <td th:text="${#temporals.format(log.createdAt, 'yyyy-MM-dd HH:mm')}" style="white-space: nowrap"></td>
+                </tr>
+
+                <tr th:if="${logs.isEmpty()}">
+                    <td colspan="2" class="empty-data">
+                        데이터가 없습니다. 새 항목을 추가해주세요.
+                    </td>
+                </tr>
+                </tbody>
+            </table>
+
+            <!--페이징-->
+            <div class="row m-0 p-0 mt-3" th:if="${logs.totalPages > 0}">
+                <div class="col-3"></div>
+                <ul class="col-6 pagination justify-content-center col">
+                    <!-- 처음 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${logs.number == 0} ? 'disabled'">
+                        <a class="page-link" th:href="@{/facility/log/list(page=0)}">처음</a>
+                    </li>
+
+                    <!-- 이전 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${!logs.hasPrevious()} ? 'disabled'">
+                        <a class="page-link" th:href="@{/facility/log/list(page=${logs.number - 1})}">이전</a>
+                    </li>
+
+                    <!-- 현재 페이지 기준 앞 4개, 뒤 5개 -->
+                    <li class="page-item"
+                        th:each="pageNum : ${#numbers.sequence(
+                (logs.number - 4 > 0 ? logs.number - 4 : 0),
+                (logs.number + 5 < logs.totalPages - 1 ? logs.number + 5 : logs.totalPages - 1)
+            )}"
+                        th:classappend="${pageNum == logs.number} ? 'active'">
+                        <a class="page-link" th:href="@{/facility/log/list(page=${pageNum})}" th:text="${pageNum + 1}"></a>
+                    </li>
+
+                    <!-- 다음 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${!logs.hasNext()} ? 'disabled'">
+                        <a class="page-link" th:href="@{/facility/log/list(page=${logs.number + 1})}">다음</a>
+                    </li>
+
+                    <!-- 마지막 페이지 버튼 -->
+                    <li class="page-item" th:classappend="${logs.number == logs.totalPages - 1} ? 'disabled'">
+                        <a class="page-link" th:href="@{/facility/log/list(page=${logs.totalPages - 1})}">마지막</a>
+                    </li>
+                </ul>
+
+            </div>
+
+        </section>
+    </main>
+</div>
+
+
+</body>
+</html>

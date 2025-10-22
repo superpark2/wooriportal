@@ -167,7 +167,6 @@
             }
         })
         .catch(error => {
-            console.error('Error checking ID:', error);
             idValidationMessage.textContent = 'Error checking ID.';
             idValidationMessage.className = 'id-validation-message error';
         });

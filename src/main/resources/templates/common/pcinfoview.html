@@ -219,7 +219,7 @@
     });
 
     function loadQrLogs(pcNum, page) {
-        const url = `/qrlog/api/pc/${pcNum}?page=${page}&size=8`;
+        const url = `/log/pc/${pcNum}?page=${page}&size=8`;
         fetch(url)
             .then(r => r.json())
             .then(data => {
@@ -410,7 +410,7 @@
             if (!content) { if (err) err.style.display = 'block'; return; }
             if (err) err.style.display = 'none';
             const pcNum = document.getElementById('pcNumHidden')?.value;
-            fetch(`/qrlog/api/pc/${pcNum}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) })
+            fetch(`/log/pc/${pcNum}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ content }) })
                 .then(r => {
                     if (r.ok) {
                         alert('로그가 저장되었습니다.');
@@ -464,7 +464,6 @@
                     loadRequires(0);
                 })
                 .catch(error => {
-                    console.error('요청 등록 오류:', error);
                     alert('요청 등록 실패: ' + error.message);
                 });
         });
@@ -492,7 +491,6 @@
                 }
             })
             .catch(error => {
-                console.error('건물 목록 로드 실패:', error);
                 const el = document.getElementById('editBuilding');
                 if (el) el.innerHTML = '<option value="">건물 목록을 불러올 수 없습니다</option>';
             });
@@ -516,7 +514,6 @@
                 if (el) el.innerHTML = options;
             })
             .catch(error => {
-                console.error('방 목록 로드 실패:', error);
                 const el = document.getElementById('editRoom');
                 if (el) el.innerHTML = '<option value="">방 목록을 불러올 수 없습니다</option>';
             });
@@ -543,7 +540,6 @@
                     let html = '';
                     const questions = data.content.filter(req => req.reType === 'Q');
                     
-                    console.log('Questions:', questions);
                     
                     questions.forEach(question => {
                         const ts = question.createdAt || question.created_at || question.createdDate;
@@ -555,7 +551,6 @@
 
                         const questionAnswers = question.answers || [];
                         
-                        console.log('Question answers for', question.reNum, ':', questionAnswers);
                         
                         html += `
                             <div class="require-item">

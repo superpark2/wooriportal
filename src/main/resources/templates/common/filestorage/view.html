@@ -408,7 +408,6 @@
                     .filter(node => hiddenFolders.includes(node.text) && !unlockedFolders.includes(node.text))
                     .forEach(node => tree.hide_node(node.id));
             } catch (e) {
-                // console.log('hideLockedFolders error', e);
             }
         }
 

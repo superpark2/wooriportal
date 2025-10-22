@@ -201,7 +201,6 @@
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 alert('할일 추가 중 오류가 발생했습니다.');
             });
         }
@@ -222,7 +221,6 @@
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 alert('할일 수정 중 오류가 발생했습니다.');
             });
         }
@@ -239,28 +237,22 @@
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 alert('할일 삭제 중 오류가 발생했습니다.');
             });
         }
 
         function toggleTodoStatus(todoNum, button) {
-            console.log('상태 변경 요청:', todoNum);
             fetch(`/${group}/todolist/${todoNum}/toggle`, {
                 method: 'PATCH'
             })
             .then(response => {
-                console.log('응답 상태:', response.status, response.statusText);
                 if (response.ok) {
-                    console.log('상태 변경 성공');
                     location.reload();
                 } else {
-                    console.error('상태 변경 실패:', response.status);
                     alert('상태 변경에 실패했습니다.');
                 }
             })
             .catch(error => {
-                console.error('Error:', error);
                 alert('상태 변경 중 오류가 발생했습니다.');
             });
         }

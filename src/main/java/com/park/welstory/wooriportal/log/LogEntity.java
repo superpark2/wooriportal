@@ -1,5 +1,6 @@
 package com.park.welstory.wooriportal.log;
 
+import com.park.welstory.wooriportal.pcinfo.PcInfoEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,11 +20,6 @@ public class LogEntity {
     @Column(nullable = false, length = 1000)
     private String content;
     
-    @Column(name = "pcinfo_num")
-    private Long pcinfoNum;
-    
-    // equipment는 사용하지 않음
-    
     @Column(nullable = false)
     private LocalDateTime createdAt;
     
@@ -31,4 +27,8 @@ public class LogEntity {
     protected void onCreate() {
         createdAt = LocalDateTime.now();
     }
+
+    @ManyToOne
+    @JoinColumn(name = "pcinfo_num")
+    private PcInfoEntity pcInfo;
 } 

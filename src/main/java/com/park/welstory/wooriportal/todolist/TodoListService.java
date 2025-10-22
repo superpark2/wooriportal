@@ -53,7 +53,6 @@ public class TodoListService {
                     .orElse(null);
             
             if (entity == null) {
-                System.out.println("할일을 찾을 수 없습니다. ID: " + todoNum);
                 return;
             }
             

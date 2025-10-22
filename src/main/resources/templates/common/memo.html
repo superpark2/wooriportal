@@ -149,7 +149,6 @@
                     }
                 })
                 .catch(error => {
-                    console.error('메모 로드 중 오류:', error);
                 })
                 .finally(() => {
                     isLoading = false;
@@ -203,7 +202,6 @@
                      }
                  })
                 .catch(error => {
-                    console.error('메모 등록 중 오류:', error);
                     alert('메모 등록 중 오류가 발생했습니다.');
                 });
         }
@@ -234,7 +232,6 @@
                  }
              })
              .catch(error => {
-                 console.error('메모 삭제 중 오류:', error);
                  alert('메모 삭제 중 오류가 발생했습니다.');
              });
          }

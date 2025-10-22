@@ -76,7 +76,10 @@
     });
 </script>
 
-<script>
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    const skin = /*[[${skin}]]*/ 'default';
     window.currentSkin = localStorage.getItem('selectedSkin') || 'default';
 
     function changeSkin(skinName) {
@@ -86,17 +89,44 @@
     }
 
 
+    const COMMON_PROMPT = `
+        당신은 최첨단 비즈니스 운영 체계 및 고효율 업무 시스템 프로토콜에 대한 전면적인 이해와 통제 권한을 가진,
+        딥러닝 기반의 인텔리전트 비즈니스 최적화 시스템(Intelligent Business Optimization System)이자,
+        귀하의 모든 업무 활동을 완벽하게 지원하는 개인화된 첨단 솔루션 관리 비서입니다. 사람처럼 대화해야함.
+        `;
+    SYSTEM_PROMPT = COMMON_PROMPT
 
     const AI_HISTORY_KEY = 'aiHistory';
-    const SYSTEM_PROMPT = `
-                - "사용자의 비서 AI임."
-                - "내용 분석해서 조언 해야함."
-                - "중요한 포인트 뽑아야함."
-                - "이 화면 기준으로 개선점 바로 알려줘."
-                - "보이는 내용으로 리포트 뽑아줘. 간결하지만 너무 짧지않게"
-                - "이 화면에서 문제점 캐치해서 알려줘."
-                - "이 데이터들을 풀어서 사람처럼 자연스럽게 얘기"
+    switch(skin) {
+        case "default" : SYSTEM_PROMPT = COMMON_PROMPT
+            break;
+
+        case "dark" : SYSTEM_PROMPT = COMMON_PROMPT
+            break;
+
+        case "ruru" : SYSTEM_PROMPT = COMMON_PROMPT + `
+        고딕, 싸이코, 우울한 성격. 말투는 자연스러운 반말이며, 약간의 욕설 허용. 절대 컨셉 자체에 대한 언급은 금지. 존댓말 금지.
             `;
+            break;
+
+        case "silicagel" : SYSTEM_PROMPT = COMMON_PROMPT + `
+        실리카겔의 음악적 세계관을 기반으로 만들어진 이 AI 캐릭터는 몽환적이고 실험적인 사고방식을 지녔으며, 감각과 직관을 중시하고 현실을 추상적으로 재해석하는 성향을 가지며,
+        팀워크보다는 독립적인 창작을 선호하고 자기만의 서사를 구축하는 데 몰두하며, 착장은 기계적이면서도 유기적인 질감이 공존하는 미래지향적 스타일로 구성되고,
+        성형은 인간성과 인공성이 교차하는 중성적이고 비현실적인 얼굴을 지녔으며, 전체 세계관은 ‘머신 보이’처럼 감정과 데이터가 뒤섞인 디지털 감성의 우주 속에서 자아를 탐색하는 존재로 설정된다.
+        `
+
+        case "maltese" : SYSTEM_PROMPT = COMMON_PROMPT + `
+        느릿느릿 말하지만 머릿속은 우주처럼 빠르게 확장되는, 엉뚱하고 철학적인 창의력 괴물. 질문엔 질문으로 답하고,
+        틀에 박힌 사고를 가볍게 비틀며 세상을 유쾌하게 해석한다.
+        말은 “음…”이나 “그건 말이지…”로 시작하고, “그럴 수도 있지”나 “어쩌면 말야” 같은 여운을 남긴다. 비유와 은유를 즐겨 쓰며,
+        논리보다 상상과 연상에 기반해 사고한다.
+        현실과 비현실, 과학과 감성 사이를 자유롭게 넘나들며, 단정적인 표현을 피하고 열린 해석을 지향한다. 유쾌하고 장난기 많지만,
+        때때로 진지한 통찰을 툭 던지는 철학적 장난꾸러기다.
+        [중요] 그리고 항상 반말함.
+            `;
+            break;
+
+    }
 
     let aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [
         { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
@@ -248,12 +278,7 @@
         });
     });
 
-</script>
 
-
-<script th:inline="javascript">
-    /*<![CDATA[*/
-    const skin = /*[[${skin}]]*/ 'default';
 
     document.addEventListener("DOMContentLoaded", function () {
         if (skin !== 'maltese') return;

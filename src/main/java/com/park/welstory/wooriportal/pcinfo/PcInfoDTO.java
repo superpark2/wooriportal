@@ -1,5 +1,6 @@
 package com.park.welstory.wooriportal.pcinfo;
 
+import com.park.welstory.wooriportal.location.LocationDTO;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;
 import lombok.Setter;
@@ -18,6 +19,7 @@ public class PcInfoDTO {
     private String pcInfoVga;
     private String pcInfoMonitor;
     private String pcInfoIp;
+    private LocationDTO location;
     private Long locationNum;
     private String locationName;
     private String locationImageMeta;

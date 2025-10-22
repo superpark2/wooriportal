@@ -230,3 +230,7 @@
 .filestorage-progress-container {
     margin-top: 10px;
 }
+
+.vakata-context, .vakata-context ul {
+    z-index: 10;
+}

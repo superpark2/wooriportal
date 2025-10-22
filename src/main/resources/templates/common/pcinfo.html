@@ -437,6 +437,8 @@
                                                     data-pc-image="${pc.pcInfoImageMeta || ''}"
                                                     data-pc-location="${pc.locationNum}"
                                                     data-pc-building="${currentBuildingNum}">수정</button>
+                                            <button class="btn btn-danger btn-delete" 
+                                                    data-pc-info-num="${pc.pcInfoNum}">삭제</button>
                                         </td>
                                     </tr>
                             `;
@@ -473,14 +475,15 @@
                         openPcModal(null, selectRoom);
                     });
 
+                    // 삭제 버튼 이벤트 리스너 추가
                     container.querySelectorAll('.btn-delete').forEach(btn => {
                         btn.addEventListener('click', () => {
                             const pcNum = btn.dataset.pcInfoNum;
                             if (confirm(`${pcNum}번 PC 정보를 삭제하시겠습니까?`)) {
-                                    fetch('/facility/pcinfo/delete?pcInfoNum=' + pcNum, { method: 'DELETE' })
-                                        .then(() => getPcInfo(selectRoom)) // 삭제 후 목록 갱신
-                                        .catch(() => {});
-                                }
+                                fetch('/facility/pcinfo/delete?pcInfoNum=' + pcNum, { method: 'DELETE' })
+                                    .then(() => getPcInfo(selectRoom)) // 삭제 후 목록 갱신
+                                    .catch(() => {});
+                            }
                         });
                     });
                 })
