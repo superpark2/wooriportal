@@ -22,6 +22,8 @@
                     <li><a href="/formatter" class="dropdown-arrow"><i class="fas fa-exchange-alt"></i> 단위변환기</a></li>
                     <li><a href="/tetris" class="dropdown-arrow"><i class="fas fa-coffee"></i> 휴게실</a></li>
                     <li><a href="/filestorage/list"><i class="fas fa-folder"></i>  파일 스토리지</a></li>
+                    <li><a href="/student"><i class="fas fa-folder"></i>  출석률 계산기</a></li>
+                    <li><a href="/printform"><i class="fas fa-folder"></i>  출력 폼</a></li>
 <!--                    <li><a href="#" class="dropdown-arrow"><i class="fas fa-file-import"></i> 이미지 압축기</a></li>-->
 <!--                    <li><a href="#" class="dropdown-arrow"><i class="fas fa-calendar-alt"></i> 캘린더</a></li>-->
                 </ul>
@@ -42,7 +44,7 @@
                     <h4 sec:authorize="isAuthenticated()" sec:authentication="principal.memberName"></h4>
                     <h4 sec:authorize="!isAuthenticated()">Guest</h4>
                 </div>
-                <i class="fas fa-chevron-down"></i>
+<!--                <i class="fas fa-chevron-down"></i>-->
             </div>
         </div>
     </header>

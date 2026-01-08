@@ -1,0 +1,639 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/style/skin/default/common/utilities/student.css">
+</head>
+<body>
+
+
+<div layout:fragment="content">
+    <div class="container">
+        <h1>🎓 학생 수강 관리 시스템</h1>
+
+        <div class="form-section">
+            <h2>학생 등록</h2>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-row" style="margin-bottom: 10px;">
+                    <label>학생 이름:</label>
+                    <input type="text" id="studentName" placeholder="학생 이름">
+                </div>
+                <div class="form-row" style="margin-bottom: 10px;">
+                    <label>수강 시작일:</label>
+                    <input type="date" id="startDate">
+                </div>
+                <div class="form-row" style="margin-bottom: 10px;">
+                    <label>수료 예정일:</label>
+                    <input type="date" id="endDate">
+                </div>
+                <div class="form-row" style="margin-bottom: 10px;">
+                    <label>지각 횟수:</label>
+                    <input type="number" id="lateCount" min="0" value="0" style="width: 80px;">
+                </div>
+                <div class="form-row" style="margin-bottom: 10px;">
+                    <label>결석 횟수:</label>
+                    <input type="number" id="absentCount" min="0" value="0" style="width: 80px;">
+                </div>
+            </div>
+            <div class="form-row" style="margin-top: 10px; margin-bottom: 0;">
+                <button class="btn btn-primary" onclick="addStudent()">학생 등록</button>
+                <button class="btn btn-secondary" onclick="clearForm()">초기화</button>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>학생 수강 정보</h2>
+            <table id="studentTable">
+                <thead>
+                <tr>
+                    <th>번호</th>
+                    <th>학생 이름</th>
+                    <th>수강 시작일</th>
+                    <th>수료 예정일</th>
+                    <th>남은 수강일수</th>
+                    <th>지각</th>
+                    <th>결석</th>
+                    <th>오늘까지 출석률 (%)</th>
+                    <th>전체기준 수강률 (%)</th>
+                    <th>80%까지 남은 출석일 / 수료일까지 남은 일수</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody id="studentTableBody">
+                <tr>
+                    <td colspan="11" class="empty-message">등록된 학생이 없습니다.</td>
+                </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="form-section">
+            <h2>📅 공휴일 관리</h2>
+            <div class="form-row">
+                <label>공휴일 추가:</label>
+                <input type="date" id="holidayDate">
+                <input type="text" id="holidayName" placeholder="공휴일 이름 (선택사항)">
+                <button class="btn btn-success" onclick="addHoliday()">공휴일 추가</button>
+            </div>
+            <div class="form-row">
+                <label>주말 표시:</label>
+                <input type="checkbox" id="weekendToggle" onchange="toggleWeekendDisplay()">
+                <span>주말(토/일) 표시/숨김</span>
+            </div>
+        </div>
+
+        <div class="table-container">
+            <h2>공휴일 목록</h2>
+            <table id="holidayTable">
+                <thead>
+                <tr>
+                    <th>날짜</th>
+                    <th>요일</th>
+                    <th>공휴일 이름</th>
+                    <th>유형</th>
+                    <th>관리</th>
+                </tr>
+                </thead>
+                <tbody id="holidayTableBody">
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal()">&times;</span>
+            <h2>학생 정보 수정</h2>
+            <div class="form-section">
+                <div class="form-row">
+                    <label>학생 이름:</label>
+                    <input type="text" id="editStudentName">
+                </div>
+                <div class="form-row">
+                    <label>수강 시작일:</label>
+                    <input type="date" id="editStartDate">
+                </div>
+                <div class="form-row">
+                    <label>수료 예정일:</label>
+                    <input type="date" id="editEndDate">
+                </div>
+                <div class="form-row">
+                    <label>지각 횟수:</label>
+                    <input type="number" id="editLateCount" min="0">
+                </div>
+                <div class="form-row">
+                    <label>결석 횟수:</label>
+                    <input type="number" id="editAbsentCount" min="0">
+                </div>
+                <div class="form-row">
+                    <button class="btn btn-primary" onclick="updateStudent()">수정</button>
+                    <button class="btn btn-secondary" onclick="closeModal()">취소</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let students = [];
+        let holidays = new Set(); // 공휴일 저장 (YYYY-MM-DD 형식)
+        let editingIndex = -1;
+
+        let weekendVisible = false; // 주말 표시 여부 (기본값: 숨김)
+
+        // 초기화: 2025년, 2026년 토요일, 일요일을 공휴일로 추가
+        function initializeWeekends() {
+            // 2025년과 2026년 모두 추가
+            for (let year = 2025; year <= 2026; year++) {
+                const startDate = new Date(year, 0, 1);
+                const endDate = new Date(year, 11, 31);
+
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    const dayOfWeek = d.getDay();
+                    if (dayOfWeek === 0 || dayOfWeek === 6) { // 일요일(0) 또는 토요일(6)
+                        const dateStr = formatDate(d);
+                        holidays.add(dateStr);
+                    }
+                }
+            }
+            console.log('주말 초기화 완료. 총 공휴일 수:', holidays.size);
+            updateHolidayTable();
+        }
+
+        // 날짜 포맷팅 (YYYY-MM-DD)
+        function formatDate(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        // 요일 이름 반환
+        function getDayName(date) {
+            const days = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일'];
+            return days[date.getDay()];
+        }
+
+        // 두 날짜 사이의 근무일 수 계산 (공휴일 제외)
+        // startDate와 endDate를 포함하여 계산합니다.
+        function getWorkingDays(startDate, endDate) {
+            let count = 0;
+            const start = new Date(startDate);
+            const end = new Date(endDate);
+
+            // 날짜를 비교하기 위해 시간 정보 제거
+            start.setHours(0, 0, 0, 0);
+            end.setHours(0, 0, 0, 0);
+
+            // 시작일이 종료일보다 늦으면 0 반환
+            if (start > end) {
+                return 0;
+            }
+
+            // 시작일과 종료일을 포함하여 계산
+            for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 1)) {
+                const dateStr = formatDate(d);
+
+                // 주말(토/일)은 initializeWeekends 함수로 이미 holidays Set에 추가되어 있습니다.
+                // 따라서 holidays Set에 포함되지 않는 날짜만 카운트하면 평일이 계산됩니다.
+                if (!holidays.has(dateStr)) {
+                    count++;
+                }
+            }
+            return count;
+        }
+
+        // 학생 등록
+        function addStudent() {
+            const name = document.getElementById('studentName').value.trim();
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            const lateCountInput = document.getElementById('lateCount').value;
+            const absentCountInput = document.getElementById('absentCount').value;
+
+            const lateCount = lateCountInput === '' ? 0 : parseInt(lateCountInput) || 0;
+            const absentCount = absentCountInput === '' ? 0 : parseInt(absentCountInput) || 0;
+
+            console.log('학생 등록:', { name, startDate, endDate, lateCount, absentCount });
+
+            if (!name || !startDate || !endDate) {
+                alert('모든 필수 항목을 입력해주세요.');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('수강 시작일은 수료 예정일보다 이전이어야 합니다.');
+                return;
+            }
+
+            const student = {
+                id: Date.now(),
+                name: name,
+                startDate: startDate,
+                endDate: endDate,
+                lateCount: lateCount,
+                absentCount: absentCount
+            };
+
+            console.log('저장되는 학생 데이터:', student);
+
+            students.push(student);
+            updateStudentTable();
+            clearForm();
+            saveToLocalStorage();
+        }
+
+        // 학생 정보 계산 및 업데이트
+        function calculateStudentInfo(student) {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const startDate = new Date(student.startDate);
+            startDate.setHours(0, 0, 0, 0);
+            const endDate = new Date(student.endDate);
+            endDate.setHours(0, 0, 0, 0);
+
+            const lateCount = parseInt(student.lateCount) || 0; // 지각 횟수
+            const actualAbsentCount = parseInt(student.absentCount) || 0; // 원래 결석 횟수
+
+            // 🌟 지각 3회당 결석 1회로 처리
+            const calculatedAbsentCount = Math.floor(lateCount / 3);
+
+            // 최종 결석 횟수 = 원래 결석 횟수 + 계산된 결석 횟수
+            const finalAbsentCount = actualAbsentCount + calculatedAbsentCount;
+
+            // 로직 반영용 최종 결석 횟수
+            const absentCount = finalAbsentCount;
+
+            // 1. 전체 수강 기간의 근무일 수 (시작일부터 수료일까지)
+            const totalDays = getWorkingDays(student.startDate, student.endDate);
+
+            // 2. 오늘까지의 근무일 수 (현재까지 출석해야 했던 날짜 - Today 포함)
+            const todayStr = formatDate(today);
+            let daysUntilToday = 0;
+            if (today >= startDate) {
+                // ⚠️ 오늘 날짜(todayStr)를 종료일로 사용하여 오늘까지의 근무일 수를 계산합니다.
+                daysUntilToday = getWorkingDays(student.startDate, todayStr);
+            }
+
+            // 3. 남은 수강일수 (내일부터 수료일까지)
+            const tomorrow = new Date(today);
+            tomorrow.setDate(today.getDate() + 1);
+            const tomorrowStr = formatDate(tomorrow);
+            let remainingDays = 0;
+
+            // 오늘이 수료일 이전이거나 같은 경우에만 남은 일수 계산
+            if (today <= endDate) {
+                // ⚠️ 내일(tomorrowStr)부터 수료일까지 계산합니다. (오늘이 포함되지 않음)
+                remainingDays = getWorkingDays(tomorrowStr, student.endDate);
+
+                // 만약 오늘이 마지막 날이라면 remainingDays는 0이 됩니다.
+                if (today.getTime() === endDate.getTime()) {
+                    remainingDays = 0;
+                }
+            } else {
+                // 수료일이 오늘보다 지난 경우 남은 일수는 0
+                remainingDays = 0;
+            }
+
+            // 4. 출석 현황
+            // 현재까지의 실제 출석일 수 (오늘까지 출석해야 했던 날짜 - 현재 누적 결석 횟수)
+            const currentAttendanceDays = Math.max(0, daysUntilToday - absentCount);
+
+            // 5. 전체 기준 수강률 계산 (진도율 기반 + 결석 감점)
+            let totalAttendanceRate = 0;
+            if (totalDays > 0) {
+                // 수강률 = (현재까지의 실제 출석일 수 / 전체 수업일 수) * 100
+                const rate = (currentAttendanceDays / totalDays) * 100;
+                totalAttendanceRate = Math.round(rate * 10) / 10; // 소수점 첫째자리까지
+            }
+
+            // 6. 오늘까지 출석률 계산 (새로 추가)
+            let dailyAttendanceRate = 0;
+            if (daysUntilToday > 0) {
+                // 출석률 = (현재까지의 실제 출석일 수 / 오늘까지의 총 수업일 수) * 100
+                const rate = (currentAttendanceDays / daysUntilToday) * 100;
+                dailyAttendanceRate = Math.round(rate * 10) / 10;
+            }
+
+
+            // 7. 80%까지 필요한 출석일 수 계산
+            const targetRate = 0.8;
+            const totalRequiredDays = Math.ceil(totalDays * targetRate);
+
+            // 80%까지 남은 출석일 수 = 목표 출석일 수 - 현재 출석일 수
+            const remainingFor80Percent = Math.max(0, totalRequiredDays - currentAttendanceDays);
+
+            console.log(`[${student.name}] 최종 계산 결과:`, {
+                totalDays: totalDays,
+                daysUntilToday: daysUntilToday, // 🌟 오늘까지 포함된 수업일
+                currentAttendanceDays: currentAttendanceDays,
+                finalAbsentCount: finalAbsentCount,
+                dailyAttendanceRate: dailyAttendanceRate, // 🌟 오늘까지 출석률
+                totalAttendanceRate: totalAttendanceRate, // 🌟 전체기준 수강률
+                remainingFor80Percent: remainingFor80Percent,
+                remainingDays: remainingDays // 🌟 내일부터 수료일까지 남은 일수
+            });
+
+            return {
+                totalDays,
+                remainingDays,
+                dailyAttendanceRate,
+                totalAttendanceRate,
+                remainingFor80Percent,
+                actualAbsentCount: actualAbsentCount,
+                calculatedAbsentCount: calculatedAbsentCount
+            };
+        }
+
+        // 학생 테이블 업데이트
+        function updateStudentTable() {
+            const tbody = document.getElementById('studentTableBody');
+            tbody.innerHTML = '';
+
+            if (students.length === 0) {
+                // <tr>의 colspan을 11로 수정 (새로운 열 추가)
+                tbody.innerHTML = '<tr><td colspan="11" class="empty-message">등록된 학생이 없습니다.</td></tr>';
+                return;
+            }
+
+            students.forEach((student, index) => {
+                const info = calculateStudentInfo(student);
+                const startDate = new Date(student.startDate);
+                const endDate = new Date(student.endDate);
+
+                // 결석 표시 개선: (실제 결석 횟수 + 지각으로 인한 결석 횟수) 표시
+                const absentDisplay = `${info.actualAbsentCount}회`;
+
+                // 오늘까지 출석률 색상
+                const dailyRateColor = info.dailyAttendanceRate >= 80 ? '#27ae60' : '#e74c3c';
+                // 전체기준 수강률 색상
+                const totalRateColor = info.totalAttendanceRate >= 80 ? '#27ae60' : '#e74c3c';
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                <td>${index + 1}</td>
+                <td>${student.name}</td>
+                <td>${formatDate(startDate)} (${getDayName(startDate)})</td>
+                <td>${formatDate(endDate)} (${getDayName(endDate)})</td>
+                <td><strong>${info.remainingDays}일</strong></td>
+                <td>${student.lateCount}회</td>
+                <td>${absentDisplay}</td>
+                <td><strong style="color: ${dailyRateColor}">${info.dailyAttendanceRate}%</strong></td>
+                <td><strong style="color: ${totalRateColor}">${info.totalAttendanceRate}%</strong></td>
+                <td><strong>${info.remainingFor80Percent}일</strong> / 수료일까지 <strong>${info.remainingDays}일</strong></td>
+                <td class="action-buttons">
+                    <button class="btn btn-primary" onclick="editStudent(${index})">수정</button>
+                    <button class="btn btn-danger" onclick="deleteStudent(${index})">삭제</button>
+                </td>
+            `;
+            });
+        }
+
+
+        // 학생 수정
+        function editStudent(index) {
+            editingIndex = index;
+            const student = students[index];
+
+            document.getElementById('editStudentName').value = student.name;
+            document.getElementById('editStartDate').value = student.startDate;
+            document.getElementById('editEndDate').value = student.endDate;
+            document.getElementById('editLateCount').value = student.lateCount;
+            document.getElementById('editAbsentCount').value = student.absentCount;
+
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        // 학생 정보 업데이트
+        function updateStudent() {
+            if (editingIndex === -1) return;
+
+            const name = document.getElementById('editStudentName').value.trim();
+            const startDate = document.getElementById('editStartDate').value;
+            const endDate = document.getElementById('editEndDate').value;
+            const lateCount = parseInt(document.getElementById('editLateCount').value) || 0;
+            const absentCount = parseInt(document.getElementById('editAbsentCount').value) || 0;
+
+            if (!name || !startDate || !endDate) {
+                alert('모든 필수 항목을 입력해주세요.');
+                return;
+            }
+
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('수강 시작일은 수료 예정일보다 이전이어야 합니다.');
+                return;
+            }
+
+            students[editingIndex] = {
+                ...students[editingIndex],
+                name,
+                startDate,
+                endDate,
+                lateCount,
+                absentCount
+            };
+
+            updateStudentTable();
+            closeModal();
+            saveToLocalStorage();
+        }
+
+        // 학생 삭제
+        function deleteStudent(index) {
+            if (confirm('정말 이 학생 정보를 삭제하시겠습니까?')) {
+                students.splice(index, 1);
+                updateStudentTable();
+                saveToLocalStorage();
+            }
+        }
+
+        // 폼 초기화
+        function clearForm() {
+            document.getElementById('studentName').value = '';
+            document.getElementById('startDate').value = '';
+            document.getElementById('endDate').value = '';
+            document.getElementById('lateCount').value = '0';
+            document.getElementById('absentCount').value = '0';
+        }
+
+        // 모달 닫기
+        function closeModal() {
+            document.getElementById('editModal').style.display = 'none';
+            editingIndex = -1;
+        }
+
+        // 공휴일 추가
+        function addHoliday() {
+            const dateStr = document.getElementById('holidayDate').value;
+            const name = document.getElementById('holidayName').value.trim();
+
+            if (!dateStr) {
+                alert('날짜를 선택해주세요.');
+                return;
+            }
+
+            const date = new Date(dateStr);
+            const dayOfWeek = date.getDay();
+
+            // 주말인 경우
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('토요일과 일요일은 이미 공휴일로 설정되어 있습니다.');
+                return;
+            }
+
+            // 이미 등록된 공휴일인 경우
+            if (holidays.has(dateStr)) {
+                alert('이미 등록된 공휴일입니다.');
+                return;
+            }
+
+            holidays.add(dateStr);
+            updateHolidayTable();
+            document.getElementById('holidayDate').value = '';
+            document.getElementById('holidayName').value = '';
+            updateStudentTable(); // 학생 테이블도 다시 계산
+            saveToLocalStorage();
+        }
+
+        // 공휴일 삭제
+        function deleteHoliday(dateStr) {
+            const date = new Date(dateStr);
+            const dayOfWeek = date.getDay();
+
+            // 주말은 삭제 불가
+            if (dayOfWeek === 0 || dayOfWeek === 6) {
+                alert('토요일과 일요일은 기본 공휴일이므로 삭제할 수 없습니다.');
+                return;
+            }
+
+            if (confirm('이 공휴일을 삭제하시겠습니까?')) {
+                holidays.delete(dateStr);
+                updateHolidayTable();
+                updateStudentTable(); // 학생 테이블도 다시 계산
+                saveToLocalStorage();
+            }
+        }
+
+        // 주말 표시/숨김 토글
+        function toggleWeekendDisplay() {
+            weekendVisible = document.getElementById('weekendToggle').checked;
+            localStorage.setItem('weekendVisible', JSON.stringify(weekendVisible)); // 상태 저장
+            updateHolidayTable();
+        }
+
+        // 공휴일 테이블 업데이트
+        function updateHolidayTable() {
+            const tbody = document.getElementById('holidayTableBody');
+            tbody.innerHTML = '';
+
+            // 공휴일을 날짜순으로 정렬
+            const sortedHolidays = Array.from(holidays).sort();
+
+            // 주말 표시 여부에 따라 필터링
+            const filteredHolidays = weekendVisible
+                ? sortedHolidays
+                : sortedHolidays.filter(dateStr => {
+                    const date = new Date(dateStr);
+                    const dayOfWeek = date.getDay();
+                    return dayOfWeek !== 0 && dayOfWeek !== 6; // 주말 제외
+                });
+
+            if (filteredHolidays.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" class="empty-message">등록된 공휴일이 없습니다.</td></tr>';
+                return;
+            }
+
+            filteredHolidays.forEach(dateStr => {
+                const date = new Date(dateStr);
+                const dayOfWeek = date.getDay();
+                const isWeekend = dayOfWeek === 0 || dayOfWeek === 6;
+                const type = isWeekend ? '주말' : '추가 공휴일';
+                const typeClass = isWeekend ? 'weekend' : '';
+                // 주말은 '일요일' 또는 '토요일'로 표시, 추가 공휴일은 '사용자 지정'으로 표시
+                const holidayName = isWeekend ? getDayName(date) : '사용자 지정';
+
+                const row = tbody.insertRow();
+                row.innerHTML = `
+                <td>${formatDate(date)}</td>
+                <td>${getDayName(date)}</td>
+                <td>${holidayName}</td>
+                <td><span class="holiday-badge ${typeClass}">${type}</span></td>
+                <td class="action-buttons">
+                    ${!isWeekend ? `<button class="btn btn-danger" onclick="deleteHoliday('${dateStr}')">삭제</button>` : '<span style="color: #999;">삭제 불가</span>'}
+                </td>
+            `;
+            });
+        }
+
+        // 로컬 스토리지 저장
+        function saveToLocalStorage() {
+            try {
+                localStorage.setItem('students', JSON.stringify(students));
+                localStorage.setItem('holidays', JSON.stringify(Array.from(holidays)));
+            } catch (e) {
+                console.error('저장 실패:', e);
+            }
+        }
+
+        // 로컬 스토리지 불러오기
+        function loadFromLocalStorage() {
+            try {
+                const savedStudents = localStorage.getItem('students');
+                const savedHolidays = localStorage.getItem('holidays');
+                const savedWeekendVisible = localStorage.getItem('weekendVisible');
+
+                if (savedStudents) {
+                    students = JSON.parse(savedStudents);
+                }
+
+                // 초기화된 주말 데이터 위에 저장된 공휴일을 로드하여 병합
+                if (savedHolidays) {
+                    const holidayArray = JSON.parse(savedHolidays);
+                    // Set에 추가하여 중복 방지 (주말 데이터가 이미 Set에 있으므로)
+                    holidayArray.forEach(dateStr => holidays.add(dateStr));
+                }
+
+                if (savedWeekendVisible !== null) {
+                    weekendVisible = JSON.parse(savedWeekendVisible);
+                    document.getElementById('weekendToggle').checked = weekendVisible;
+                }
+            } catch (e) {
+                console.error('불러오기 실패:', e);
+            }
+        }
+
+        // 모달 외부 클릭 시 닫기
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target === modal) {
+                closeModal();
+            }
+        }
+
+        // 초기화
+        function init() {
+            // 주말 초기화 먼저 실행 (2025년, 2026년 주말 추가)
+            initializeWeekends();
+            // 로컬스토리지에서 저장된 학생/추가 공휴일 불러오기
+            loadFromLocalStorage();
+
+            // 주말 표시 체크박스 초기값 설정
+            if (localStorage.getItem('weekendVisible') === null) {
+                weekendVisible = false;
+            }
+            document.getElementById('weekendToggle').checked = weekendVisible;
+
+            updateStudentTable();
+            updateHolidayTable();
+        }
+
+        // 페이지 로드 시 초기화
+        init();
+    </script>
+
+</div>
+
+</body>
+</html>

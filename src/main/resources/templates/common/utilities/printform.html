@@ -1,0 +1,2027 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Title</title>
+    <link rel="stylesheet" href="/style/skin/default/common/utilities/printform.css">
+</head>
+<body>
+
+<div class="app">
+    <div class="page-wrap" aria-label="A4 페이지 미리보기">
+        <div class="page" id="page">
+            <div class="image-overlay" id="imageOverlay"></div>
+            <div class="inner">
+                <div class="header" id="header" contenteditable="true" spellcheck="false">제목을 여기에 입력하세요</div>
+
+                <div class="body" id="body">
+                    <div contenteditable="true" id="bodyContent" style="min-height: 100%;" spellcheck="false">
+                        여기에 내용을 입력하세요.
+                        <p>주의 : 프린트시 여백없음으로 설정해야 합니다.</p>
+                    </div>
+                </div>
+
+                <div class="footer" id="footer" contenteditable="true" spellcheck="false">꼬릿말</div>
+            </div>
+        </div>
+    </div>
+
+    <aside class="controls" id="controls" aria-label="편집 컨트롤">
+        <div class="group" style="border-top: none;">
+            <h3>📄 용지 규격</h3>
+            <div class="control-row">
+                <label>용지 크기</label>
+                <select id="pageSize">
+                    <option value="A4">A4 세로 (210mm × 297mm)</option>
+                    <option value="A4L">A4 가로 (297mm × 210mm)</option>
+                    <option value="A3">A3 세로 (297mm × 420mm)</option>
+                    <option value="A3L">A3 가로 (420mm × 297mm)</option>
+                </select>
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>📝 텍스트 스타일</h3>
+            <div class="control-row">
+                <label>전체 폰트 (기본값)</label>
+                <select id="fontFamily">
+                    <option value="Inter, Noto Sans KR, Arial, sans-serif">기본 (Inter)</option>
+                    <option value="Nanum Gothic, Noto Sans KR, sans-serif">나눔고딕</option>
+                    <option value="Roboto, Arial, sans-serif">Roboto</option>
+                    <option value="serif">Serif (Times New Roman)</option>
+                    <option value="monospace">Monospace (Courier)</option>
+                    <option value="BookkMyungjo_Light">부르크 명조</option>
+                    <option value="DungGeunMo">둥근모꼴</option>
+                    <option value="GmarketSansMedium">지마켓 산스</option>
+                    <option value="MemomentKkukkukk">꾹꾹</option>
+                    <option value="Shilla">신라문화체</option>
+                    <option value="Yeongwol">영월체</option>
+                    <option value="binggrae">빙그레</option>
+                    <option value="gyunggi">경기천년바탕</option>
+
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>선택 텍스트 폰트</label>
+                <select id="textBlockFont">
+                    <option value="Inter, Noto Sans KR, Arial, sans-serif">전체 기본 폰트</option>
+                    <option value="Nanum Gothic, Noto Sans KR, sans-serif">나눔고딕</option>
+                    <option value="Roboto, Arial, sans-serif">Roboto</option>
+                    <option value="serif">Serif (Times New Roman)</option>
+                    <option value="monospace">Monospace (Courier)</option>
+                    <option value="BookkMyungjo_Light">부르크 명조</option>
+                    <option value="DungGeunMo">둥근모꼴</option>
+                    <option value="GmarketSansMedium">지마켓 산스</option>
+                    <option value="MemomentKkukkukk">꾹꾹</option>
+                    <option value="Shilla">신라문화체</option>
+                    <option value="Yeongwol">영월체</option>
+                    <option value="binggrae">빙그레</option>
+                    <option value="gyunggi">경기천년바탕</option>
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>선택 텍스트 크기</label>
+                <div class="text-style-buttons">
+                    <button id="sizeDownBtn">-</button>
+                    <button id="sizeUpBtn">+</button>
+                    <button id="sizeResetBtn">서식 초기화</button>
+                </div>
+            </div>
+            <div class="control-row">
+                <label>텍스트 정렬</label>
+                <div class="text-style-buttons">
+                    <button id="alignLeftBtn">좌</button>
+                    <button id="alignCenterBtn">중앙</button>
+                    <button id="alignRightBtn">우</button>
+                </div>
+            </div>
+            <div class="control-row">
+                <label>텍스트 색상</label>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <input type="color" id="textColor" value="#000000" style="width: 44px; height: 28px; padding: 0; border: none; background: none; cursor: pointer;">
+                    <button class="btn secondary small" id="applyTextColorBtn">색상 적용</button>
+                </div>
+            </div>
+            <div class="control-row">
+                <label>텍스트 스타일</label>
+                <div class="text-style-buttons">
+                    <button id="boldBtn" title="볼드">B</button>
+                    <button id="italicBtn" title="이탤릭">I</button>
+                    <button id="underlineBtn" title="밑줄">U</button>
+                    <button id="strikethroughBtn" title="취소선">S</button>
+                    <button id="removeFormatBtn" title="서식 제거">서식 제거</button>
+                </div>
+            </div>
+            <div class="control-row">
+                <label>텍스트 외곽선 색상</label>
+                <input type="color" id="textStrokeColor" value="#000000">
+            </div>
+            <div class="control-row">
+                <label>텍스트 외곽선 굵기 (px)</label>
+                <input type="range" id="textStrokeWidth" min="0" max="5" step="0.5" value="0">
+                <span id="textStrokeWidthVal" class="muted">0px</span>
+            </div>
+            <div class="control-row">
+                <label>텍스트 그림자 색상</label>
+                <input type="color" id="textShadowColor" value="#000000">
+            </div>
+            <div class="control-row">
+                <label>텍스트 그림자 X (px)</label>
+                <input type="range" id="textShadowX" min="-10" max="10" step="1" value="0">
+                <span id="textShadowXVal" class="muted">0px</span>
+            </div>
+            <div class="control-row">
+                <label>텍스트 그림자 Y (px)</label>
+                <input type="range" id="textShadowY" min="-10" max="10" step="1" value="0">
+                <span id="textShadowYVal" class="muted">0px</span>
+            </div>
+            <div class="control-row">
+                <label>텍스트 그림자 블러 (px)</label>
+                <input type="range" id="textShadowBlur" min="0" max="20" step="1" value="0">
+                <span id="textShadowBlurVal" class="muted">0px</span>
+            </div>
+            <div class="control-row">
+                <label>텍스트 효과</label>
+                <div>
+                    <button class="btn secondary small" id="applyTextEffectBtn">효과 적용</button>
+                    <button class="btn secondary small" id="removeTextEffectBtn">효과 제거</button>
+                </div>
+            </div>
+            <div class="muted" style="padding-top:6px;">
+                팁: 본문에서 텍스트를 드래그하여 선택한 후 버튼을 누르세요.
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>🖼️ 배경 이미지 (페이지 전체)</h3>
+            <div class="control-row">
+                <label>배경 이미지 업로드</label>
+                <button class="btn secondary small" id="uploadBgImageTrigger">배경 업로드</button>
+                <input type="file" id="uploadBgImage" accept="image/*" style="display: none;">
+            </div>
+            <div class="control-row">
+                <label>불투명도 (Opacity)</label>
+                <input type="range" id="backgroundOpacity" min="0.01" max="1" step="0.01" value="1">
+                <span id="backgroundOpacityVal" class="muted">100%</span>
+            </div>
+
+            <div class="control-row">
+                <label>배경 크기 조정 (Size)</label>
+                <select id="backgroundSize">
+                    <option value="cover">Cover (꽉 채움)</option>
+                    <option value="contain">Contain (맞춤)</option>
+                    <option value="auto">Auto (원본)</option>
+                    <option value="100% 100%">전체 채움 (비율 무시)</option>
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>배경 위치 (Position X)</label>
+                <input type="range" id="backgroundPositionX" min="0" max="100" step="1" value="50">
+                <span id="backgroundPositionXVal" class="muted">50%</span>
+            </div>
+
+            <div class="control-row">
+                <label>배경 위치 (Position Y)</label>
+                <input type="range" id="backgroundPositionY" min="0" max="100" step="1" value="50">
+                <span id="backgroundPositionYVal" class="muted">50%</span>
+            </div>
+
+
+            <div class="control-row">
+                <label>배경 이미지 제거</label>
+                <button class="btn secondary small" id="removeBgImageBtn" style="background:#f0f2f6; color:#1b2533;">제거</button>
+            </div>
+        </div>
+
+
+        <div class="group">
+            <h3>🎨 페이지 스타일</h3>
+
+            <div class="control-row">
+                <label>페이지 배경색</label>
+                <input type="color" id="pageBg" value="#ffffff" title="Page background">
+            </div>
+
+            <div class="control-row">
+                <label>그라데이션 사용</label>
+                <input type="checkbox" id="useGradient" style="width: auto;">
+            </div>
+
+            <div id="gradientControls" style="display: none;">
+                <div class="control-row">
+                    <label>색상 1</label>
+                    <input type="color" id="gradientColor1" value="#ffffff">
+                </div>
+                <div class="control-row">
+                    <label>색상 2</label>
+                    <input type="color" id="gradientColor2" value="#ffffff">
+                </div>
+                <div class="control-row">
+                    <label>색상 3</label>
+                    <input type="color" id="gradientColor3" value="#ffffff">
+                </div>
+                <div class="control-row">
+                    <label>그라데이션 방향</label>
+                    <select id="gradientDirection">
+                        <option value="to right">→ 오른쪽</option>
+                        <option value="to bottom">↓ 아래</option>
+                        <option value="to left">← 왼쪽</option>
+                        <option value="to top">↑ 위</option>
+                        <option value="to bottom right">↘ 대각선 (우하)</option>
+                        <option value="to bottom left">↙ 대각선 (좌하)</option>
+                        <option value="to top right">↗ 대각선 (우상)</option>
+                        <option value="to top left">↖ 대각선 (좌상)</option>
+                    </select>
+                </div>
+                <div class="gradient-preview" id="gradientPreview"></div>
+                <div class="control-row">
+                    <label>그라데이션 적용</label>
+                    <button class="btn secondary small" id="applyGradientBtn">배경 적용</button>
+                </div>
+            </div>
+
+            <div class="control-row">
+                <label>테두리 색</label>
+                <input type="color" id="borderColor" value="#333333" title="Border Color">
+            </div>
+
+            <div class="control-row">
+                <label>테두리 굵기 (mm)</label>
+                <input type="range" id="borderWidth" min="0" max="10" step="0.5" value="2">
+                <span id="borderWidthVal" class="muted">2mm</span>
+            </div>
+
+            <div class="control-row">
+                <label>테두리 스타일</label>
+                <select id="borderStyle">
+                    <option value="solid">solid</option>
+                    <option value="dashed">dashed</option>
+                    <option value="dotted">dotted</option>
+                    <option value="double">double</option>
+                    <option value="groove">groove</option>
+                </select>
+            </div>
+
+            <div class="control-row">
+                <label>모서리 반경 (mm)</label>
+                <input type="range" id="borderRadius" min="0" max="30" step="1" value="4">
+                <span id="borderRadiusVal" class="muted">4mm</span>
+            </div>
+
+            <div class="control-row">
+                <label>내부 여백 (padding, mm)</label>
+                <input type="range" id="pagePadding" min="4" max="30" step="1" value="16">
+                <span id="pagePaddingVal" class="muted">16mm</span>
+            </div>
+
+            <div class="control-row">
+                <label>바깥 여백 (margin, mm)</label>
+                <input type="range" id="pageMargin" min="0" max="40" step="1" value="12">
+                <span id="pageMarginVal" class="muted">12mm</span>
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>🖼️ 삽입 이미지 조정 (선택됨: <span id="activeImageId" class="warning">없음</span>)</h3>
+
+            <div class="control-row">
+                <label>이미지 파일 업로드</label>
+                <button class="btn secondary small" id="uploadImageTrigger">이미지 업로드</button>
+                <input type="file" id="uploadImage" accept="image/*" style="display: none;">
+            </div>
+
+            <div id="imageControls" style="display: none;">
+                <div class="control-row">
+                    <label>크기 (Width, %)</label>
+                    <input type="range" id="imageWidth" min="10" max="100" step="1" value="50">
+                    <span id="imageWidthVal" class="muted">50%</span>
+                </div>
+                <div class="control-row">
+                    <label>불투명도 (Opacity)</label>
+                    <input type="range" id="imageOpacity" min="0.1" max="1" step="0.05" value="1">
+                    <span id="imageOpacityVal" class="muted">100%</span>
+                </div>
+                <div class="control-row">
+                    <label>앞/뒤 순서 (Z-Index)</label>
+                    <input type="range" id="imageZIndex" min="0" max="50" step="1" value="10">
+                    <span id="imageZIndexVal" class="muted">10</span>
+                </div>
+                <div class="control-row">
+                    <label>정렬</label>
+                    <div class="text-style-buttons">
+                        <button id="imageAlignLeftBtn">좌</button>
+                        <button id="imageAlignCenterBtn">중앙</button>
+                        <button id="imageAlignRightBtn">우</button>
+                    </div>
+                </div>
+                <div class="control-row">
+                    <label>선택 이미지 삭제</label>
+                    <button class="btn secondary small" id="deleteImageBtn" style="background:#d9534f; color:#fff;">삭제</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>헤더 / 푸터</h3>
+
+            <div class="control-row">
+                <label>헤더 글자 크기 (px)</label>
+                <input type="number" id="headerSize" min="10" max="100" value="18">
+            </div>
+
+            <div class="control-row">
+                <label>푸터 글자 크기 (px)</label>
+                <input type="number" id="footerSize" min="8" max="24" value="12">
+            </div>
+
+            <div class="control-row">
+                <label>헤더 위치 (위 오프셋 mm)</label>
+                <input type="range" id="headerOffset" min="-10" max="40" step="1" value="0">
+                <span id="headerOffsetVal" class="muted">0mm</span>
+            </div>
+
+            <div class="control-row">
+                <label>푸터 위치 (아래 오프셋 mm)</label>
+                <input type="range" id="footerOffset" min="-40" max="40" step="1" value="0">
+                <span id="footerOffsetVal" class="muted">0mm</span>
+            </div>
+
+            <div class="control-row">
+                <label>헤더/푸터 숨기기</label>
+                <div>
+                    <button class="btn small secondary" id="toggleHeaderBtn">헤더 토글</button>
+                    <button class="btn small secondary" id="toggleFooterBtn">푸터 토글</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>📊 테이블 편집</h3>
+            <div class="control-row">
+                <label>테이블 생성</label>
+                <button class="btn secondary small" id="createTableBtn">테이블 삽입</button>
+            </div>
+
+            <div id="tableControls" style="display: none;">
+                <div class="control-row">
+                    <label>선택된 테이블: <span id="activeTableInfo" class="warning">없음</span></label>
+                </div>
+                <div class="control-row">
+                    <label>행 추가</label>
+                    <button class="btn secondary small" id="addTableRowBtn">+ 행</button>
+                </div>
+                <div class="control-row">
+                    <label>열 추가</label>
+                    <button class="btn secondary small" id="addTableColBtn">+ 열</button>
+                </div>
+                <div class="control-row">
+                    <label>행 삭제</label>
+                    <button class="btn secondary small" id="removeTableRowBtn">- 행</button>
+                </div>
+                <div class="control-row">
+                    <label>열 삭제</label>
+                    <button class="btn secondary small" id="removeTableColBtn">- 열</button>
+                </div>
+                <div class="control-row">
+                    <label>선택 행 높이 조정 (px)</label>
+                    <input type="range" id="tableRowHeight" min="20" max="200" step="5" value="30">
+                    <span id="tableRowHeightVal" class="muted">30px</span>
+                </div>
+                <div class="control-row">
+                    <label>선택 열 너비 조정 (%)</label>
+                    <input type="range" id="tableColWidth" min="5" max="50" step="1" value="10">
+                    <span id="tableColWidthVal" class="muted">10%</span>
+                </div>
+                <div class="control-row">
+                    <label>테두리 색상</label>
+                    <input type="color" id="tableBorderColor" value="#333333">
+                </div>
+                <div class="control-row">
+                    <label>테두리 굵기 (px)</label>
+                    <input type="range" id="tableBorderWidth" min="1" max="10" step="1" value="1">
+                    <span id="tableBorderWidthVal" class="muted">1px</span>
+                </div>
+                <div class="control-row">
+                    <label>테이블 삭제</label>
+                    <button class="btn secondary small" id="deleteTableBtn" style="background:#d9534f; color:#fff;">테이블 삭제</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="group">
+            <h3>저장 및 로드 (파일)</h3>
+            <div class="control-row">
+                <label>파일 저장/불러오기</label>
+                <div>
+                    <button class="btn small" id="saveFileBtn">JSON 파일 저장</button>
+                    <button class="btn small secondary" id="loadFileTrigger">JSON 파일 불러오기</button>
+                    <input type="file" id="loadFile" accept=".json" style="display: none;">
+                </div>
+            </div>
+        </div>
+
+
+        <div class="group">
+            <h3>레이아웃 및 출력</h3>
+            <div class="control-row">
+                <label>인쇄</label>
+                <button class="btn" id="printBtn">Print</button>
+            </div>
+
+            <div class="control-row">
+                <label>초기화</label>
+                <button class="btn secondary small" id="resetBtn">초기값으로</button>
+            </div>
+        </div>
+
+        <div class="muted" style="padding-top:6px;">
+            <div>팁: 본문 영역 클릭 후 바로 입력/편집 가능합니다. 인쇄 시 우측 컨트롤 자동 숨김.</div>
+        </div>
+    </aside>
+</div>
+
+    <script>
+        const $ = id => document.getElementById(id);
+        const page = $('page');
+        const imageOverlay = $('imageOverlay');
+        const bodyContent = $('bodyContent');
+        let imageCounter = 0;
+        let activeImage = null;
+        let activeTable = null;
+        let dynamicPageStyleEl = null;
+
+        let isDragging = false;
+        let activeImgElement = null;
+        let startX, startY, startLeft, startTop;
+
+
+        function setCSSVar(name, value) {
+            document.documentElement.style.setProperty(name, value);
+        }
+
+        const pageSizes = {
+            'A4': { width: '210mm', height: '297mm', orientation: 'portrait' },
+            'A4L': { width: '297mm', height: '210mm', orientation: 'landscape' },
+            'A3': { width: '297mm', height: '420mm', orientation: 'portrait' },
+            'A3L': { width: '420mm', height: '297mm', orientation: 'landscape' }
+        };
+
+        function ensureDynamicPageStyle() {
+            if (!dynamicPageStyleEl) {
+                dynamicPageStyleEl = document.createElement('style');
+                dynamicPageStyleEl.id = 'dynamic-page-style';
+                document.head.appendChild(dynamicPageStyleEl);
+            }
+            return dynamicPageStyleEl;
+        }
+
+        function updatePrintStyles() {
+            const sizeKey = $('pageSize') ? $('pageSize').value : 'A4';
+            const marginInput = $('pageMargin') ? parseFloat($('pageMargin').value) : 12;
+            const safeMargin = isNaN(marginInput) ? 5 : Math.max(5, marginInput);
+            const styleEl = ensureDynamicPageStyle();
+            const pageInfo = pageSizes[sizeKey] || pageSizes['A4'];
+            const orientation = pageInfo.orientation || 'portrait';
+            // A4L, A3L 같은 경우 실제 크기로 변환 (A4 landscape, A3 landscape)
+            const actualSize = sizeKey.replace('L', '');
+            // @page margin은 0으로 설정하고, .page-wrap의 padding으로 여백 처리
+            styleEl.textContent = `@page { size: ${actualSize} ${orientation}; margin: 0; }`;
+        }
+
+        function updatePageSize() {
+            const sizeKey = $('pageSize').value;
+            const dimensions = pageSizes[sizeKey] || pageSizes['A4'];
+            setCSSVar('--page-width', dimensions.width);
+            setCSSVar('--page-height', dimensions.height);
+            setCSSVar('--page-size', sizeKey);
+            updatePrintStyles();
+            saveLastUsedSettings();
+        }
+
+        // --- 텍스트 스타일링 관련 함수 ---
+
+        function applyTextStyle(command, value = null) {
+            document.execCommand(command, false, value);
+            saveLastUsedSettings();
+        }
+
+        function applyTextFont(font) {
+            applyTextStyle('fontName', font);
+        }
+
+        function applyTextAlignment(direction) {
+            const commandMap = {
+                'left': 'justifyLeft',
+                'center': 'justifyCenter',
+                'right': 'justifyRight'
+            };
+            const command = commandMap[direction];
+            if (command) {
+                applyTextStyle(command);
+            }
+        }
+
+        // pt 크기와 font size (1-7) 매핑 (대략적인 근사치)
+        const PT_TO_SIZE = {
+            8: 1, 9: 1, 10: 2, 11: 2, 12: 3, 14: 4, 16: 4, 18: 5, 24: 6, 36: 7, 48: 7, 72: 7
+        };
+        const SIZE_TO_PT = {
+            1: 8, 2: 10, 3: 12, 4: 14, 5: 18, 6: 24, 7: 36
+        };
+
+        // 폰트 크기 조절 (1pt 단위로 최대한 근사치 적용)
+        function adjustFontSize(increase) {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) {
+                alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+            let currentSizeTag = 3; // 기본값 (12pt에 해당)
+
+            // 1. 현재 적용된 font size 태그(1-7) 값을 찾습니다.
+            let commonAncestor = range.commonAncestorContainer;
+            if (commonAncestor.nodeType === 3) {
+                commonAncestor = commonAncestor.parentNode;
+            }
+
+            // <font size="X"> 태그를 찾음
+            const fontTag = commonAncestor.closest('font');
+            if (fontTag && fontTag.size) {
+                currentSizeTag = parseInt(fontTag.size);
+            } else {
+                // span 등으로 스타일이 적용된 경우, pt 크기를 얻어 size(1-7)로 변환 시도
+                const span = commonAncestor.closest('[style*="font-size"]');
+                if (span && span.style.fontSize.endsWith('pt')) {
+                    const currentPt = parseFloat(span.style.fontSize.replace('pt', ''));
+
+                    // PT_TO_SIZE 맵에서 현재 pt에 가장 가까운 size tag를 찾습니다.
+                    let closestPt = Object.keys(PT_TO_SIZE).reduce((prev, curr) => {
+                        return (Math.abs(curr - currentPt) < Math.abs(prev - currentPt) ? curr : prev);
+                    }, 12);
+
+                    currentSizeTag = PT_TO_SIZE[closestPt]; // 맵핑된 size tag 1-7 값
+                }
+            }
+
+            // 2. 새 font size tag (1-7) 계산
+            let newSizeTag = currentSizeTag + (increase ? 1 : -1);
+            newSizeTag = Math.min(7, Math.max(1, newSizeTag));
+
+            // 3. 브라우저의 기본 execCommand('fontSize', ...)를 사용하여 적용
+            applyTextStyle('fontSize', newSizeTag);
+        }
+
+
+        // --- 리스너 설정 ---
+
+        const controlMap = {
+            'fontFamily': ['select', 'style', document.body, ''],
+            'pageBg': ['color', 'var', '--page-bg'],
+            'borderColor': ['color', 'var', '--page-border-color'],
+            'borderWidth': ['range', 'var', '--page-border-width', 'mm'],
+            'borderStyle': ['select', 'var', '--page-border-style'],
+            'borderRadius': ['range', 'var', '--page-border-radius', 'mm'],
+            'pagePadding': ['range', 'var', '--page-padding-mm', 'mm'],
+            'pageMargin': ['range', 'var', '--page-margin', 'mm'],
+            'headerSize': ['number', 'style', 'header', 'px', true],
+            'footerSize': ['number', 'style', 'footer', 'px', true],
+            'backgroundOpacity': ['range', 'var', '--background-opacity'],
+            'backgroundSize': ['select', 'var', '--background-size'], // 추가
+        };
+
+        const offsetMap = {
+            'headerOffset': ['header', 'transform', 'translateY', 'mm', 1],
+            'footerOffset': ['footer', 'transform', 'translateY', 'mm', -1],
+        };
+
+        function disableSpellcheck() {
+            document.querySelectorAll('input, textarea, [contenteditable="true"]').forEach(el => {
+                el.setAttribute('spellcheck', 'false');
+            });
+        }
+
+        // 배경 위치는 별도로 처리
+        function updateBackgroundPosition() {
+            const x = $('backgroundPositionX').value + '%';
+            const y = $('backgroundPositionY').value + '%';
+            setCSSVar('--background-position', `${x} ${y}`);
+            $('backgroundPositionXVal').textContent = x;
+            $('backgroundPositionYVal').textContent = y;
+            saveLastUsedSettings();
+        }
+
+        // 그라데이션 업데이트
+        function updateGradient() {
+            const useGradient = $('useGradient').checked ? 1 : 0;
+            const color1 = $('gradientColor1').value;
+            const color2 = $('gradientColor2').value;
+            const color3 = $('gradientColor3').value;
+            const direction = $('gradientDirection').value;
+
+            setCSSVar('--use-gradient', useGradient);
+            setCSSVar('--gradient-direction', direction);
+            setCSSVar('--gradient-colors', `${color1}, ${color2}, ${color3}`);
+
+            // 그라데이션이 활성화되면 페이지 배경색을 투명하게, 비활성화되면 원래 배경색으로 복원
+            const pageBg = getComputedStyle(document.documentElement).getPropertyValue('--page-bg').trim();
+            if (useGradient === 1) {
+                page.style.backgroundColor = 'transparent';
+            } else {
+                page.style.backgroundColor = pageBg || '#ffffff';
+            }
+
+            // 미리보기 업데이트
+            const preview = $('gradientPreview');
+            if (preview) {
+                preview.style.background = `linear-gradient(${direction}, ${color1}, ${color2}, ${color3})`;
+            }
+
+            saveLastUsedSettings();
+        }
+
+        // 테이블 관련 함수
+        function createTable() {
+            const rows = prompt('행 수를 입력하세요 (2-20):', '3');
+            const cols = prompt('열 수를 입력하세요 (2-10):', '3');
+
+            if (!rows || !cols) return;
+
+            const rowNum = parseInt(rows);
+            const colNum = parseInt(cols);
+
+            if (isNaN(rowNum) || isNaN(colNum) || rowNum < 2 || rowNum > 20 || colNum < 2 || colNum > 10) {
+                alert('올바른 숫자를 입력해주세요. (행: 2-20, 열: 2-10)');
+                return;
+            }
+
+            const table = document.createElement('table');
+            table.className = 'editable-table';
+            table.style.border = '1px solid #333';
+            table.style.width = '100%';
+            table.style.margin = '8px 0';
+
+            for (let i = 0; i < rowNum; i++) {
+                const tr = document.createElement('tr');
+                for (let j = 0; j < colNum; j++) {
+                    const td = document.createElement('td');
+                    td.contentEditable = true;
+                    td.setAttribute('spellcheck', 'false');
+                    td.style.border = '1px solid #333';
+                    td.style.padding = '8px';
+                    td.style.minWidth = '50px';
+                    td.style.minHeight = '30px';
+                    td.textContent = '';
+                    tr.appendChild(td);
+                }
+                table.appendChild(tr);
+            }
+
+            // 테이블 클릭 이벤트
+            table.addEventListener('click', (e) => {
+                if (e.target.tagName === 'TD' || e.target.tagName === 'TH') {
+                    setActiveTable(table);
+                }
+            });
+
+            // 커서 위치에 삽입
+            const selection = window.getSelection();
+            if (selection.rangeCount > 0) {
+                const range = selection.getRangeAt(0);
+                range.deleteContents();
+                range.insertNode(table);
+                range.setStartAfter(table);
+                selection.removeAllRanges();
+                selection.addRange(range);
+            } else {
+                bodyContent.appendChild(table);
+            }
+
+            setActiveTable(table);
+            saveLastUsedSettings();
+        }
+
+        function setActiveTable(table) {
+            // 모든 테이블에서 selected 클래스 제거
+            document.querySelectorAll('.editable-table').forEach(t => {
+                t.classList.remove('selected');
+            });
+
+            activeTable = table;
+
+            if (activeTable) {
+                activeTable.classList.add('selected');
+                $('tableControls').style.display = 'block';
+
+                const rows = activeTable.rows.length;
+                const cols = activeTable.rows[0] ? activeTable.rows[0].cells.length : 0;
+                $('activeTableInfo').textContent = `${rows}행 × ${cols}열`;
+
+                // 현재 테이블 스타일 읽기
+                const firstCell = activeTable.querySelector('td, th');
+                if (firstCell) {
+                    const borderColor = firstCell.style.borderColor || '#333333';
+                    const borderWidth = parseInt(firstCell.style.borderWidth) || 1;
+                    $('tableBorderColor').value = rgbToHex(borderColor);
+                    $('tableBorderWidth').value = borderWidth;
+                    $('tableBorderWidthVal').textContent = borderWidth + 'px';
+
+                    // 행 높이 읽기
+                    const rowHeight = parseInt(firstCell.style.height) || parseInt(firstCell.parentElement.style.height) || 30;
+                    $('tableRowHeight').value = rowHeight;
+                    $('tableRowHeightVal').textContent = rowHeight + 'px';
+
+                    // 열 너비 읽기 (퍼센트)
+                    const colWidth = parseInt(firstCell.style.width) || 10;
+                    $('tableColWidth').value = colWidth;
+                    $('tableColWidthVal').textContent = colWidth + '%';
+                }
+            } else {
+                $('tableControls').style.display = 'none';
+                $('activeTableInfo').textContent = '없음';
+            }
+        }
+
+        function rgbToHex(rgb) {
+            if (rgb.startsWith('#')) return rgb;
+            const match = rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
+            if (match) {
+                return '#' + [1, 2, 3].map(i => ('0' + parseInt(match[i]).toString(16)).slice(-2)).join('');
+            }
+            return '#333333';
+        }
+
+        function updateTableStyle() {
+            if (!activeTable) return;
+
+            const borderColor = $('tableBorderColor').value;
+            const borderWidth = $('tableBorderWidth').value + 'px';
+
+            const cells = activeTable.querySelectorAll('td, th');
+            cells.forEach(cell => {
+                cell.style.border = `${borderWidth} solid ${borderColor}`;
+            });
+
+            activeTable.style.border = `${borderWidth} solid ${borderColor}`;
+
+            $('tableBorderWidthVal').textContent = borderWidth;
+            saveLastUsedSettings();
+        }
+
+        function updateTableRowHeight() {
+            if (!activeTable) return;
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            const cell = range.commonAncestorContainer.closest('td, th');
+
+            if (!cell || !activeTable.contains(cell)) {
+                // 선택된 셀이 없으면 모든 행에 적용
+                const height = $('tableRowHeight').value + 'px';
+                const rows = activeTable.rows;
+                for (let i = 0; i < rows.length; i++) {
+                    rows[i].style.height = height;
+                    Array.from(rows[i].cells).forEach(c => {
+                        c.style.height = height;
+                    });
+                }
+            } else {
+                // 선택된 셀이 있는 행에만 적용
+                const row = cell.parentElement;
+                const height = $('tableRowHeight').value + 'px';
+                row.style.height = height;
+                Array.from(row.cells).forEach(c => {
+                    c.style.height = height;
+                });
+            }
+
+            $('tableRowHeightVal').textContent = $('tableRowHeight').value + 'px';
+            saveLastUsedSettings();
+        }
+
+        function updateTableColWidth() {
+            if (!activeTable) return;
+
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            const range = selection.getRangeAt(0);
+            const cell = range.commonAncestorContainer.closest('td, th');
+
+            if (!cell || !activeTable.contains(cell)) {
+                // 선택된 셀이 없으면 모든 열에 적용
+                const width = $('tableColWidth').value + '%';
+                const rows = activeTable.rows;
+                if (rows.length > 0) {
+                    const cols = rows[0].cells.length;
+                    for (let i = 0; i < cols; i++) {
+                        for (let j = 0; j < rows.length; j++) {
+                            if (rows[j].cells[i]) {
+                                rows[j].cells[i].style.width = width;
+                            }
+                        }
+                    }
+                }
+            } else {
+                // 선택된 셀이 있는 열에만 적용
+                const row = cell.parentElement;
+                const colIndex = Array.from(row.cells).indexOf(cell);
+                const width = $('tableColWidth').value + '%';
+
+                const rows = activeTable.rows;
+                for (let i = 0; i < rows.length; i++) {
+                    if (rows[i].cells[colIndex]) {
+                        rows[i].cells[colIndex].style.width = width;
+                    }
+                }
+            }
+
+            $('tableColWidthVal').textContent = $('tableColWidth').value + '%';
+            saveLastUsedSettings();
+        }
+
+        function applyTextEffect() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) {
+                alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+            const strokeColor = $('textStrokeColor').value;
+            const strokeWidth = $('textStrokeWidth').value + 'px';
+            const shadowColor = $('textShadowColor').value;
+            const shadowX = $('textShadowX').value + 'px';
+            const shadowY = $('textShadowY').value + 'px';
+            const shadowBlur = $('textShadowBlur').value + 'px';
+
+            // 선택된 텍스트를 span으로 감싸서 효과 적용
+            const span = document.createElement('span');
+
+            // 텍스트 외곽선 (text-stroke)
+            if (parseFloat(strokeWidth) > 0) {
+                span.style.webkitTextStroke = `${strokeWidth} ${strokeColor}`;
+                span.style.webkitTextStrokeWidth = strokeWidth;
+                span.style.webkitTextStrokeColor = strokeColor;
+                span.style.textStroke = `${strokeWidth} ${strokeColor}`;
+            }
+
+            // 텍스트 그림자 (text-shadow)
+            if (parseFloat(shadowX) !== 0 || parseFloat(shadowY) !== 0 || parseFloat(shadowBlur) > 0) {
+                span.style.textShadow = `${shadowX} ${shadowY} ${shadowBlur} ${shadowColor}`;
+            }
+
+            span.style.display = 'inline';
+
+            // 안전하게 텍스트 감싸기
+            try {
+                // 범위의 내용을 추출
+                const contents = range.extractContents();
+
+                // 빈 텍스트 노드나 공백만 있는 경우 처리
+                if (contents.textContent.trim() === '' && contents.childNodes.length === 0) {
+                    // 원래 위치에 다시 삽입
+                    range.insertNode(contents);
+                    return;
+                }
+
+                // span에 내용 추가
+                span.appendChild(contents);
+
+                // 범위가 축소된 상태이므로 다시 삽입
+                range.insertNode(span);
+
+                // 선택 영역을 span 다음으로 이동
+                range.setStartAfter(span);
+                range.collapse(true);
+                selection.removeAllRanges();
+                selection.addRange(range);
+
+            } catch (e) {
+                console.error('텍스트 효과 적용 오류:', e);
+                // 대체 방법: 선택된 텍스트를 가져와서 새로 삽입
+                const selectedText = range.toString();
+                if (selectedText) {
+                    // 텍스트 노드 생성
+                    const textNode = document.createTextNode(selectedText);
+                    span.appendChild(textNode);
+
+                    // 범위 삭제 후 span 삽입
+                    range.deleteContents();
+                    range.insertNode(span);
+
+                    // 선택 영역 업데이트
+                    range.setStartAfter(span);
+                    range.collapse(true);
+                    selection.removeAllRanges();
+                    selection.addRange(range);
+                } else {
+                    alert('텍스트 효과를 적용할 수 없습니다. 다시 시도해주세요.');
+                    return;
+                }
+            }
+
+            saveLastUsedSettings();
+        }
+
+        function removeTextEffect() {
+            const selection = window.getSelection();
+            if (!selection.rangeCount || selection.isCollapsed) {
+                alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                return;
+            }
+
+            const range = selection.getRangeAt(0);
+            let container = range.commonAncestorContainer;
+
+            // 텍스트 노드면 부모 요소로
+            if (container.nodeType === 3) {
+                container = container.parentElement;
+            }
+
+            // 선택된 범위 내의 모든 span 요소 찾기
+            const selectedText = range.toString();
+            if (!selectedText) return;
+
+            // 범위 내의 모든 요소를 순회하며 효과 제거
+            const walker = document.createTreeWalker(
+                container,
+                NodeFilter.SHOW_ELEMENT,
+                {
+                    acceptNode: function(node) {
+                        if (node.nodeName === 'SPAN' &&
+                            (node.style.webkitTextStroke || node.style.textShadow)) {
+                            return NodeFilter.FILTER_ACCEPT;
+                        }
+                        return NodeFilter.FILTER_SKIP;
+                    }
+                }
+            );
+
+            const spansToProcess = [];
+            let node;
+            while (node = walker.nextNode()) {
+                if (range.intersectsNode(node)) {
+                    spansToProcess.push(node);
+                }
+            }
+
+            // 효과가 있는 span 요소들을 찾아서 효과 제거
+            if (spansToProcess.length > 0) {
+                spansToProcess.forEach(span => {
+                    span.style.webkitTextStroke = 'none';
+                    span.style.webkitTextStrokeWidth = '0';
+                    span.style.webkitTextStrokeColor = 'transparent';
+                    span.style.textStroke = 'none';
+                    span.style.textShadow = 'none';
+
+                    // 다른 스타일이 없으면 span 제거하고 내용만 남기기
+                    const hasOtherStyles = Array.from(span.style).some(prop => {
+                        const value = span.style[prop];
+                        return value &&
+                            prop !== 'webkitTextStroke' &&
+                            prop !== 'webkitTextStrokeWidth' &&
+                            prop !== 'webkitTextStrokeColor' &&
+                            prop !== 'textStroke' &&
+                            prop !== 'textShadow' &&
+                            prop !== 'display';
+                    });
+
+                    if (!hasOtherStyles && span.style.length <= 1) {
+                        const parent = span.parentNode;
+                        while (span.firstChild) {
+                            parent.insertBefore(span.firstChild, span);
+                        }
+                        parent.removeChild(span);
+                    }
+                });
+            } else {
+                // 직접 선택된 텍스트가 span 안에 있는 경우
+                const parentSpan = container.closest('span');
+                if (parentSpan && (parentSpan.style.webkitTextStroke || parentSpan.style.textShadow)) {
+                    parentSpan.style.webkitTextStroke = 'none';
+                    parentSpan.style.webkitTextStrokeWidth = '0';
+                    parentSpan.style.webkitTextStrokeColor = 'transparent';
+                    parentSpan.style.textStroke = 'none';
+                    parentSpan.style.textShadow = 'none';
+                }
+            }
+
+            saveLastUsedSettings();
+        }
+
+        function addTableRow() {
+            if (!activeTable) {
+                alert('먼저 테이블을 선택해주세요.');
+                return;
+            }
+
+            const cols = activeTable.rows[0] ? activeTable.rows[0].cells.length : 0;
+            const tr = document.createElement('tr');
+
+            for (let i = 0; i < cols; i++) {
+                const td = document.createElement('td');
+                td.contentEditable = true;
+                const firstCell = activeTable.rows[0].cells[i];
+                td.style.border = firstCell.style.border || '1px solid #333';
+                td.style.padding = '8px';
+                td.style.minWidth = '50px';
+                td.style.minHeight = '30px';
+                tr.appendChild(td);
+            }
+
+            activeTable.appendChild(tr);
+            setActiveTable(activeTable);
+            saveLastUsedSettings();
+        }
+
+        function addTableCol() {
+            if (!activeTable) {
+                alert('먼저 테이블을 선택해주세요.');
+                return;
+            }
+
+            const rows = activeTable.rows;
+            const firstRow = rows[0];
+            if (!firstRow) return;
+
+            const borderStyle = firstRow.cells[0] ? firstRow.cells[0].style.border : '1px solid #333';
+
+            for (let i = 0; i < rows.length; i++) {
+                const td = document.createElement('td');
+                td.contentEditable = true;
+                td.style.border = borderStyle;
+                td.style.padding = '8px';
+                td.style.minWidth = '50px';
+                td.style.minHeight = '30px';
+                rows[i].appendChild(td);
+            }
+
+            setActiveTable(activeTable);
+            saveLastUsedSettings();
+        }
+
+        function removeTableRow() {
+            if (!activeTable) {
+                alert('먼저 테이블을 선택해주세요.');
+                return;
+            }
+
+            if (activeTable.rows.length <= 1) {
+                alert('최소 1개의 행이 필요합니다.');
+                return;
+            }
+
+            activeTable.deleteRow(-1);
+            setActiveTable(activeTable);
+            saveLastUsedSettings();
+        }
+
+        function removeTableCol() {
+            if (!activeTable) {
+                alert('먼저 테이블을 선택해주세요.');
+                return;
+            }
+
+            const rows = activeTable.rows;
+            if (rows.length === 0 || rows[0].cells.length <= 1) {
+                alert('최소 1개의 열이 필요합니다.');
+                return;
+            }
+
+            for (let i = 0; i < rows.length; i++) {
+                rows[i].deleteCell(-1);
+            }
+
+            setActiveTable(activeTable);
+            saveLastUsedSettings();
+        }
+
+        function deleteTable() {
+            if (!activeTable) {
+                alert('삭제할 테이블을 먼저 선택해주세요.');
+                return;
+            }
+
+            if (confirm('선택된 테이블을 삭제하시겠습니까?')) {
+                activeTable.remove();
+                setActiveTable(null);
+                saveLastUsedSettings();
+            }
+        }
+
+
+        function setupListeners() {
+            // 일반 컨트롤 리스너 (페이지 스타일, 헤더/푸터)
+            Object.keys(controlMap).forEach(id => {
+                const [type] = controlMap[id];
+                const el = $(id);
+                if (!el) return;
+
+                const event = type === 'range' || type === 'number' || type === 'color' ? 'input' : 'change';
+
+                el.addEventListener(event, (e) => {
+                    const [,, target, unit, isHeaderFooter] = controlMap[id];
+                    const value = e.target.value;
+                    const valueWithUnit = unit ? value + unit : value;
+                    const displayValEl = $(id + 'Val');
+
+                    if (displayValEl) {
+                        if (id === 'backgroundOpacity') {
+                            // 불투명도 0.01일 때 1%로 표시
+                            displayValEl.textContent = (parseFloat(value) * 100).toFixed(0) + '%';
+                        } else {
+                            displayValEl.textContent = valueWithUnit;
+                        }
+                    }
+
+                    // --- 중요 수정: target이 문자열인 경우에만 startsWith 체크 ---
+                    if (typeof target === 'string' && target.startsWith('--')) {
+                        setCSSVar(target, valueWithUnit);
+                        // pageBg 변경 시 그라데이션 상태 확인
+                        if (id === 'pageBg') {
+                            const useGradient = $('useGradient').checked ? 1 : 0;
+                            if (useGradient === 1) {
+                                page.style.backgroundColor = 'transparent';
+                            } else {
+                                page.style.backgroundColor = valueWithUnit;
+                            }
+                        }
+                    } else if (target === document.body) {
+                        document.body.style.fontFamily = value;
+                    } else if (isHeaderFooter) {
+                        $(target).style.fontSize = valueWithUnit;
+                    }
+                    if (id === 'pageMargin') {
+                        updatePrintStyles();
+                    }
+                    saveLastUsedSettings();
+                });
+            });
+
+            // 배경 위치 리스너 추가
+            $('backgroundPositionX').addEventListener('input', updateBackgroundPosition);
+            $('backgroundPositionY').addEventListener('input', updateBackgroundPosition);
+
+
+            // Header/Footer 위치 리스너
+            Object.keys(offsetMap).forEach(id => {
+                const [targetId, prop, func, unit, sign] = offsetMap[id];
+                const el = $(id);
+                if (!el) return;
+
+                el.addEventListener('input', (e) => {
+                    const v = e.target.value * sign;
+                    const mm = Math.abs(v);
+                    $(id + 'Val').textContent = mm + 'mm';
+                    $(targetId).style[prop] = `${func}(${v}${unit})`;
+                    saveLastUsedSettings();
+                });
+            });
+
+            // --- 텍스트 스타일링 리스너 ---
+            $('textBlockFont').addEventListener('change', (e) => {
+                applyTextFont(e.target.value);
+            });
+
+            // 폰트 크기 1pt 증가/감소 로직 적용
+            $('sizeUpBtn').addEventListener('click', () => {
+                adjustFontSize(true);
+            });
+            $('sizeDownBtn').addEventListener('click', () => {
+                adjustFontSize(false);
+            });
+            $('sizeResetBtn').addEventListener('click', () => {
+                applyTextStyle('removeFormat');
+                alert('텍스트의 모든 서식이 초기화되었습니다.');
+            });
+            $('alignLeftBtn').addEventListener('click', () => applyTextAlignment('left'));
+            $('alignCenterBtn').addEventListener('click', () => applyTextAlignment('center'));
+            $('alignRightBtn').addEventListener('click', () => applyTextAlignment('right'));
+
+            // 텍스트 스타일 버튼
+            $('boldBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                applyTextStyle('bold');
+            });
+            $('italicBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                applyTextStyle('italic');
+            });
+            $('underlineBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                applyTextStyle('underline');
+            });
+            $('strikethroughBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                applyTextStyle('strikeThrough');
+            });
+            $('removeFormatBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                applyTextStyle('removeFormat');
+            });
+            $('applyTextColorBtn').addEventListener('click', () => {
+                const selection = window.getSelection();
+                if (!selection.rangeCount || selection.isCollapsed) {
+                    alert('텍스트를 먼저 드래그하여 선택해주세요.');
+                    return;
+                }
+                const color = $('textColor').value;
+                applyTextStyle('foreColor', color);
+            });
+
+
+            // --- 이미지/배경 관련 리스너 ---
+
+            $('uploadBgImageTrigger').addEventListener('click', () => $('uploadBgImage').click());
+            $('uploadBgImage').addEventListener('change', uploadBackgroundImage);
+            $('removeBgImageBtn').addEventListener('click', removeBackgroundImage);
+
+            $('uploadImageTrigger').addEventListener('click', () => $('uploadImage').click());
+            $('uploadImage').addEventListener('change', uploadImage);
+
+            $('imageOpacity').addEventListener('input', updateImageStyle);
+            $('imageZIndex').addEventListener('input', updateImageStyle);
+            $('imageWidth').addEventListener('input', updateImageStyle);
+            $('deleteImageBtn').addEventListener('click', deleteActiveImage);
+            $('imageAlignLeftBtn').addEventListener('click', () => alignActiveImage('left'));
+            $('imageAlignCenterBtn').addEventListener('click', () => alignActiveImage('center'));
+            $('imageAlignRightBtn').addEventListener('click', () => alignActiveImage('right'));
+
+            // --- 기존 레이아웃/저장 리스너 ---
+            $('toggleHeaderBtn').addEventListener('click', () => {
+                const el = $('header');
+                el.style.display = (el.style.display === 'none') ? '' : 'none';
+                saveLastUsedSettings();
+            });
+
+            $('toggleFooterBtn').addEventListener('click', () => {
+                const el = $('footer');
+                el.style.display = (el.style.display === 'none') ? '' : 'none';
+                saveLastUsedSettings();
+            });
+
+            $('printBtn').addEventListener('click', () => {
+                window.print();
+            });
+
+            // 초기화 시 새로고침 추가
+            $('resetBtn').addEventListener('click', () => {
+                if (confirmReset()) {
+                    window.location.reload();
+                }
+            });
+
+            $('saveFileBtn').addEventListener('click', saveFileSettings);
+            $('loadFileTrigger').addEventListener('click', () => $('loadFile').click());
+            $('loadFile').addEventListener('change', loadFileSettings);
+
+            // 페이지 크기 리스너
+            $('pageSize').addEventListener('change', updatePageSize);
+
+            // 그라데이션 리스너
+            $('useGradient').addEventListener('change', () => {
+                $('gradientControls').style.display = $('useGradient').checked ? 'block' : 'none';
+                updateGradient();
+            });
+            $('gradientColor1').addEventListener('input', updateGradient);
+            $('gradientColor2').addEventListener('input', updateGradient);
+            $('gradientColor3').addEventListener('input', updateGradient);
+            $('gradientDirection').addEventListener('change', updateGradient);
+            $('applyGradientBtn').addEventListener('click', () => {
+                $('useGradient').checked = true;
+                $('gradientControls').style.display = 'block';
+                updateGradient();
+            });
+
+            // 테이블 리스너
+            $('createTableBtn').addEventListener('click', createTable);
+            $('addTableRowBtn').addEventListener('click', addTableRow);
+            $('addTableColBtn').addEventListener('click', addTableCol);
+            $('removeTableRowBtn').addEventListener('click', removeTableRow);
+            $('removeTableColBtn').addEventListener('click', removeTableCol);
+            $('tableBorderColor').addEventListener('input', updateTableStyle);
+            $('tableBorderWidth').addEventListener('input', updateTableStyle);
+            $('tableRowHeight').addEventListener('input', updateTableRowHeight);
+            $('tableColWidth').addEventListener('input', updateTableColWidth);
+            $('deleteTableBtn').addEventListener('click', deleteTable);
+
+            // 텍스트 효과 리스너
+            $('applyTextEffectBtn').addEventListener('click', applyTextEffect);
+            $('removeTextEffectBtn').addEventListener('click', removeTextEffect);
+            $('textStrokeWidth').addEventListener('input', (e) => {
+                $('textStrokeWidthVal').textContent = e.target.value + 'px';
+            });
+            $('textShadowX').addEventListener('input', (e) => {
+                $('textShadowXVal').textContent = e.target.value + 'px';
+            });
+            $('textShadowY').addEventListener('input', (e) => {
+                $('textShadowYVal').textContent = e.target.value + 'px';
+            });
+            $('textShadowBlur').addEventListener('input', (e) => {
+                $('textShadowBlurVal').textContent = e.target.value + 'px';
+            });
+
+            // 본문 클릭 시 테이블 선택 해제 (테이블 외부 클릭 시)
+            bodyContent.addEventListener('click', (e) => {
+                if (!e.target.closest('.editable-table')) {
+                    setActiveTable(null);
+                }
+            });
+
+            bodyContent.addEventListener('input', saveLastUsedSettings);
+            page.addEventListener('click', (e) => {
+                if (!e.target.closest('.uploaded-image')) {
+                    setActiveImage(null);
+                }
+            });
+        }
+
+        // --- 배경 이미지 함수 ---
+
+        function uploadBackgroundImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                // CSS 변수에 배경 이미지 URL과 초기 불투명도 적용
+                setCSSVar('--background-image', `url("${event.target.result}")`);
+
+                // 초기값 설정 및 컨트롤 반영
+                setCSSVar('--background-opacity', 1);
+                setCSSVar('--background-size', 'cover');
+                setCSSVar('--background-position', '50% 50%');
+
+                $('backgroundOpacity').value = 1;
+                $('backgroundOpacityVal').textContent = '100%';
+                $('backgroundSize').value = 'cover';
+                $('backgroundPositionX').value = 50;
+                $('backgroundPositionY').value = 50;
+                $('backgroundPositionXVal').textContent = '50%';
+                $('backgroundPositionYVal').textContent = '50%';
+
+                e.target.value = '';
+                saveLastUsedSettings();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function removeBackgroundImage() {
+            if (confirm('배경 이미지를 제거하시겠습니까?')) {
+                setCSSVar('--background-image', 'none');
+                // 기본값으로 재설정
+                $('backgroundOpacity').value = 1;
+                $('backgroundOpacityVal').textContent = '100%';
+                setCSSVar('--background-opacity', 1);
+                $('backgroundSize').value = 'cover';
+                setCSSVar('--background-size', 'cover');
+
+                saveLastUsedSettings();
+            }
+        }
+
+
+        // --- 삽입 이미지 관련 함수 ---
+
+        function setActiveImage(imgElement) {
+            // 모든 이미지에서 active 클래스 제거
+            document.querySelectorAll('.uploaded-image').forEach(img => {
+                img.classList.remove('active');
+            });
+
+            activeImage = imgElement;
+
+            if (activeImage) {
+                activeImage.classList.add('active');
+                $('imageControls').style.display = 'block';
+                $('activeImageId').textContent = activeImage.id;
+
+                // 이미지 스타일 값 읽어와서 컨트롤에 적용
+                const opacityVal = activeImage.style.opacity || 1;
+                const zIndexVal = activeImage.style.zIndex || 10;
+
+                // width 파싱 시 % 기호를 제대로 처리
+                const widthMatch = activeImage.style.width.match(/(\d+)%/);
+                const widthVal = widthMatch ? parseFloat(widthMatch[1]) : 50;
+
+                $('imageOpacity').value = opacityVal;
+                $('imageOpacityVal').textContent = (parseFloat(opacityVal) * 100).toFixed(0) + '%';
+                $('imageZIndex').value = zIndexVal;
+                $('imageZIndexVal').textContent = zIndexVal;
+                $('imageWidth').value = widthVal;
+                $('imageWidthVal').textContent = widthVal + '%';
+
+            } else {
+                $('imageControls').style.display = 'none';
+                $('activeImageId').textContent = '없음';
+            }
+        }
+
+        function alignActiveImage(position) {
+            if (!activeImage) {
+                alert('정렬할 이미지를 먼저 선택해주세요.');
+                return;
+            }
+
+            activeImage.style.top = activeImage.style.top || '50%';
+
+            switch(position) {
+                case 'left':
+                    activeImage.style.left = '0%';
+                    activeImage.style.transform = 'translate(0, -50%)';
+                    break;
+                case 'center':
+                    activeImage.style.left = '50%';
+                    activeImage.style.transform = 'translate(-50%, -50%)';
+                    break;
+                case 'right':
+                    activeImage.style.left = '100%';
+                    activeImage.style.transform = 'translate(-100%, -50%)';
+                    break;
+            }
+
+            saveLastUsedSettings();
+        }
+
+        function updateImageStyle() {
+            if (!activeImage) return;
+
+            const opacity = $('imageOpacity').value;
+            const zIndex = $('imageZIndex').value;
+            const width = $('imageWidth').value;
+
+            activeImage.style.opacity = opacity;
+            activeImage.style.zIndex = zIndex;
+            activeImage.style.width = width + '%';
+
+            $('imageOpacityVal').textContent = (parseFloat(opacity) * 100).toFixed(0) + '%';
+            $('imageZIndexVal').textContent = zIndex;
+            $('imageWidthVal').textContent = width + '%';
+
+            // 드래그 중이 아닐 때만 저장 (드래그 중에는 mouseup에서 저장됨)
+            if (!isDragging) {
+                saveLastUsedSettings();
+            }
+        }
+
+        function deleteActiveImage() {
+            if (!activeImage) { alert('삭제할 이미지를 먼저 선택해주세요.'); return; }
+
+            if (confirm(`선택된 이미지 [${activeImage.id}]을(를) 삭제하시겠습니까?`)) {
+                activeImage.remove();
+                setActiveImage(null);
+                attachImageDragListeners(); // 리스너 업데이트
+                saveLastUsedSettings();
+            }
+        }
+
+        function uploadImage(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                imageCounter++;
+                const img = document.createElement('img');
+                img.src = event.target.result;
+                img.id = `uploadedImage_${imageCounter}`;
+                img.className = 'uploaded-image';
+                img.style.opacity = 1;
+                img.style.zIndex = 10; // 기본값 10
+                img.style.width = '50%';
+                // 이미지 초기 위치를 페이지 중앙으로 설정
+                img.style.left = '50%';
+                img.style.top = '50%';
+                img.style.transform = 'translate(-50%, -50%)';
+
+                // 이미지 클릭 시 선택 활성화
+                img.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    setActiveImage(img);
+                });
+
+                // 마우스 다운 이벤트는 attachImageDragListeners에서 전역으로 관리
+
+                imageOverlay.appendChild(img);
+                setActiveImage(img);
+
+                // 새로운 이미지 포함하여 드래그 리스너 재부착
+                attachImageDragListeners();
+
+                e.target.value = '';
+                saveLastUsedSettings();
+            };
+            reader.readAsDataURL(file);
+        }
+
+        /**
+         * 모든 이미지에 대해 드래그 리스너를 전역으로 관리
+         * **중요:** 삽입/삭제 시마다 호출하여 이벤트 리스너를 갱신합니다.
+         */
+        function attachImageDragListeners() {
+            // 기존 마우스 이벤트 핸들러 제거 (안정성을 위해)
+            document.onmousemove = null;
+            document.onmouseup = null;
+
+            // 모든 이미지에 마우스 다운 이벤트 재부착
+            document.querySelectorAll('.uploaded-image').forEach(img => {
+                img.onmousedown = (e) => {
+                    setActiveImage(img);
+                    activeImgElement = img;
+                    isDragging = true;
+                    startX = e.clientX;
+                    startY = e.clientY;
+
+                    const parentRect = imageOverlay.getBoundingClientRect();
+
+                    // 이미지의 현재 중앙 위치 (퍼센트를 픽셀로 변환)
+                    const currentLeftPer = parseFloat(img.style.left);
+                    const currentTopPer = parseFloat(img.style.top);
+
+                    startLeft = currentLeftPer / 100 * parentRect.width;
+                    startTop = currentTopPer / 100 * parentRect.height;
+
+                    img.style.zIndex = 999; // 드래그 시 최상위로 올림
+                    img.style.cursor = 'grabbing';
+                    e.preventDefault();
+                };
+            });
+
+            // 전역 마우스 이동 이벤트 (드래그 중일 때만 동작)
+            document.onmousemove = (e) => {
+                if (!isDragging || !activeImgElement) return;
+
+                const parentRect = imageOverlay.getBoundingClientRect();
+
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+
+                const newLeftPx = startLeft + dx;
+                const newTopPx = startTop + dy;
+
+                // 픽셀 위치를 부모 요소 기준 퍼센트로 변환
+                const newLeftPer = (newLeftPx / parentRect.width) * 100;
+                const newTopPer = (newTopPx / parentRect.height) * 100;
+
+                activeImgElement.style.left = `${newLeftPer}%`;
+                activeImgElement.style.top = `${newTopPer}%`;
+
+                e.preventDefault();
+            };
+
+            // 전역 마우스 업 이벤트 (드래그 종료 시)
+            document.onmouseup = () => {
+                if (isDragging && activeImgElement) {
+                    isDragging = false;
+                    // 드래그 종료 후 원래 Z-Index로 복귀 (컨트롤 값 사용)
+                    activeImgElement.style.zIndex = $('imageZIndex').value || 10;
+                    activeImgElement.style.cursor = 'move';
+                    saveLastUsedSettings();
+                    activeImgElement = null;
+                }
+            };
+        }
+
+        // --- 로컬 스토리지/파일 저장 함수 ---
+
+        function collectSettings() {
+            const settings = {};
+
+            // 1. 페이지 스타일 및 레이아웃
+            Object.keys(controlMap).forEach(id => {
+                const [, propType, target] = controlMap[id];
+                if (typeof target === 'string' && target.startsWith('--')) {
+                    settings[target] = getComputedStyle(document.documentElement).getPropertyValue(target).trim();
+                } else if (target === document.body) {
+                    settings['fontFamily'] = document.body.style.fontFamily || $('fontFamily').value;
+                } else if (target === 'header') {
+                    settings['headerSize'] = $('header').style.fontSize;
+                } else if (target === 'footer') {
+                    settings['footerSize'] = $('footer').style.fontSize;
+                }
+            });
+
+            settings['backgroundPositionX'] = $('backgroundPositionX').value;
+            settings['backgroundPositionY'] = $('backgroundPositionY').value;
+
+            settings['headerDisplay'] = $('header').style.display;
+            settings['footerDisplay'] = $('footer').style.display;
+            settings['headerTransform'] = $('header').style.transform;
+            settings['footerTransform'] = $('footer').style.transform;
+            settings['headerHtml'] = $('header').innerHTML;
+            settings['footerHtml'] = $('footer').innerHTML;
+
+            // 2. 본문 내용 (단일 HTML로 저장)
+            settings['bodyHtml'] = bodyContent.innerHTML;
+
+            // 3. 그라데이션 설정
+            settings['useGradient'] = $('useGradient').checked;
+            settings['gradientColor1'] = $('gradientColor1').value;
+            settings['gradientColor2'] = $('gradientColor2').value;
+            settings['gradientColor3'] = $('gradientColor3').value;
+            settings['gradientDirection'] = $('gradientDirection').value;
+
+            // 4. 페이지 크기 설정
+            settings['pageSize'] = $('pageSize').value;
+
+            // 5. 이미지 데이터 수집
+            settings['images'] = Array.from(imageOverlay.children).map(img => ({
+                src: img.src,
+                id: img.id, // ID 저장
+                style: {
+                    opacity: img.style.opacity,
+                    zIndex: img.style.zIndex,
+                    left: img.style.left,
+                    top: img.style.top,
+                    transform: img.style.transform,
+                    width: img.style.width,
+                }
+            }));
+            settings['imageCounter'] = imageCounter;
+
+            return settings;
+        }
+
+        function applySettings(settings) {
+            if (!settings) return;
+
+            // 1. 페이지 스타일 및 레이아웃 적용
+            Object.keys(controlMap).filter(id => {
+                const [, propType, target] = controlMap[id];
+                return typeof target === 'string' && target.startsWith('--');
+            }).forEach(id => {
+                const [, , varName, unit] = controlMap[id];
+                if (settings[varName] !== undefined) {
+                    const value = settings[varName];
+                    setCSSVar(varName, value);
+
+                    // 컨트롤 값 업데이트
+                    const rawValue = value.replace(unit || '', '').replace(/\"/g, '').trim();
+
+                    if ($(id)) {
+                        if ($(id).type === 'range' || $(id).type === 'number') {
+                            $(id).value = rawValue;
+                        } else if ($(id).type === 'color') {
+                            $(id).value = rawValue;
+                        } else if ($(id).tagName === 'SELECT') {
+                            $(id).value = rawValue;
+                        }
+                    }
+
+                    // 디스플레이 값 업데이트
+                    const displayValEl = $(id + 'Val');
+                    if (displayValEl) {
+                        if (id === 'backgroundOpacity') {
+                            displayValEl.textContent = (parseFloat(rawValue) * 100).toFixed(0) + '%';
+                        } else {
+                            displayValEl.textContent = value;
+                        }
+                    }
+                }
+            });
+
+            // 배경 위치 수동 업데이트
+            if (settings.backgroundPositionX !== undefined && settings.backgroundPositionY !== undefined) {
+                $('backgroundPositionX').value = settings.backgroundPositionX;
+                $('backgroundPositionY').value = settings.backgroundPositionY;
+                updateBackgroundPosition();
+            }
+
+            if (settings.fontFamily !== undefined) {
+                document.body.style.fontFamily = settings.fontFamily;
+                $('fontFamily').value = settings.fontFamily;
+            }
+            if (settings.headerSize !== undefined) $('header').style.fontSize = settings.headerSize;
+            if (settings.footerSize !== undefined) $('footer').style.fontSize = settings.footerSize;
+            if (settings.headerDisplay !== undefined) $('header').style.display = settings.headerDisplay;
+            if (settings.footerDisplay !== undefined) $('footer').style.display = settings.footerDisplay;
+            if (settings.headerTransform !== undefined) $('header').style.transform = settings.headerTransform;
+            if (settings.footerTransform !== undefined) $('footer').style.transform = settings.footerTransform;
+            if (settings.headerHtml !== undefined) $('header').innerHTML = settings.headerHtml;
+            if (settings.footerHtml !== undefined) $('footer').innerHTML = settings.footerHtml;
+
+            const getOffsetValue = (transformStyle, sign) => {
+                const match = transformStyle.match(/translateY\(([^)]+)\)/);
+                if (match) return parseFloat(match[1].replace('mm', '').replace('px', '')) * sign;
+                return 0;
+            };
+
+            const headerOffsetVal = getOffsetValue(settings.headerTransform, 1);
+            $('headerOffset').value = headerOffsetVal;
+            $('headerOffsetVal').textContent = headerOffsetVal + 'mm';
+
+            const footerOffsetVal = getOffsetValue(settings.footerTransform, -1);
+            $('footerOffset').value = footerOffsetVal;
+            $('footerOffsetVal').textContent = footerOffsetVal + 'mm';
+
+            // 2. 본문 내용 (HTML) 적용
+            if (settings.bodyHtml !== undefined) {
+                bodyContent.innerHTML = settings.bodyHtml;
+                disableSpellcheck();
+
+                // 테이블 클릭 이벤트 재부착
+                document.querySelectorAll('.editable-table').forEach(table => {
+                    table.addEventListener('click', (e) => {
+                        if (e.target.tagName === 'TD' || e.target.tagName === 'TH') {
+                            setActiveTable(table);
+                        }
+                    });
+                });
+            }
+
+            // 3. 그라데이션 설정 적용
+            if (settings.useGradient !== undefined) {
+                $('useGradient').checked = settings.useGradient;
+                $('gradientControls').style.display = settings.useGradient ? 'block' : 'none';
+            }
+            if (settings.gradientColor1 !== undefined) $('gradientColor1').value = settings.gradientColor1;
+            if (settings.gradientColor2 !== undefined) $('gradientColor2').value = settings.gradientColor2;
+            if (settings.gradientColor3 !== undefined) $('gradientColor3').value = settings.gradientColor3;
+            if (settings.gradientDirection !== undefined) $('gradientDirection').value = settings.gradientDirection;
+            updateGradient(); // 이 함수 내에서 배경색도 자동으로 업데이트됨
+
+            // 4. 페이지 크기 설정 적용
+            if (settings.pageSize !== undefined) {
+                $('pageSize').value = settings.pageSize;
+                updatePageSize();
+            }
+            updatePrintStyles();
+
+            // 4. 이미지 데이터 적용
+            imageOverlay.innerHTML = '';
+            imageCounter = settings.imageCounter || 0;
+            setActiveImage(null);
+
+            if (settings.images && settings.images.length > 0) {
+                settings.images.forEach((imgData, index) => {
+                    // 이미지 카운터는 로드된 이미지 중 가장 큰 ID를 기반으로 설정
+                    const idNum = parseInt(imgData.id.split('_')[1]) || (index + 1);
+                    imageCounter = Math.max(imageCounter, idNum);
+
+                    const img = document.createElement('img');
+                    img.src = imgData.src;
+                    img.id = imgData.id || `uploadedImage_${idNum}`;
+                    img.className = 'uploaded-image';
+
+                    if (imgData.style) {
+                        img.style.opacity = imgData.style.opacity;
+                        img.style.zIndex = imgData.style.zIndex;
+                        // left/top은 % 값을 유지합니다.
+                        img.style.left = imgData.style.left;
+                        img.style.top = imgData.style.top;
+                        img.style.transform = imgData.style.transform; // transform 유지 중요
+                        img.style.width = imgData.style.width;
+                    }
+
+                    img.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                        setActiveImage(img);
+                    });
+
+                    imageOverlay.appendChild(img);
+                });
+                // 로드 후 드래그 리스너 다시 부착
+                attachImageDragListeners();
+            }
+        }
+
+        function saveLastUsedSettings() {
+            // 로컬스토리지 자동 저장 비활성화 - JSON 파일로만 저장/불러오기
+            // const name = 'a4_last_used_session';
+            // const settings = collectSettings();
+            // try {
+            //     localStorage.setItem(`a4_template_setting_${name}`, JSON.stringify(settings));
+            // } catch (e) {
+            //     console.warn('설정 자동 저장에 실패했습니다.');
+            // }
+        }
+
+        function saveFileSettings() {
+            const settings = collectSettings();
+            const json = JSON.stringify(settings, null, 2);
+            const name = 'a4_template_data';
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `${name}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+
+        function loadFileSettings(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    const settings = JSON.parse(event.target.result);
+                    applySettings(settings);
+                    alert(`파일 [${file.name}]에서 설정을 성공적으로 불러왔습니다.`);
+                    // 로컬스토리지 자동 저장 비활성화
+                    // saveLastUsedSettings();
+                } catch (error) {
+                    alert(`파일 [${file.name}]을(를) 읽는 데 실패했습니다. 올바른 JSON 파일인지 확인하세요.`);
+                    console.error('File load error:', error);
+                }
+            };
+            reader.readAsText(file);
+            e.target.value = '';
+        }
+
+        // --- 초기화 및 기본값 ---
+
+        const defaultSettings = {
+            '--page-bg': '#ffffff',
+            '--page-border-color': '#333333',
+            '--page-border-width': '2mm',
+            '--page-border-style': 'solid',
+            '--page-border-radius': '4mm',
+            '--page-margin': '12mm',
+            '--page-padding-mm': '16mm',
+            '--background-image': 'none',
+            '--background-opacity': '1',
+            '--background-size': 'cover', // 추가
+            '--use-gradient': '0',
+            '--gradient-colors': '#ffffff, #ffffff, #ffffff',
+            '--gradient-direction': 'to right',
+            'fontFamily': 'Inter, Noto Sans KR, Arial, sans-serif',
+            'backgroundPositionX': '50', // 추가
+            'backgroundPositionY': '50', // 추가
+            'headerSize': '18px',
+            'footerSize': '12px',
+            'headerDisplay': '',
+            'footerDisplay': '',
+            'headerTransform': 'translateY(0mm)',
+            'footerTransform': 'translateY(0mm)',
+            'bodyHtml': '여기에 내용을 입력하세요.<p>주의 : 프린트시 꼭 설정에서 여백없음으로 인쇄해주세요.</p>',
+            'images': [],
+            'imageCounter': 0,
+            'useGradient': false,
+            'gradientColor1': '#ffffff',
+            'gradientColor2': '#ffffff',
+            'gradientColor3': '#ffffff',
+            'gradientDirection': 'to right',
+            'pageSize': 'A4'
+        };
+
+        function resetDefaults() {
+            applySettings(defaultSettings);
+
+            // 컨트롤 값 업데이트
+            $('borderWidth').value = 2;
+            $('borderRadius').value = 4;
+            $('pagePadding').value = 16;
+            $('pageMargin').value = 12;
+            $('headerSize').value = 18;
+            $('footerSize').value = 12;
+            $('headerOffset').value = 0;
+            $('footerOffset').value = 0;
+            $('backgroundOpacity').value = 1;
+            $('backgroundSize').value = 'cover';
+            $('backgroundPositionX').value = 50;
+            $('backgroundPositionY').value = 50;
+            $('imageZIndex').value = 10; // 초기 Z-Index 값 설정
+
+
+            $('fontFamily').value = defaultSettings.fontFamily;
+            $('textBlockFont').value = defaultSettings.fontFamily;
+
+            $('borderWidthVal').textContent = '2mm';
+            $('borderRadiusVal').textContent = '4mm';
+            $('pagePaddingVal').textContent = '16mm';
+            $('pageMarginVal').textContent = '12mm';
+            $('headerOffsetVal').textContent = '0mm';
+            $('footerOffsetVal').textContent = '0mm';
+            $('backgroundOpacityVal').textContent = '100%';
+            $('backgroundPositionXVal').textContent = '50%';
+            $('backgroundPositionYVal').textContent = '50%';
+            $('imageZIndexVal').textContent = '10';
+
+            setCSSVar('--background-position', '50% 50%');
+
+            // 그라데이션 초기화
+            $('useGradient').checked = false;
+            $('gradientControls').style.display = 'none';
+            $('gradientColor1').value = '#ffffff';
+            $('gradientColor2').value = '#ffffff';
+            $('gradientColor3').value = '#ffffff';
+            $('gradientDirection').value = 'to right';
+            updateGradient();
+
+            // 페이지 크기 초기화
+            $('pageSize').value = 'A4';
+            updatePageSize();
+        }
+
+        /**
+         * 초기화 확인
+         * @returns {boolean} 초기화가 진행되었는지 여부
+         */
+        function confirmReset() {
+            if (confirm("정말 모든 설정과 데이터를 초기화하시겠습니까?\n이 작업은 현재 페이지의 모든 정보(이미지, 스타일)를 초기화하며 페이지가 새로고침됩니다.")) {
+                // 로컬스토리지 사용 안 함 - JSON 파일로만 저장/불러오기
+                // clearLocalStorage();
+                return true;
+            }
+            return false;
+        }
+
+        /**
+         * 로컬 스토리지의 모든 데이터를 삭제 (비활성화됨)
+         */
+        function clearLocalStorage() {
+            // 로컬스토리지 사용 안 함 - JSON 파일로만 저장/불러오기
+            // try {
+            //     // 모든 로컬 스토리지 키를 순회하며 삭제 (a4_template_setting_로 시작하는 것만)
+            //     Object.keys(localStorage).forEach(key => {
+            //         if (key.startsWith('a4_template_setting_')) {
+            //             localStorage.removeItem(key);
+            //         }
+            //     });
+            // } catch(e) {
+            //     console.error('로컬 스토리지 삭제 실패:', e);
+            //     alert('로컬 스토리지 데이터 삭제에 실패했습니다.');
+            // }
+        }
+
+        (function init(){
+            setupListeners();
+
+            // 로컬스토리지 자동 불러오기 비활성화 - JSON 파일로만 저장/불러오기
+            // const lastUsedName = 'a4_last_used_session';
+            // const savedData = localStorage.getItem(`a4_template_setting_${lastUsedName}`);
+            //
+            // if (savedData) {
+            //     try {
+            //         applySettings(JSON.parse(savedData));
+            //         console.log(`마지막 세션 설정이 로드되었습니다.`);
+            //     } catch (e) {
+            //         console.warn('저장된 설정 로드에 실패했습니다. 기본값으로 재설정합니다.');
+            //         resetDefaults();
+            //     }
+            // } else {
+            //     resetDefaults();
+            // }
+
+            // 기본값으로 초기화
+            resetDefaults();
+            disableSpellcheck();
+
+            // 자동 저장 리스너 비활성화 - JSON 파일로만 저장/불러오기
+            // document.querySelectorAll('.controls input, .controls select').forEach(el => {
+            //     el.addEventListener('change', saveLastUsedSettings);
+            //     el.addEventListener('input', saveLastUsedSettings);
+            // });
+
+            // 초기 로드 시 폰트 크기 강제 적용
+            $('header').style.fontSize = $('headerSize').value + 'px';
+            $('footer').style.fontSize = $('footerSize').value + 'px';
+
+            // 페이지 로드 시 드래그 리스너 부착
+            attachImageDragListeners();
+        })();
+
+        document.addEventListener('keydown', (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 's') {
+                e.preventDefault();
+                window.print();
+            }
+        });
+    </script>
+
+
+
+</body>
+</html>

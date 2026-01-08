@@ -13,4 +13,8 @@ public interface LogRepository extends JpaRepository<LogEntity, Long> {
 
     // 모든 로그 조회
     Page<LogEntity> findAll(Pageable pageable);
+    
+    // 특정 PC의 로그 조회
+    @Query("SELECT l FROM LogEntity l WHERE l.pcInfo.pcInfoNum = :pcInfoNum ORDER BY l.createdAt DESC")
+    Page<LogEntity> findByPcInfoNumOrderByCreatedAtDesc(Long pcInfoNum, Pageable pageable);
 } 

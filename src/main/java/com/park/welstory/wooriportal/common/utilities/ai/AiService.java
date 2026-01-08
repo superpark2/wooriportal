@@ -27,7 +27,7 @@ public class AiService {
         while (attempts < totalKeys) {
             int currentIndex = index.getAndUpdate(i -> (i + 1) % totalKeys);
             String apiKey = API_KEYS[currentIndex];
-            String url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=" + apiKey;
+            String url = "https://generativelanguage.googleapis.com/v1/models/gemini-2.5-flash:generateContent?key=" + apiKey;
 
             try {
                 RestTemplate restTemplate = new RestTemplate();

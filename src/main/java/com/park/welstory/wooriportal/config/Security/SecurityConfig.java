@@ -34,7 +34,7 @@ public class SecurityConfig {
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
                                 "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
-                                "/qrlog/api/**", "/pcinfo/require/**", "/location/**"
+                                "/pcinfo/require/**", "/location/**", "/log/**"
 
                         ).permitAll()
 

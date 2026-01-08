@@ -14,10 +14,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.StandardCopyOption;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 @RequiredArgsConstructor
 @Service
@@ -29,13 +26,24 @@ public class PcinfoService {
 
     public List<PcInfoDTO> getList(Long location) {
         List<PcInfoEntity> entity = pcInfoRepository.findByLocation_LocationNum(location);
+
+        entity.sort(Comparator
+                .comparing((PcInfoEntity e) -> e.getPcInfoSeatNum().matches("\\d+"))
+                .thenComparing(e -> {
+                    String s = e.getPcInfoSeatNum();
+                    return s.matches("\\d+") ? String.format("%08d", Integer.parseInt(s)) : s;
+                })
+        );
+
         List<PcInfoDTO> list = new ArrayList<>();
         for (PcInfoEntity entityTemp : entity) {
             PcInfoDTO pcInfoDTO = modelMapper.map(entityTemp, PcInfoDTO.class);
             list.add(pcInfoDTO);
         }
+
         return list;
     }
+
 
     @Transactional
     public void pcInfoAdd (PcInfoDTO pcInfoDTO, String imageDelete) {
@@ -141,6 +149,5 @@ public class PcinfoService {
             f.delete();
         }
     }
-    
 
 }

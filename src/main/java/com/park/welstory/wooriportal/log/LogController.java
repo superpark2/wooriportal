@@ -65,8 +65,8 @@ public class LogController {
             @PathVariable Long pcinfoNum,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size) {
-        // PC별 로그는 content에서 문자열 검색으로 처리
-        Page<LogDTO> logPage = LogService.getRecentLogs(PageRequest.of(page, size));
+        // 특정 PC의 로그만 조회
+        Page<LogDTO> logPage = LogService.getLogsByPcInfoNum(pcinfoNum, PageRequest.of(page, size));
         Map<String, Object> response = new HashMap<>();
         response.put("content", logPage.getContent());
         response.put("totalPages", logPage.getTotalPages());
@@ -81,7 +81,7 @@ public class LogController {
     @ResponseBody
     public Map<String, Object> addPcLogForMobile(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
         String content = body.get("content");
-        LogService.savePcLog(pcinfoNum, content);
+        LogService.processLog(pcinfoNum, content, "등록");
         Map<String, Object> result = new HashMap<>();
         result.put("success", true);
         return result;
@@ -92,7 +92,7 @@ public class LogController {
     @ResponseBody
     public Map<String, Object> savePcLog(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
         String content = body.get("content");
-        LogService.savePcLog(pcinfoNum, content);
+        LogService.processLog(pcinfoNum, content, "저장");
         Map<String, Object> result = new HashMap<>();
         result.put("result", "success");
         return result;
@@ -108,7 +108,7 @@ public class LogController {
         try {
             LogService.deleteLog(logNum);
             result.put("success", true);
-            result.put("message", "QR 로그가 삭제되었습니다.");
+            result.put("message", "로그가 삭제되었습니다.");
             
         } catch (Exception e) {
             result.put("success", false);

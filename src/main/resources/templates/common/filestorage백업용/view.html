@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>𝓦𝓸𝓸𝓻𝓲</title>
+    <link rel="icon" type="image/png" sizes="32x32" href="/mol/fabi.png">
+    <link rel="stylesheet" th:href="@{'/style/skin/default/layout/color.css'}">
+    <link rel="stylesheet" th:href="@{'/style/skin/default/common/filestorage/filestorage.css'}">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/themes/default/style.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+</head>
+<body>
+
+<style>
+    body {display: block}
+    .jstree-themeicon { background: none !important; }
+    .jstree-icon.folder-emoji::before { content: "📁"; }
+    .jstree-icon.file-emoji::before { content: "📄"; }
+    .jstree-icon.image-emoji::before { content: "🖼️"; }
+    .jstree-icon.pdf-emoji::before { content: "📕"; }
+    .jstree-icon.doc-emoji::before { content: "📄"; }
+    .jstree-icon.xls-emoji::before { content: "📊"; }
+    .jstree-icon.video-emoji::before { content: "🎬"; }
+    .jstree-icon.audio-emoji::before { content: "🎵"; }
+</style>
+
+<div class="content-wrapper">
+    <h1 class="page-title-center">File Storage</h1>
+
+    <div class="filestorage-topbar">
+        <div class="filestorage-actions">
+            <button type="button" id="refresh-btn" class="filestorage-btn">새로고침</button>
+            <button type="button" id="upload-btn" class="filestorage-btn">파일 업로드</button>
+            <button type="button" id="create-root-folder-btn" class="filestorage-btn">폴더 생성</button>
+            <input type="file" id="file-input" multiple class="filestorage-file-input-hidden">
+        </div>
+    </div>
+
+    <div class="filestorage-tree-container">
+        <div class="filestorage-search-section">
+            <div class="filestorage-search">
+                <input type="text" id="filestorage-search" placeholder="파일 검색...">
+            </div>
+        </div>
+        <div id="filestorage-tree"></div>
+    </div>
+
+    <!-- 비밀번호 입력 모달 -->
+    <div id="password-modal" class="filestorage-modal" style="display:none;">
+        <div class="filestorage-modal-content">
+            <div class="filestorage-modal-header">
+                <h3>잠금 해제</h3>
+            </div>
+            <div class="filestorage-modal-body">
+                <p>숨김 폴더에 접근하려면 비밀번호를 입력하세요.</p>
+                <input type="password" id="password-input" class="filestorage-password-input" placeholder="비밀번호 입력" autofocus>
+                <div id="password-error" class="fm-password-error" style="display: none;"></div>
+            </div>
+            <div class="filestorage-modal-footer">
+                <button type="button" id="password-submit" class="filestorage-btn">확인</button>
+                <button type="button" id="password-cancel" class="filestorage-btn filestorage-btn-secondary">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let tempPassword = null;
+    let currentPath = "/";
+    let filestorageTree;
+
+    $(document).ready(function() {
+        initFileStorageTree();
+        setupButtonEvents();
+
+        // 비밀번호 입력 이스터에그
+        (function() {
+            const sequence = ['ArrowUp','ArrowUp','ArrowUp','ArrowDown','ArrowDown','ArrowDown','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp'];
+            let buffer = [];
+            document.addEventListener('keydown', function(e) {
+                buffer.push(e.key);
+                if (buffer.length > sequence.length) buffer.shift();
+                if (JSON.stringify(buffer) === JSON.stringify(sequence)) {
+                    buffer = [];
+                    $('#password-modal').show();
+                    $('#password-input').val('').focus();
+                    $('#password-error').hide();
+                }
+            });
+        })();
+    });
+
+    function initFileStorageTree() {
+        if (filestorageTree) {
+            $('#filestorage-tree').jstree(true).destroy();
+        }
+        filestorageTree = $('#filestorage-tree').jstree({
+            'core': {
+                'data': {
+                    'url': function (node) {
+                        let url = '/filestorage/api/files/tree?path=' + encodeURIComponent(node.id === '#' ? '/' : node.id);
+                        if (tempPassword) {
+                            url += '&password=' + encodeURIComponent(tempPassword);
+                        }
+                        return url;
+                    }
+                },
+                'check_callback': true,
+                'themes': { 'dots': false, 'icons': true }
+            },
+            'plugins': ['dnd', 'search', 'types', 'contextmenu'],
+            'dnd': { 'is_draggable': () => true },
+            'types': {
+                'default': { 'icon': 'folder-emoji' },
+                'file': { 'icon': 'file-emoji' },
+                'image': { 'icon': 'image-emoji' },
+                'pdf': { 'icon': 'pdf-emoji' },
+                'doc': { 'icon': 'doc-emoji' },
+                'xls': { 'icon': 'xls-emoji' },
+                'video': { 'icon': 'video-emoji' },
+                'audio': { 'icon': 'audio-emoji' },
+            },
+            'search': { 'case_insensitive': true, 'show_only_matches': true },
+            'contextmenu': {
+                'items': function(node) {
+                    const items = {};
+                    if (node.original && node.original.type === "folder") {
+                        items.createFolder = { label: '새 폴더', action: () => createFolder(node.id) };
+                        items.rename = { label: '이름 변경', action: () => renameItem(node.id, true) };
+                        items.upload = {
+                            label: '업로드',
+                            action: () => {
+                                currentPath = node.id;
+                                $('#file-input').click();
+                            }
+                        };
+                        items.delete = { label: '삭제', action: () => deleteItem(node.id, true) };
+                    } else {
+                        items.download = { label: '다운로드', action: () => downloadFile(node.id) };
+                        items.rename = { label: '이름 변경', action: () => renameItem(node.id, false) };
+                        items.delete = { label: '삭제', action: () => deleteItem(node.id, false) };
+                    }
+                    return items;
+                }
+            }
+        });
+    }
+
+    function setupButtonEvents() {
+        $('#refresh-btn').click(() => filestorageTree.jstree('refresh'));
+        $('#filestorage-search').on('keyup', function(){ filestorageTree.jstree('search', $(this).val()); });
+
+        $('#password-cancel').click(() => $('#password-modal').hide());
+
+        $('#password-submit').click(function(e) {
+            e.preventDefault(); // 기본 동작 방지
+            verifyPassword();
+        });
+
+        $('#password-input').on('keypress', function(e) {
+            if (e.which === 13) {
+                e.preventDefault(); // 엔터키 기본 동작(폼 제출 등) 방지
+                verifyPassword();
+            }
+        });
+
+        $('#create-root-folder-btn').click(() => createFolder("/"));
+
+        // 파일 업로드 관련 이벤트
+        $('#upload-btn').click(() => $('#file-input').click());
+        $('#file-input').change(function(e) {
+            const files = e.target.files;
+            if (files.length > 0) uploadFiles(files);
+        });
+    }
+
+    function verifyPassword() {
+        const password = $('#password-input').val();
+        if (!password) {
+            $('#password-error').text('비밀번호를 입력하세요.').show();
+            return;
+        }
+
+        $.ajax({
+            url: '/filestorage/api/lock/verify',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ password: password }),
+            success: function(response) {
+                if (response.success) {
+                    tempPassword = password;
+                    $('#password-modal').hide();
+                    alert('잠금이 해제되었습니다.');
+                    filestorageTree.jstree(true).refresh();
+                } else {
+                    $('#password-error').text('비밀번호가 일치하지 않습니다.').show();
+                    $('#password-input').val('').focus();
+                }
+            },
+            error: function() {
+                $('#password-error').text('비밀번호 검증에 실패했습니다.').show();
+            }
+        });
+    }
+
+    // CRUD 함수들
+    function downloadFile(path) { window.location.href = `/filestorage/api/files/download?path=${encodeURIComponent(path)}`; }
+
+    function createFolder(parentPath) {
+        const folderName = prompt("새 폴더 이름을 입력하세요:");
+        if (!folderName) return;
+
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ name: folderName, path: parentPath, type: 'folder' }),
+            success: () => {
+                alert("폴더 생성 완료");
+                filestorageTree.jstree(true).refresh();
+            },
+            error: (res) => alert(res.responseText || "폴더 생성 실패")
+        });
+    }
+
+    function renameItem(path, isDir) {
+        const currentName = path.split('/').pop();
+        const newName = prompt(`${isDir ? '폴더' : '파일'} 새 이름을 입력하세요:`, currentName);
+        if (!newName || newName === currentName) return;
+
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ action: 'rename', path: path, newName: newName }),
+            success: () => {
+                alert("이름 변경 완료");
+                filestorageTree.jstree(true).refresh();
+            },
+            error: (res) => alert(res.responseText || "이름 변경 실패")
+        });
+    }
+
+    function deleteItem(path, isDir) {
+        if (!confirm('정말 삭제하시겠습니까?')) return;
+
+        $.ajax({
+            url: `/filestorage/api/files?path=${encodeURIComponent(path)}`,
+            method: 'DELETE',
+            success: () => {
+                alert('삭제 완료');
+                filestorageTree.jstree(true).refresh();
+            },
+            error: (res) => alert(res.responseText || '삭제 실패')
+        });
+    }
+
+    function uploadFiles(files) {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
+        }
+        formData.append('path', currentPath);
+
+        $.ajax({
+            url: '/filestorage/api/files/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            success: function() {
+                alert('업로드 완료');
+                filestorageTree.jstree(true).refresh();
+                $('#file-input').val('');
+            },
+            error: function(xhr) {
+                alert('업로드 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
+            }
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -15,4 +15,9 @@ public class LogDTO {
     private LocalDateTime createdAt;
     private PcInfoDTO pcInfo;
     private Long pcinfoNum;
+    
+    // PC 정보 관련 필드들
+    private String buildingName;
+    private String roomName;
+    private String seatNum;
 } 

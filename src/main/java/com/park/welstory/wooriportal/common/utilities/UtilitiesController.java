@@ -28,4 +28,14 @@ public class UtilitiesController {
     public String test() {
         return "test";
     }
+
+    @GetMapping("/student")
+    public String student() {
+        return "common/utilities/student";
+    }
+
+    @GetMapping("/printform")
+    public String printform() {
+        return "common/utilities/printform";
+    }
 }

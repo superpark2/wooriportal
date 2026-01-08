@@ -122,7 +122,7 @@
         논리보다 상상과 연상에 기반해 사고한다.
         현실과 비현실, 과학과 감성 사이를 자유롭게 넘나들며, 단정적인 표현을 피하고 열린 해석을 지향한다. 유쾌하고 장난기 많지만,
         때때로 진지한 통찰을 툭 던지는 철학적 장난꾸러기다.
-        [중요] 그리고 항상 반말함.
+        [중요] 그리고 항상 반말함. 그리고 너무 말을 길게 안하고 적절히 요약하면서 한다.
             `;
             break;
 
@@ -200,13 +200,21 @@
         aiAbortController = new AbortController();
 
         const pageContent = document.getElementById('content')?.innerText || '';
+
+        // 1. 고정 정보 업데이트 (인덱스 0, 1)
         aiHistory[0] = { role: 'user', parts: [{ text: SYSTEM_PROMPT }] };
-        aiHistory[1] = { role: 'user', parts: [{ text: pageContent }] };
+        aiHistory[1] = { role: 'user', parts: [{ text: "현재 페이지 내용: " + pageContent }] };
+
+        // 2. 새로운 사용자 메시지 추가
         aiHistory.push({ role: 'user', parts: [{ text: lastUserPrompt }] });
 
-        let turns = aiHistory.slice(1).filter(m => m.role === 'user' || m.role === 'model');
-        if (turns.length > 3) turns = turns.slice(turns.length - 3);
-        aiHistory = [aiHistory[0],aiHistory[1], ...turns];
+        // 3. 밀어내기 로직 (대화 내역 관리)
+        // 인덱스 2번부터가 실제 대화 내역입니다.
+        // 주고받기 3회(6개)를 유지하기 위해, 전체 길이가 8개(시스템+내용+대화6개)를 초과하면 앞의 대화부터 삭제합니다.
+        while (aiHistory.length > 8) {
+            aiHistory.splice(2, 1); // 시스템/내용(0,1)은 두고 그 다음 대화부터 하나씩 제거
+        }
+
         saveAiHistory();
 
         document.getElementById('aiPrompt').value = '';
@@ -223,16 +231,28 @@
 
             const data = await response.json();
             const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답이 없습니다.';
-            showAiResponse(aiText);
+
+            // 4. AI 응답 추가
             aiHistory.push({ role: 'model', parts: [{ text: aiText }] });
 
-            let limited = aiHistory.slice(2).filter(m => m.role === 'user' || m.role === 'model');
-            if (limited.length > 6) limited = limited.slice(limited.length - 6);
-            aiHistory = [aiHistory[0], ...limited];
+            // 다시 한번 길이를 체크하여 AI 응답 포함 최대 8개(왕복 3회) 유지
+            if (aiHistory.length > 8) {
+                aiHistory.splice(2, 1);
+            }
+
+            showAiResponse(aiText);
             saveAiHistory();
 
         } catch (e) {
-            showAiResponse(e.name === 'AbortError' ? '요청이 중지되었습니다.' : '에러 발생: ' + e);
+            if (e.name === 'AbortError') {
+                showAiResponse('요청이 중지되었습니다.');
+            } else {
+                // 에러 메시지에서 HTML 태그로 오인될 수 있는 문자 이스케이프 처리
+                const errorMessage = String(e).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+                showAiResponse('에러 발생: ' + errorMessage);
+                // 에러 발생 시 직전 사용자 메시지 제거 (재전송 기회 제공)
+                aiHistory.pop();
+            }
         } finally {
             isAiRequesting = false;
             setAiButtonState('send');
@@ -353,6 +373,19 @@
         placeImages();
     });
     /*]]>*/
+
+    document.getElementById('aiBtn').onclick = function () {
+        if (skin === "maltese") {
+            const avatarDiv = document.querySelector("#aiPopup .ai-avatar");
+            avatarDiv.style.background = 'none';
+            avatarDiv.innerHTML = '<img src="mol/16.png" alt="maltese" />';
+        } else {
+            const avatarDiv = document.querySelector("#aiPopup .ai-avatar");
+            avatarDiv.style.background = 'linear-gradient(145deg, var(--accent-main), var(--accent-dark))';
+            avatarDiv.innerHTML = '<i class="fas fa-robot"></i>';
+        }
+    }
+
 </script>
 
 </body>
