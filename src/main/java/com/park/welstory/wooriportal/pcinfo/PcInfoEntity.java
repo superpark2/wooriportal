@@ -1,7 +1,7 @@
 package com.park.welstory.wooriportal.pcinfo;
 
 import com.park.welstory.wooriportal.location.LocationEntity;
-import com.park.welstory.wooriportal.util.LogUtil;
+import com.park.welstory.wooriportal.global.util.LogUtil;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

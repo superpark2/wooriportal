@@ -1,10 +1,10 @@
 package com.park.welstory.wooriportal.main;
 
-import com.park.welstory.wooriportal.board.board.BoardService;
-import com.park.welstory.wooriportal.board.facility.FacilityRepository;
-import com.park.welstory.wooriportal.board.management.ManagementRepository;
-import com.park.welstory.wooriportal.pcinfo.pcinfoRequire.PcInfoRequireService;
-import com.park.welstory.wooriportal.board.sales.SalesRepository;
+import com.park.welstory.wooriportal.board.BoardService;
+import com.park.welstory.wooriportal.board.category.FacilityRepository;
+import com.park.welstory.wooriportal.board.category.ManagementRepository;
+import com.park.welstory.wooriportal.pcinfo.require.PcInfoRequireService;
+import com.park.welstory.wooriportal.board.category.SalesRepository;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;

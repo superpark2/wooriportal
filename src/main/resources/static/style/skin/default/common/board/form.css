@@ -1,4 +1,7 @@
-/* ==== 폼 기본 스타일 ==== */
+/* ═══════════════════════════════════════════════════
+   board/form.css
+   ═══════════════════════════════════════════════════ */
+
 .form-container {
     max-width: 1400px;
     min-width: 650px;
@@ -11,126 +14,80 @@
 
 .form-title {
     text-align: center;
-    font-size: 28px;
+    font-size: 26px;
     font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 20px;
+    margin-bottom: 24px;
     padding-bottom: 20px;
     border-bottom: 2px solid var(--border-light);
 }
 
-/* ==== 폼 그룹 ==== */
+/* ── 폼 그룹 ── */
 .form-group {
-    margin-bottom: 25px;
+    margin-bottom: 24px;
 }
 
-.form-group label {
+.form-group > label {
     display: block;
     font-weight: 600;
+    font-size: 13px;
     color: var(--text-secondary);
     margin-bottom: 8px;
-    font-size: 14px;
 }
 
-.form-group label.required::after {
-    content: " *";
-    color: var(--danger);
-    font-weight: bold;
-}
-
-/* ==== 입력 필드 ==== */
-.form-input,
-.form-textarea {
+/* ── 입력 필드 ── */
+.form-input {
     width: 100%;
-    padding: 12px 16px;
-    border: 2px solid var(--border-light);
+    padding: 10px 14px;
+    border: 1.5px solid var(--border-light);
     border-radius: 8px;
     font-size: 14px;
     color: var(--text-primary);
     background: var(--bg-surface);
-    transition: all 0.3s ease;
+    transition: border-color .2s, box-shadow .2s;
     box-sizing: border-box;
 }
 
-.form-input:focus,
-.form-textarea:focus {
+.form-input:focus {
     outline: none;
     border-color: var(--accent-main);
-    box-shadow: 0 0 0 3px rgba(77, 171, 247, 0.2);
+    box-shadow: 0 0 0 3px var(--bg-accent);
 }
 
-.form-input::placeholder,
-.form-textarea::placeholder {
+.form-input::placeholder {
     color: var(--text-muted);
-    font-style: italic;
 }
 
-.form-textarea {
-    min-height: 200px;
-    resize: vertical;
-    font-family: inherit;
-}
-
-/* ==== 파일 업로드 ==== */
-.file-container {
-    margin-bottom: 15px;
-}
-
-.file-item {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px;
-    background: var(--bg-hover);
-    border-radius: 6px;
-    margin-bottom: 8px;
-    border: 1px solid var(--border-light);
-}
-
-.file-item input[type="file"] {
-    flex: 1;
-    padding: 8px;
-    border: 1px solid var(--border-light);
-    border-radius: 4px;
-    background: var(--bg-surface);
-    font-size: 13px;
-}
-
-.file-remove-btn {
-    background: var(--danger);
-    color: var(--text-inverse);
-    border: none;
-    border-radius: 4px;
-    padding: 6px 10px;
-    font-size: 12px;
+/* ── 공지 체크박스 ── */
+input[name="isNotice"] {
+    accent-color: var(--accent-main);
+    width: 15px;
+    height: 15px;
+    vertical-align: middle;
+    margin-right: 6px;
     cursor: pointer;
-    transition: all 0.3s ease;
 }
 
-.file-remove-btn:hover {
-    background: var(--btn-bg-danger-hover);
-}
-
-.file-warning {
-    color: var(--danger);
+input[name="isNotice"] + label {
     font-size: 13px;
-    margin-top: 8px;
-    font-weight: 500;
+    color: var(--text-secondary);
+    cursor: pointer;
+    vertical-align: middle;
 }
 
-/* ==== 버튼 ==== */
+/* ── 버튼 ── */
 .btn {
-    padding: 12px 24px;
+    padding: 10px 22px;
     border: none;
     border-radius: 8px;
     font-size: 14px;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.3s ease;
+    transition: background .2s, box-shadow .2s;
     text-decoration: none;
     display: inline-block;
     text-align: center;
-    min-width: 100px;
+    min-width: 90px;
 }
 
 .btn-primary {
@@ -140,7 +97,7 @@
 
 .btn-primary:hover {
     background: var(--btn-bg-primary-hover);
-    box-shadow: 0 4px 12px var(--shadow-strong);
+    box-shadow: 0 3px 10px var(--shadow-strong);
 }
 
 .btn-secondary {
@@ -152,53 +109,140 @@
     background: var(--btn-bg-secondary-hover);
 }
 
-.btn-file-add {
-    background: var(--warning);
-    color: var(--text-primary);
-    border: 2px solid var(--warning);
-    font-size: 13px;
-    padding: 8px 16px;
-}
-
-.btn-file-add:hover {
-    background: var(--btn-bg-secondary-hover);
-    box-shadow: 0 2px 8px var(--shadow-soft);
-}
-
-/* ==== 폼 액션 ==== */
+/* ── 폼 액션 ── */
 .form-actions {
     display: flex;
-    gap: 15px;
+    gap: 12px;
     justify-content: center;
-    margin-top: 40px;
-    padding-top: 30px;
-    border-top: 2px solid var(--border-light);
+    margin-top: 36px;
+    padding-top: 24px;
+    border-top: 1.5px solid var(--border-light);
 }
 
-/* ==== 반응형 ==== */
+/* ── 에디터 섹션 ── */
+.editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    /* SunEditor 리사이즈 핸들(absolute)이 clip되지 않도록 */
+    overflow: visible;
+    position: relative;
+}
+
+/* ─────────────────────────────────────────────────
+   SunEditor 스킨 연동
+   ───────────────────────────────────────────────── */
+
+/* SunEditor 이미지 리사이즈 fix
+   원인: 조상의 overflow:auto(#content)가 position:absolute인
+         .se-resizing-container를 clip → 드래그 핸들이 잘림
+   해결: SunEditor 래퍼 계층에 overflow:visible 강제 적용        */
+.sun-editor,
+.sun-editor .se-wrapper,
+.sun-editor .se-wrapper .se-wrapper-inner,
+.sun-editor .se-resizing-container {
+    overflow: visible !important;
+}
+
+/* 이미지 선택 테두리가 좌우 끝까지 늘어나는 문제 수정
+   원인: figure가 display:block → 이미지 크기와 무관하게 줄 전체를 차지
+   해결: inline-block으로 이미지 실제 크기에 맞게 축소              */
+.sun-editor .se-wrapper-wysiwyg figure {
+    display: inline-block !important;
+    max-width: 100%;
+    margin: 4px 0;
+    vertical-align: top;
+}
+
+/* .se-component(outline 박스)도 이미지 크기에 맞게 축소 */
+.sun-editor .se-wrapper-wysiwyg .se-component {
+    display: inline-block !important;
+    width: auto !important;
+    max-width: 100%;
+}
+
+/* 편집 영역 */
+.sun-editor .se-wrapper .se-wrapper-wysiwyg {
+    overflow-y: auto !important;   /* 내용 스크롤은 유지 */
+    background-color: var(--bg-surface);
+    color: var(--text-primary);
+}
+
+/* 툴바 */
+.sun-editor .se-toolbar {
+    background-color: var(--bg-hover);
+    border-bottom: 1px solid var(--border-light);
+}
+
+.sun-editor .se-btn {
+    color: var(--text-primary);
+}
+
+.sun-editor .se-btn:hover,
+.sun-editor .se-btn:focus {
+    background-color: var(--bg-accent);
+    color: var(--text-primary);
+    outline: none;
+}
+
+.sun-editor .se-btn.on,
+.sun-editor .se-btn.active {
+    background-color: var(--accent-light);
+    color: var(--accent-dark);
+}
+
+/* 드롭다운/팝업 */
+.sun-editor .se-list-layer,
+.sun-editor .se-submenu,
+.sun-editor .se-dialog-inner {
+    background-color: var(--bg-surface);
+    border: 1px solid var(--border-light);
+    color: var(--text-primary);
+}
+
+.sun-editor .se-list-layer .se-list-basic li button:hover {
+    background-color: var(--bg-hover);
+    color: var(--text-primary);
+}
+
+/* 툴바 구분선 */
+.sun-editor .se-toolbar .se-btn-module-border {
+    border-color: var(--border-light);
+}
+
+/* 리사이즈 바 */
+.sun-editor .se-resizing-bar {
+    background-color: var(--bg-hover);
+    border-top: 1px solid var(--border-light);
+    color: var(--text-muted);
+}
+
+/* 포커스 border */
+.sun-editor.focus {
+    border-color: var(--accent-main) !important;
+    box-shadow: 0 0 0 3px var(--bg-accent);
+}
+
+/* 다크 스킨에서 코드뷰 textarea */
+.sun-editor .se-wrapper .se-wrapper-code {
+    background-color: var(--bg-surface) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ── 반응형 ── */
 @media (max-width: 768px) {
     .form-container {
-        padding: 20px;
-        margin: 10px;
+        padding: 18px;
+        margin: 8px;
+        min-width: unset;
     }
 
-    .form-title {
-        font-size: 24px;
-        margin-bottom: 30px;
-    }
+    .form-title { font-size: 22px; }
 
     .form-actions {
         flex-direction: column;
         align-items: center;
     }
 
-    .btn {
-        width: 100%;
-        max-width: 200px;
-    }
-}
-
-/* ==== 에디터 ==== */
-#editor-content {
-    min-width: 100%;
+    .btn { width: 100%; max-width: 200px; }
 }

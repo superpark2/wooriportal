@@ -8,7 +8,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.park.welstory.wooriportal.location.LocationEntity;
-import com.park.welstory.wooriportal.util.LogUtil;
+import com.park.welstory.wooriportal.global.util.LogUtil;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +19,7 @@ import java.util.*;
 @RequiredArgsConstructor
 @Service
 @Log4j2
-public class PcinfoService {
+public class PcInfoService {
 
     private final ModelMapper modelMapper = new ModelMapper();
     private final PcInfoRepository pcInfoRepository;

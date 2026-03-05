@@ -1,7 +1,7 @@
 package com.park.welstory.wooriportal.todolist;
 
-import com.park.welstory.wooriportal.board.board.BoardTitleService;
-import com.park.welstory.wooriportal.config.Security.CustomUserDetails;
+import com.park.welstory.wooriportal.board.BoardTitleService;
+import com.park.welstory.wooriportal.config.security.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;

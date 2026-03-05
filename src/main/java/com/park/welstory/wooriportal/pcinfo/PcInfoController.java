@@ -18,7 +18,7 @@ import java.util.Map;
 @Log4j2
 public class PcInfoController {
 
-    private final PcinfoService pcinfoService;
+    private final PcInfoService pcinfoService;
 
     @GetMapping("/facility/pcinfo/list")
     public String pcinfoView(HttpServletRequest request, Model model){

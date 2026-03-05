@@ -37,7 +37,7 @@
                     </label>
                 </div>
             </div>
-            
+
             <input type="text" name="memberId" id="memberId" placeholder="ID" required minlength="3">
             <div class="id-validation-message" id="idValidationMessage"></div>
             <input type="password" name="memberPassword" id="memberPassword" placeholder="Password" required>
@@ -85,11 +85,11 @@
 
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
-        
+
         if (file) {
             if (file.type.startsWith('image/')) {
                 const reader = new FileReader();
-                
+
                 reader.onload = function(e) {
                     imagePreview.innerHTML = '';
 
@@ -101,7 +101,7 @@
                     img.style.border = '1px solid rgb(0, 166, 18)';
                     img.style.marginBottom = '10px';
                     img.style.objectFit = 'cover';
-                    
+
                     imagePreview.appendChild(img);
 
                     const fileName = document.createElement('div');
@@ -110,10 +110,10 @@
                     fileName.style.fontSize = '12px';
                     fileName.style.marginTop = '5px';
                     fileName.style.wordBreak = 'break-all';
-                    
+
                     imagePreview.appendChild(fileName);
                 };
-                
+
                 reader.readAsDataURL(file);
             } else {
                 alert('이미지 파일만 선택해주세요.');
@@ -148,7 +148,7 @@
 
         idValidationMessage.textContent = 'Checking...';
         idValidationMessage.className = 'id-validation-message checking';
-        
+
         fetch('/check-id', {
             method: 'POST',
             headers: {
@@ -156,24 +156,24 @@
             },
             body: memberId
         })
-        .then(response => response.text())
-        .then(data => {
-            if (data === true) {
-                idValidationMessage.textContent = 'ID already exists.';
+            .then(response => response.text())
+            .then(data => {
+                if (data === true) {
+                    idValidationMessage.textContent = 'ID already exists.';
+                    idValidationMessage.className = 'id-validation-message error';
+                } else {
+                    idValidationMessage.textContent = 'ID available.';
+                    idValidationMessage.className = 'id-validation-message success';
+                }
+            })
+            .catch(error => {
+                idValidationMessage.textContent = 'Error checking ID.';
                 idValidationMessage.className = 'id-validation-message error';
-            } else {
-                idValidationMessage.textContent = 'ID available.';
-                idValidationMessage.className = 'id-validation-message success';
-            }
-        })
-        .catch(error => {
-            idValidationMessage.textContent = 'Error checking ID.';
-            idValidationMessage.className = 'id-validation-message error';
-        });
+            });
     }
 
-    document.getElementById('passwordConfirm').addEventListener('keydown', function() {
-        if (document.getElementById('memberPassword') === document.getElementById('memberPasswordConfirm').value) {
+    document.getElementById('memberPasswordConfirm').addEventListener('keyup', function() {
+        if (document.getElementById('memberPassword').value === this.value) {
             passwordCheck = true;
         } else {
             passwordCheck = false;

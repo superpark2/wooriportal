@@ -1,3 +1,5 @@
+
+
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -8,6 +10,7 @@
   <script src="/js/suneditor-2.47.8/suneditor.min.js"></script>
   <script src="/js/suneditor-2.47.8/ko.js"></script>
   <link rel="stylesheet" href="/js/suneditor-2.47.8/css/suneditor.min.css">
+  <link rel="stylesheet" href="/style/fileupload.css">
 </head>
 <body>
 <div layout:fragment="content">
@@ -17,27 +20,54 @@
   <div class="form-container">
     <h1 th:text="${title} + ' ' + ${subTitle}" class="form-title">타이틀</h1>
     <form th:action="@{/{group}/{category}/write (group=${group}, category=${category})}" id="boardForm" method="post" enctype="multipart/form-data">
+
       <div class="form-group">
         <label>제목</label>
-        <input type="text" name="boardTitle" class="form-input" required maxlength="200" placeholder="제목을 입력하세요" th:value="${board.boardTitle}">
+        <input type="text" name="boardTitle" class="form-input" required maxlength="200"
+               placeholder="제목을 입력하세요" th:value="${board.boardTitle}">
       </div>
 
       <div class="form-group">
         <section class="editor-section">
           <label>내용</label>
-          <textarea id="editor-content" name="boardContent" placeholder="내용을 입력하세요..." th:text="${board.boardContent}"></textarea>
+          <textarea id="editor-content" name="boardContent"
+                    placeholder="내용을 입력하세요..." th:text="${board.boardContent}"></textarea>
         </section>
       </div>
 
       <div class="form-group">
         <label>첨부파일</label>
-        <div id="fileContainer" class="file-container"></div>
-        <button type="button" class="btn btn-file-add" onclick="addFileInput()">
-          📎 파일 추가
-        </button>
-        <p id="fileNotAdd" class="file-warning" style="display: none;">
-          최대 6개까지만 추가할 수 있습니다.
-        </p>
+        <div class="demo-panel">
+          <div class="panel-header">
+            <div class="panel-title">첨부파일</div>
+            <div class="panel-sub">이미지, PDF, 문서 등 최대 20개까지 첨부 가능합니다.</div>
+          </div>
+          <div class="panel-body">
+            <div class="dropzone" id="dropzone">
+              <input type="file" id="fileInput" multiple accept="*/*">
+              <div class="dropzone-icon">
+                <svg viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                  <polyline points="17 8 12 3 7 8"/>
+                  <line x1="12" y1="3" x2="12" y2="15"/>
+                </svg>
+              </div>
+              <div class="dropzone-label">파일을 드래그하거나 <span>클릭하여 선택</span></div>
+              <div class="dropzone-hint">이미지 · PDF · 문서 · 영상 등 모든 형식 허용</div>
+            </div>
+            <button class="add-more-btn" id="addMoreBtn" type="button">
+              <svg viewBox="0 0 24 24" fill="none"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              첨부파일 추가
+            </button>
+            <div class="file-counter">
+              <span>첨부된 파일</span>
+              <span class="count-badge" id="countBadge">0 / 20</span>
+            </div>
+            <div class="file-list" id="fileList">
+              <div class="empty-list" id="emptyMsg">첨부된 파일이 없습니다.</div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <input type="checkbox" value="true" name="isNotice">
@@ -46,10 +76,9 @@
         <button type="submit" class="btn btn-primary">등록</button>
         <a th:href="@{/${type}/${category}/list}" class="btn btn-secondary">취소</a>
       </div>
-        <input hidden th:value="${board.boardNum}" name="boardNum">
+      <input hidden th:value="${board.boardNum}" name="boardNum">
     </form>
   </div>
->
 </div>
 
 
@@ -57,64 +86,95 @@
 
   <script th:inline="javascript">
 
-    const group = /*[[${group}]]*/ '';
+    const group    = /*[[${group}]]*/ '';
     const category = /*[[${category}]]*/ '';
 
-    document.addEventListener("DOMContentLoaded", function() {
-      // SunEditor 설정
+    const existingFilesRaw = /*[[${board.filesMeta}]]*/ [];
+    const initialFiles = (existingFilesRaw || []).map(f => ({ name: f.fileName, path: f.filePath }));
+
+    document.addEventListener("DOMContentLoaded", function () {
+
       const editor = SUNEDITOR.create('editor-content', {
         lang: SUNEDITOR_LANG['ko'],
-        height: '300px',
+        height: '400px',
         buttonList: [
           ['undo', 'redo'],
           ['bold', 'italic', 'underline', 'strike'],
           ['blockquote', 'indent', 'outdent'],
-          ['image', 'video'],
+          ['image', 'video', 'link'],
           ['fontColor', 'hiliteColor'],
-          ['align', 'list', 'link'],
+          ['align', 'list'],
+          ['fontSize', 'formatBlock'],
           ['fullScreen', 'preview', 'codeView']
         ],
-
         imageUploadUrl: `/${group}/${category}/image/upload`,
-        imageUploadSizeLimit: 20 * 1024 * 1024, // 20MB
+        imageUploadSizeLimit: 20 * 1024 * 1024,
         imageAccept: '.jpg,.jpeg,.png,.gif,.bmp,.webp,.ico,.tiff,.tif,.svg',
-        // imageUploadHeader: {
-        //   'X-CSRF-TOKEN': document.querySelector('meta[name="_csrf"]')?.getAttribute('content')
-        // }
+        imageResizing: true,
+        imageRotation: false,
       });
 
-      const form = document.getElementById('boardForm');
-      form.addEventListener('submit', function(e) {
+      // ── SunEditor 2.47.8 버그 패치 ──────────────────────────────────────────
+      // core.js:7708 onKeyDown_wysiwyg → util.copyTagAttributes(origin, undefined)
+      // figure가 마지막 노드일 때 copyTag가 undefined로 들어와 cssText 접근 시 crash
+      // → 함수 진입 시 null 체크를 monkey-patch로 추가
+      const _origCopyTagAttributes = editor.core.util.copyTagAttributes.bind(editor.core.util);
+      editor.core.util.copyTagAttributes = function(origin, copyTag) {
+        if (!origin || !copyTag) return; // ← 핵심 패치
+        return _origCopyTagAttributes(origin, copyTag);
+      };
+
+      // ── 이미지 삽입 후 커서 탈출 보장 ─────────────────────────────────────
+      // 이미지 업로드 완료 시 figure 뒤에 빈 p가 없으면 에디터 API로 추가
+      // (SunEditor 내부 Range를 건드리지 않기 위해 editor.appendContents 대신
+      //  wysiwyg DOM에 직접 appendChild 후 focus 이동)
+      editor.onImageUpload = function(targetElement, index, state) {
+        if (state !== 'create') return;
+        setTimeout(function() {
+          const wysiwyg = editor.core.context.element.wysiwyg;
+          const last = wysiwyg.lastElementChild;
+          // 마지막 요소가 figure(이미지)이면 빈 p 추가
+          if (last && last.tagName === 'FIGURE') {
+            const p = document.createElement('p');
+            p.innerHTML = '<br>';
+            wysiwyg.appendChild(p);
+            // 커서를 새 p로 이동
+            const range = document.createRange();
+            range.setStart(p, 0);
+            range.collapse(true);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+            editor.core.focus();
+          }
+        }, 50);
+      };
+
+      initFileUpload(initialFiles);
+
+      document.getElementById('boardForm').addEventListener('submit', async function (e) {
+        e.preventDefault();
+
+        // SunEditor 내용을 textarea에 반영
         document.getElementById('editor-content').value = editor.getContents();
+
+        const fd = new FormData(this);
+        getNewFiles().forEach(f => fd.append('newFiles', f));
+        getExistingFilePaths().forEach(p => fd.append('existingFilePaths', p));
+
+        const res = await fetch(this.getAttribute('action'), { method: 'POST', body: fd });
+        if (res.redirected) {
+          window.location.href = res.url;
+        } else {
+          document.open();
+          document.write(await res.text());
+          document.close();
+        }
       });
     });
 
-
-
-    function addFileInput() {
-      const container = document.getElementById('fileContainer');
-      const fileCount = container.children.length;
-
-      if (fileCount >= 6) {
-        document.getElementById('fileNotAdd').style.display = 'block';
-        return;
-      }
-
-      const fileItem = document.createElement('div');
-      fileItem.className = 'file-item';
-      fileItem.innerHTML = `
-                <input type="file" name="files" class="form-input">
-                <button type="button" class="file-remove-btn" onclick="removeFileInput(this)">삭제</button>
-            `;
-
-      container.appendChild(fileItem);
-    }
-
-    function removeFileInput(button) {
-      button.parentElement.remove();
-      document.getElementById('fileNotAdd').style.display = 'none';
-    }
   </script>
+  <script src="/js/fileupload.js"></script>
 
 </div>
 

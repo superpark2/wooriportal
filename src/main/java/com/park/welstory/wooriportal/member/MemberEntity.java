@@ -1,6 +1,6 @@
 package com.park.welstory.wooriportal.member;
 
-import com.park.welstory.wooriportal.common.baseentity.BaseEntity;
+import com.park.welstory.wooriportal.global.base.BaseEntity;
 import groovyjarjarantlr4.v4.runtime.misc.NotNull;
 import jakarta.persistence.*;
 import lombok.*;

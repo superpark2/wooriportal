@@ -1,6 +1,6 @@
 package com.park.welstory.wooriportal.todolist;
 
-import com.park.welstory.wooriportal.common.baseentity.BaseEntity;
+import com.park.welstory.wooriportal.global.base.BaseEntity;
 import com.park.welstory.wooriportal.member.MemberEntity;
 import jakarta.persistence.*;
 import lombok.*;
