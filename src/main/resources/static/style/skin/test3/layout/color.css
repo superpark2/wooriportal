@@ -1,41 +1,43 @@
 :root {
-    /* ==== 기본 배경 ==== */
-    --bg-body: #121212;
-    --bg-surface: #1e1e1e;
-    --bg-hover: #2a2a2a;
-    --bg-accent: #1b2a33; /* 파란 계열 포인트 백그라운드 다크톤 */
-
-    /* ==== 기본 텍스트 ==== */
-    --text-primary: #e9ecef;
-    --text-secondary: #ced4da;
-    --text-muted: #adb5bd;
-    --text-inverse: #212529;
-
-    /* ==== 엑센트 컬러 계열 (메인 테마) ==== */
-    --accent-light: #3b5998;  /* 연한 블루톤 */
-    --accent-main: #1c7ed6;   /* 메인 블루 */
-    --accent-dark: #1864ab;   /* 진한 블루 */
-
-    /* ==== 상태 색상 ==== */
-    --success: #37b24d;
-    --warning: #f59f00;
-    --danger: #ff6b6b;
-    --info: #339af0;
-
-    /* ==== 테두리 ==== */
-    --border-light: #343a40;
-    --border: var(--accent-light);  /* 강조용 기본선 */
-    --border-strong: var(--accent-main);
-
-    /* ==== 버튼 (파생형 구조로 정리) ==== */
-    --btn-bg-primary: var(--accent-main);
-    --btn-bg-primary-hover: var(--accent-dark);
-    --btn-bg-secondary: #495057;
-    --btn-bg-secondary-hover: #343a40;
-    --btn-bg-danger: var(--danger);
-    --btn-bg-danger-hover: #fa5252;
-
-    /* ==== 그림자 ==== */
-    --shadow-soft: rgba(0, 0, 0, 0.5);
-    --shadow-strong: rgba(0, 0, 0, 0.8);
+    --bg-body:     #f0f7f0;
+    --bg-surface:  #ffffff;
+    --bg-hover:    #e8f5e9;
+    --bg-accent:   #d0efd2;
+    --sidebar-bg:           #1b3a2a;
+    --sidebar-border:       #2d5040;
+    --sidebar-text:         #b0d8b8;
+    --sidebar-text-hover:   #e0f5e8;
+    --sidebar-active-bg:    #2d5840;
+    --sidebar-active-text:  #90e8b0;
+    --sidebar-section-label:#70a880;
+    --sidebar-icon:         #88b898;
+    --sidebar-hover-bg:     rgba(255,255,255,0.08);
+    --sidebar-submenu-bg:   rgba(0,0,0,0.20);
+    --sidebar-width:        160px;
+    --header-bg:     #ffffff;
+    --header-border: #d0e8d0;
+    --header-height: 52px;
+    --text-primary:   #1a2e1a;
+    --text-secondary: #2e4a2e;
+    --text-muted:     #507050;
+    --text-inverse:   #ffffff;
+    --accent-light: #b8e6c0;
+    --accent-main:  #2e9e50;
+    --accent-dark:  #1e7838;
+    --success:#2e9e50; --success-bg:#f0fff4; --success-border:#b8e6c0;
+    --warning:#c88a00; --warning-bg:#fffbeb; --warning-border:#ffe8a0;
+    --danger: #e04040; --danger-bg: #fff5f5; --danger-border: #fcc0c0;
+    --info:   #2080c0; --info-bg:   #ebf5ff; --info-border:   #b0d8f8;
+    --border-light:  #d0e8d0;
+    --border:        #a8d0a8;
+    --border-strong: #2e9e50;
+    --btn-bg-primary:         #2e9e50;
+    --btn-bg-primary-hover:   #1e7838;
+    --btn-bg-secondary:       #e8f5e9;
+    --btn-bg-secondary-hover: #d0efd2;
+    --btn-bg-danger:          #e04040;
+    --btn-bg-danger-hover:    #b82020;
+    --shadow-soft:   rgba(30,80,40,0.06);
+    --shadow-medium: rgba(30,80,40,0.12);
+    --shadow-strong: rgba(30,80,40,0.20);
 }

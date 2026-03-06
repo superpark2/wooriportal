@@ -1,5 +1,4 @@
 
-
 <!DOCTYPE html>
 <html lang="ko" xmlns:th="http://www.thymeleaf.org"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
@@ -7,9 +6,14 @@
 <head>
   <meta charset="UTF-8">
   <title>𝓦𝓸𝓸𝓻𝓲</title>
-  <script src="/js/suneditor-2.47.8/suneditor.min.js"></script>
-  <script src="/js/suneditor-2.47.8/ko.js"></script>
-  <link rel="stylesheet" href="/js/suneditor-2.47.8/css/suneditor.min.css">
+  <!-- SunEditor JS: CDN 우선 (로컬 파일 0byte 이슈) -->
+  <script src="https://cdn.jsdelivr.net/npm/suneditor@2.47.8/dist/suneditor.min.js"
+          onerror="this.onerror=null;document.write('<scr'+'ipt src=/js/suneditor-2.47.8/suneditor.min.js><\/scr'+'ipt>')"></script>
+  <script src="https://cdn.jsdelivr.net/npm/suneditor@2.47.8/src/lang/ko.js"
+          onerror="this.onerror=null;document.write('<scr'+'ipt src=/js/suneditor-2.47.8/ko.js><\/scr'+'ipt>')"></script>
+  <!-- SunEditor CSS: CDN 우선, 로컬 폴백 -->
+  <link id="se-css" rel="stylesheet" href="https://cdn.jsdelivr.net/npm/suneditor@2.47.8/dist/css/suneditor.min.css"
+        onerror="this.href='/js/suneditor-2.47.8/css/suneditor.min.css'">
   <link rel="stylesheet" href="/style/fileupload.css">
 </head>
 <body>
@@ -95,17 +99,18 @@
     document.addEventListener("DOMContentLoaded", function () {
 
       const editor = SUNEDITOR.create('editor-content', {
+        width: '100%',
         lang: SUNEDITOR_LANG['ko'],
         height: '400px',
         buttonList: [
-          ['undo', 'redo'],
-          ['bold', 'italic', 'underline', 'strike'],
-          ['blockquote', 'indent', 'outdent'],
-          ['image', 'video', 'link'],
-          ['fontColor', 'hiliteColor'],
-          ['align', 'list'],
-          ['fontSize', 'formatBlock'],
-          ['fullScreen', 'preview', 'codeView']
+          ['undo', 'redo',
+            'bold', 'italic', 'underline', 'strike',
+            'blockquote', 'indent', 'outdent',
+            'image', 'video', 'link',
+            'fontColor', 'hiliteColor',
+            'align', 'list',
+            'fontSize', 'formatBlock',
+            'fullScreen', 'preview', 'codeView']
         ],
         imageUploadUrl: `/${group}/${category}/image/upload`,
         imageUploadSizeLimit: 20 * 1024 * 1024,
@@ -114,31 +119,98 @@
         imageRotation: false,
       });
 
-      // ── SunEditor 2.47.8 버그 패치 ──────────────────────────────────────────
-      // core.js:7708 onKeyDown_wysiwyg → util.copyTagAttributes(origin, undefined)
-      // figure가 마지막 노드일 때 copyTag가 undefined로 들어와 cssText 접근 시 crash
-      // → 함수 진입 시 null 체크를 monkey-patch로 추가
-      const _origCopyTagAttributes = editor.core.util.copyTagAttributes.bind(editor.core.util);
-      editor.core.util.copyTagAttributes = function(origin, copyTag) {
-        if (!origin || !copyTag) return; // ← 핵심 패치
-        return _origCopyTagAttributes(origin, copyTag);
+      // ════════════════════════════════════════════════════════════════
+      //  SunEditor 2.47.8 버그 패치 모음 (라이브러리 파일 무수정)
+      // ════════════════════════════════════════════════════════════════
+
+      // ── 패치 1: copyTagAttributes(origin, undefined) → cssText crash ──
+      // onKeyDown_wysiwyg 에서 두 번째 인자가 undefined 로 들어올 때 발생.
+      const _origCopy = editor.core.util.copyTagAttributes.bind(editor.core.util);
+      editor.core.util.copyTagAttributes = function(origin, copyTag, notCopyAttr) {
+        if (!origin || !copyTag) return;
+        return _origCopy(origin, copyTag, notCopyAttr);
       };
 
-      // ── 이미지 삽입 후 커서 탈출 보장 ─────────────────────────────────────
-      // 이미지 업로드 완료 시 figure 뒤에 빈 p가 없으면 에디터 API로 추가
-      // (SunEditor 내부 Range를 건드리지 않기 위해 editor.appendContents 대신
-      //  wysiwyg DOM에 직접 appendChild 후 focus 이동)
+      // ── 패치 2: appendFormatTag 에서 createElement('#text') crash ──
+      // getFormatElement 가 텍스트 노드를 반환할 때 nodeName = '#text' 가
+      // createElement 에 전달되어 InvalidCharacterError 발생.
+      const _origAppend = editor.core.appendFormatTag.bind(editor.core);
+      editor.core.appendFormatTag = function(element, formatEl) {
+        // formatEl 이 tagName 없는 텍스트 노드면 null 로 교체 → defaultTag 사용
+        if (formatEl && !formatEl.tagName) formatEl = null;
+        return _origAppend(element, formatEl);
+      };
+
+      // ── 패치 3: 이미지 바깥 클릭 시 이미지 선택되는 문제 ──────────────
+      // 원인: .se-component 가 display:flex 로 에디터 전체 너비를 차지.
+      //       이미지가 작을 때 오른쪽 빈 공간 클릭도 .se-component 가
+      //       이벤트 타겟이 되어 SunEditor 가 이미지를 선택함.
+      //       SunEditor 는 click 뿐 아니라 mousedown 에서도 반응하므로
+      //       두 이벤트 모두 capture 단계에서 차단해야 함.
+      //
+      // 해결: wysiwyg 에 capture 단계 리스너(mousedown + click)를 달아,
+      //       클릭 좌표가 실제 <img> 픽셀 영역 밖이면 이미지 선택 차단.
+      const wysiwyg = editor.core.context.element.wysiwyg;
+
+      function blockOutsideImageEvent(e) {
+        // 이미지 컨테이너(.se-component) 또는 figure 에 해당하는지 확인
+        const comp = e.target.closest('.se-component, figure');
+        if (!comp) return; // 이미지 영역과 무관 → 간섭하지 않음
+
+        const img = comp.querySelector('img');
+        if (!img) return; // 이미지 없는 컴포넌트 → 간섭하지 않음
+
+        const r = img.getBoundingClientRect();
+        const insideImg = e.clientX >= r.left && e.clientX <= r.right
+                && e.clientY >= r.top  && e.clientY <= r.bottom;
+
+        if (!insideImg) {
+          // 이미지 픽셀 밖 클릭 → SunEditor 의 이미지 선택 로직 차단
+          e.stopImmediatePropagation();
+          // 이미 선택된 이미지 컨트롤러가 열려 있으면 닫기
+          if (editor.core.currentFileComponentInfo) {
+            editor.core.controllersOff();
+          }
+          // mousedown 을 막은 경우 브라우저 커서 이동이 안 될 수 있으므로
+          // 클릭 좌표에 직접 캐럿(커서)을 배치
+          if (e.type === 'mousedown') {
+            requestAnimationFrame(function() {
+              let node = null, offset = 0;
+              if (document.caretPositionFromPoint) {
+                const pos = document.caretPositionFromPoint(e.clientX, e.clientY);
+                if (pos) { node = pos.offsetNode; offset = pos.offset; }
+              } else if (document.caretRangeFromPoint) {
+                const range = document.caretRangeFromPoint(e.clientX, e.clientY);
+                if (range) { node = range.startContainer; offset = range.startOffset; }
+              }
+              if (node) {
+                const range = document.createRange();
+                range.setStart(node, offset);
+                range.collapse(true);
+                const sel = window.getSelection();
+                sel.removeAllRanges();
+                sel.addRange(range);
+                editor.core.focus();
+              }
+            });
+          }
+        }
+      }
+
+      // mousedown: SunEditor 의 이미지 선택 시작 차단
+      // click: 혹시 남아있는 click 핸들러도 차단
+      wysiwyg.addEventListener('mousedown', blockOutsideImageEvent, true);
+      wysiwyg.addEventListener('click',     blockOutsideImageEvent, true);
+
+      // ── 이미지 업로드 후 커서 탈출 보장 ───────────────────────────────
       editor.onImageUpload = function(targetElement, index, state) {
         if (state !== 'create') return;
         setTimeout(function() {
-          const wysiwyg = editor.core.context.element.wysiwyg;
           const last = wysiwyg.lastElementChild;
-          // 마지막 요소가 figure(이미지)이면 빈 p 추가
-          if (last && last.tagName === 'FIGURE') {
+          if (last && (last.tagName === 'FIGURE' || last.classList.contains('se-component'))) {
             const p = document.createElement('p');
             p.innerHTML = '<br>';
             wysiwyg.appendChild(p);
-            // 커서를 새 p로 이동
             const range = document.createRange();
             range.setStart(p, 0);
             range.collapse(true);

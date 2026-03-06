@@ -1,41 +1,61 @@
 :root {
-    /* ==== 기본 배경 ==== */
-    --bg-body: #f8f9fa;
-    --bg-surface: #ffffff;
-    --bg-hover: #f1f3f5;
-    --bg-accent: #e7f5ff; /* 파란 계열 포인트 백그라운드 */
+    /* ── 배경 ── */
+    --bg-body:     #f4f6f8;
+    --bg-surface:  #ffffff;
+    --bg-hover:    #f8f9fa;
+    --bg-accent:   #e8f4fd;
 
-    /* ==== 기본 텍스트 ==== */
-    --text-primary: #212529;
-    --text-secondary: #495057;
-    --text-muted: #6c757d;
-    --text-inverse: #ffffff;
+    /* ── 사이드바 (라이트 화이트) ── */
+    --sidebar-bg:           #ffffff;
+    --sidebar-border:       #e2e8f0;
+    --sidebar-text:         #4a5568;
+    --sidebar-text-hover:   #1a202c;
+    --sidebar-active-bg:    #ebf4ff;
+    --sidebar-active-text:  #2b6cb0;
+    --sidebar-section-label:#718096;
+    --sidebar-icon:         #718096;
+    --sidebar-hover-bg:     rgba(0,0,0,0.04);
+    --sidebar-submenu-bg:   rgba(0,0,0,0.03);
+    --logo-text:            #2d3748;
+    --sidebar-width:        160px;
 
-    /* ==== 엑센트 컬러 계열 (메인 테마) ==== */
-    --accent-light: #a5d8ff;
-    --accent-main: #4dabf7;
-    --accent-dark: #1c7ed6;
+    /* ── 헤더 ── */
+    --header-bg:     #ffffff;
+    --header-border: #e2e8f0;
+    --header-height: 52px;
 
-    /* ==== 상태 색상 ==== */
-    --success: #51cf66;
-    --warning: #fcc419;
-    --danger: #ff6b6b;
-    --info: #339af0;
+    /* ── 텍스트 ── */
+    --text-primary:   #1a202c;
+    --text-secondary: #4a5568;
+    --text-muted:     #718096;
+    --text-inverse:   #ffffff;
 
-    /* ==== 테두리 ==== */
-    --border-light: #dee2e6;
-    --border: var(--accent-light);  /* 강조용 기본선 */
-    --border-strong: var(--accent-main);
+    /* ── 액센트 ── */
+    --accent-light: #bee3f8;
+    --accent-main:  #3182ce;
+    --accent-dark:  #2b6cb0;
 
-    /* ==== 버튼 (파생형 구조로 정리) ==== */
-    --btn-bg-primary: var(--accent-main);
-    --btn-bg-primary-hover: var(--accent-dark);
-    --btn-bg-secondary: #dee2e6;
-    --btn-bg-secondary-hover: #adb5bd;
-    --btn-bg-danger: var(--danger);
-    --btn-bg-danger-hover: #fa5252;
+    /* ── 상태 ── */
+    --success:        #38a169; --success-bg: #f0fff4; --success-border: #c6f6d5;
+    --warning:        #d69e2e; --warning-bg: #fffbeb; --warning-border: #fef3c7;
+    --danger:         #e53e3e; --danger-bg:  #fff5f5; --danger-border:  #fed7d7;
+    --info:           #3182ce; --info-bg:    #ebf8ff; --info-border:    #bee3f8;
 
-    /* ==== 그림자 ==== */
-    --shadow-soft: rgba(0, 0, 0, 0.05);
-    --shadow-strong: rgba(0, 0, 0, 0.1);
+    /* ── 테두리 ── */
+    --border-light:  #e2e8f0;
+    --border:        #cbd5e0;
+    --border-strong: #3182ce;
+
+    /* ── 버튼 ── */
+    --btn-bg-primary:         #3182ce;
+    --btn-bg-primary-hover:   #2b6cb0;
+    --btn-bg-secondary:       #edf2f7;
+    --btn-bg-secondary-hover: #e2e8f0;
+    --btn-bg-danger:          #e53e3e;
+    --btn-bg-danger-hover:    #c53030;
+
+    /* ── 그림자 ── */
+    --shadow-soft:   rgba(0,0,0,0.05);
+    --shadow-medium: rgba(0,0,0,0.10);
+    --shadow-strong: rgba(0,0,0,0.16);
 }

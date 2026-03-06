@@ -1,42 +1,62 @@
+/* test2: Homer Simpson — 노란 피부, 도넛, Duff 맥주 */
 :root {
-    /* ==== 기본 배경 ==== */
-    --bg-body: #FAF9F2;       /* 밝은 화이트, 톤 다운 */
-    --bg-surface: #FFF5A8;    /* 연한 노랑 카드/패널 */
-    --bg-hover: #FFEB33;      /* 마우스 오버 시 조명 느낌 */
-    --bg-accent: #FFD700;     /* 강한 호머 옐로우 포인트 */
+    /* ── 배경 (호머 노란 피부 톤) ── */
+    --bg-body:     #FFF8DC;
+    --bg-surface:  #FFFDE0;
+    --bg-hover:    #FFF3A0;
+    --bg-accent:   #FFE566;
 
-    /* ==== 기본 텍스트 ==== */
-    --text-primary: #1C1C1C;  /* 진한 블랙 */
-    --text-secondary: #3A3A3A;/* 약간 부드러운 블랙 */
-    --text-muted: #666666;    /* 톤 다운된 회색 */
-    --text-inverse: #FFFFFF;  /* 컬러 배경용 반전 텍스트 */
+    /* ── 사이드바 (파란 바지 컬러) ── */
+    --sidebar-bg:           #1a3a8a;
+    --sidebar-border:       #2a50b0;
+    --sidebar-text:         #c8dcff;
+    --sidebar-text-hover:   #ffffff;
+    --sidebar-active-bg:    #2a50b0;
+    --sidebar-active-text:  #FFD700;
+    --sidebar-section-label:#7a9ad8;
+    --sidebar-icon:         #9ab8f0;
+    --sidebar-hover-bg:     rgba(255,255,255,0.12);
+    --sidebar-submenu-bg:   rgba(0,0,0,0.22);
+    --logo-text:            #FFD700;
+    --sidebar-width:        160px;
 
-    /* ==== 액센트 컬러 (호머 스타일) ==== */
-    --accent-yellow: #FFD700; /* 피부 톤 노랑 */
-    --accent-blue: #0050CC;   /* 바지/셔츠 블루 – 진하게 */
-    --accent-orange: #FF6600; /* 도넛/강조 오렌지 */
-    --accent-red: #CC0033;    /* 입술/포인트 레드 */
+    /* ── 헤더 (도넛 핑크 글레이즈) ── */
+    --header-bg:     #FFD700;
+    --header-border: #F0B800;
+    --header-height: 52px;
 
-    /* ==== 상태 색상 ==== */
-    --success: #00AA33;       /* 그린 */
-    --warning: #FF9900;       /* 경고 오렌지 */
-    --danger: var(--accent-red);
-    --info: var(--accent-blue);
+    /* ── 텍스트 ── */
+    --text-primary:   #1a1a1a;
+    --text-secondary: #333333;
+    --text-muted:     #666666;
+    --text-inverse:   #1a3a8a;
 
-    /* ==== 테두리 ==== */
-    --border-light: #FFDD33;  /* 연한 노랑 테두리 */
-    --border: #003399;        /* 짙은 블루 */
-    --border-strong: #990022; /* 강조 레드 */
+    /* ── 액센트 (도넛 핑크) ── */
+    --accent-light: #FFE4E4;
+    --accent-main:  #E8336A;
+    --accent-dark:  #C01850;
 
-    /* ==== 버튼 ==== */
-    --btn-bg-primary: var(--accent-blue);
-    --btn-bg-primary-hover: var(--accent-orange);
-    --btn-bg-secondary: var(--accent-yellow);
-    --btn-bg-secondary-hover: #FFDD33;
-    --btn-bg-danger: var(--danger);
-    --btn-bg-danger-hover: #880022;
+    /* ── 상태 ── */
+    --success:#2a8a2a; --success-bg:#f0fff0; --success-border:#a0dca0;
+    --warning:#D4880A; --warning-bg:#fff8e0; --warning-border:#ffe088;
+    --danger: #CC0000; --danger-bg: #fff0f0; --danger-border: #ffaaaa;
+    --info:   #1a3a8a; --info-bg:   #eef2ff; --info-border:   #aabcff;
 
-    /* ==== 그림자 ==== */
-    --shadow-soft: rgba(0,0,0,0.2);
-    --shadow-strong: rgba(0,0,0,0.35);
+    /* ── 테두리 ── */
+    --border-light:  #F0D000;
+    --border:        #D4AA00;
+    --border-strong: #E8336A;
+
+    /* ── 버튼 ── */
+    --btn-bg-primary:         #E8336A;
+    --btn-bg-primary-hover:   #C01850;
+    --btn-bg-secondary:       #FFE566;
+    --btn-bg-secondary-hover: #FFD700;
+    --btn-bg-danger:          #CC0000;
+    --btn-bg-danger-hover:    #990000;
+
+    /* ── 그림자 ── */
+    --shadow-soft:   rgba(0,0,0,0.10);
+    --shadow-medium: rgba(0,0,0,0.18);
+    --shadow-strong: rgba(0,0,0,0.28);
 }

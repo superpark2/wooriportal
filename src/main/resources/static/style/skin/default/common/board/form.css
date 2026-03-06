@@ -1,248 +1,106 @@
-/* ═══════════════════════════════════════════════════
-   board/form.css
-   ═══════════════════════════════════════════════════ */
-
+/* =================================================
+   board/form.css — 글작성/수정
+   ================================================= */
 .form-container {
     max-width: 1400px;
     min-width: 650px;
     margin: 0 auto;
-    padding: 30px;
     background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: 0 4px 20px var(--shadow-soft);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--shadow-soft);
 }
 
 .form-title {
     text-align: center;
-    font-size: 26px;
-    font-weight: 600;
+    font-size: 17px; font-weight: 600;
     color: var(--text-primary);
-    margin-bottom: 24px;
-    padding-bottom: 20px;
-    border-bottom: 2px solid var(--border-light);
-}
-
-/* ── 폼 그룹 ── */
-.form-group {
-    margin-bottom: 24px;
-}
-
-.form-group > label {
-    display: block;
-    font-weight: 600;
-    font-size: 13px;
-    color: var(--text-secondary);
-    margin-bottom: 8px;
-}
-
-/* ── 입력 필드 ── */
-.form-input {
-    width: 100%;
-    padding: 10px 14px;
-    border: 1.5px solid var(--border-light);
-    border-radius: 8px;
-    font-size: 14px;
-    color: var(--text-primary);
-    background: var(--bg-surface);
-    transition: border-color .2s, box-shadow .2s;
-    box-sizing: border-box;
-}
-
-.form-input:focus {
-    outline: none;
-    border-color: var(--accent-main);
-    box-shadow: 0 0 0 3px var(--bg-accent);
-}
-
-.form-input::placeholder {
-    color: var(--text-muted);
-}
-
-/* ── 공지 체크박스 ── */
-input[name="isNotice"] {
-    accent-color: var(--accent-main);
-    width: 15px;
-    height: 15px;
-    vertical-align: middle;
-    margin-right: 6px;
-    cursor: pointer;
-}
-
-input[name="isNotice"] + label {
-    font-size: 13px;
-    color: var(--text-secondary);
-    cursor: pointer;
-    vertical-align: middle;
-}
-
-/* ── 버튼 ── */
-.btn {
-    padding: 10px 22px;
-    border: none;
-    border-radius: 8px;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    transition: background .2s, box-shadow .2s;
-    text-decoration: none;
-    display: inline-block;
-    text-align: center;
-    min-width: 90px;
-}
-
-.btn-primary {
-    background: var(--btn-bg-primary);
-    color: var(--text-inverse);
-}
-
-.btn-primary:hover {
-    background: var(--btn-bg-primary-hover);
-    box-shadow: 0 3px 10px var(--shadow-strong);
-}
-
-.btn-secondary {
-    background: var(--btn-bg-secondary);
-    color: var(--text-secondary);
-}
-
-.btn-secondary:hover {
-    background: var(--btn-bg-secondary-hover);
-}
-
-/* ── 폼 액션 ── */
-.form-actions {
-    display: flex;
-    gap: 12px;
-    justify-content: center;
-    margin-top: 36px;
-    padding-top: 24px;
-    border-top: 1.5px solid var(--border-light);
-}
-
-/* ── 에디터 섹션 ── */
-.editor-section {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    /* SunEditor 리사이즈 핸들(absolute)이 clip되지 않도록 */
-    overflow: visible;
-    position: relative;
-}
-
-/* ─────────────────────────────────────────────────
-   SunEditor 스킨 연동
-   ───────────────────────────────────────────────── */
-
-/* SunEditor 이미지 리사이즈 fix
-   원인: 조상의 overflow:auto(#content)가 position:absolute인
-         .se-resizing-container를 clip → 드래그 핸들이 잘림
-   해결: SunEditor 래퍼 계층에 overflow:visible 강제 적용        */
-.sun-editor,
-.sun-editor .se-wrapper,
-.sun-editor .se-wrapper .se-wrapper-inner,
-.sun-editor .se-resizing-container {
-    overflow: visible !important;
-}
-
-/* 이미지 선택 테두리가 좌우 끝까지 늘어나는 문제 수정
-   원인: figure가 display:block → 이미지 크기와 무관하게 줄 전체를 차지
-   해결: inline-block으로 이미지 실제 크기에 맞게 축소              */
-.sun-editor .se-wrapper-wysiwyg figure {
-    display: inline-block !important;
-    max-width: 100%;
-    margin: 4px 0;
-    vertical-align: top;
-}
-
-/* .se-component(outline 박스)도 이미지 크기에 맞게 축소 */
-.sun-editor .se-wrapper-wysiwyg .se-component {
-    display: inline-block !important;
-    width: auto !important;
-    max-width: 100%;
-}
-
-/* 편집 영역 */
-.sun-editor .se-wrapper .se-wrapper-wysiwyg {
-    overflow-y: auto !important;   /* 내용 스크롤은 유지 */
-    background-color: var(--bg-surface);
-    color: var(--text-primary);
-}
-
-/* 툴바 */
-.sun-editor .se-toolbar {
-    background-color: var(--bg-hover);
+    margin: 0;
+    padding: 16px 20px;
     border-bottom: 1px solid var(--border-light);
+    background: var(--bg-hover);
 }
 
-.sun-editor .se-btn {
-    color: var(--text-primary);
+.form-container form { padding: 20px; }
+
+.form-group { margin-bottom: 18px; }
+.form-group > label {
+    display: block; font-weight: 600; font-size: 12px;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: .4px; margin-bottom: 6px;
 }
 
-.sun-editor .se-btn:hover,
-.sun-editor .se-btn:focus {
-    background-color: var(--bg-accent);
-    color: var(--text-primary);
-    outline: none;
+.form-input {
+    width: 100%; padding: 9px 12px;
+    border: 1px solid var(--border); border-radius: 6px;
+    font-size: 14px; color: var(--text-primary);
+    background: var(--bg-surface);
+    transition: border-color .15s, box-shadow .15s;
+    box-sizing: border-box; font-family: inherit;
 }
+.form-input:focus { outline: none; border-color: var(--accent-main); box-shadow: 0 0 0 3px rgba(49,130,206,.12); }
+.form-input::placeholder { color: var(--text-muted); }
 
-.sun-editor .se-btn.on,
-.sun-editor .se-btn.active {
-    background-color: var(--accent-light);
-    color: var(--accent-dark);
+.editor-section label {
+    display: block; font-weight: 600; font-size: 12px;
+    color: var(--text-muted); text-transform: uppercase;
+    letter-spacing: .4px; margin-bottom: 6px;
 }
+/* SunEditor 초기화 전 textarea가 100% 너비를 갖도록 — SunEditor가 이 크기를 기준으로 에디터 폭을 결정함 */
+#editor-content { width: 100%; display: block; }
 
-/* 드롭다운/팝업 */
-.sun-editor .se-list-layer,
-.sun-editor .se-submenu,
-.sun-editor .se-dialog-inner {
-    background-color: var(--bg-surface);
-    border: 1px solid var(--border-light);
-    color: var(--text-primary);
-}
+/* SunEditor 스킨 테마 — 레이아웃 구조는 유지하고 색상만 덮어씌움 */
+.sun-editor { width: 100% !important; border: 1px solid var(--border) !important; border-radius: 6px !important; overflow: visible; }
+.sun-editor.focus { border-color: var(--accent-main) !important; box-shadow: 0 0 0 3px rgba(49,130,206,.12) !important; }
+.sun-editor .se-toolbar { background: var(--bg-hover) !important; border-bottom: 1px solid var(--border-light) !important; outline: none !important; }
+.sun-editor .se-btn { color: var(--text-secondary) !important; }
+.sun-editor .se-btn:hover { background: var(--bg-accent) !important; color: var(--text-primary) !important; border-color: var(--border-light) !important; }
+.sun-editor .se-btn.active, .sun-editor .se-btn.on { background: var(--accent-light) !important; color: var(--accent-main) !important; border-color: var(--accent-main) !important; }
+.sun-editor .se-btn-select { background: var(--bg-surface) !important; border-color: var(--border) !important; color: var(--text-primary) !important; }
+.sun-editor .se-btn-select:hover { border-color: var(--accent-main) !important; background: var(--bg-hover) !important; }
+.sun-editor .se-btn-module-border { border-color: var(--border-light) !important; }
+.sun-editor .se-wrapper { background: var(--bg-surface) !important; }
+.sun-editor .se-wrapper-code { background: #1a1d27 !important; color: #a0c4e8 !important; }
+.sun-editor .se-resizing-bar { background: var(--bg-hover) !important; border-color: var(--border-light) !important; }
+.sun-editor-editable { background: var(--bg-surface) !important; color: var(--text-primary) !important; }
+/* 이미지 가운데 정렬 수정 */
+.sun-editor-editable .__se__float-center { float: none !important; justify-content: center; }
+.sun-editor-editable .__se__float-center figure { margin: 0 auto !important; }
 
-.sun-editor .se-list-layer .se-list-basic li button:hover {
-    background-color: var(--bg-hover);
-    color: var(--text-primary);
-}
+/* ── SunEditor ↔ Bootstrap 5 / 전역 CSS 충돌 방지 ── */
+/* 툴바가 가로로 나오도록: module을 float:left로, tray는 일반 block */
+.sun-editor .se-toolbar           { display: block !important; overflow: visible !important; }
+.sun-editor .se-btn-tray          { display: block !important; padding: 4px 3px 0 !important; overflow: hidden !important; }
+.sun-editor .se-btn-module        { display: inline-block !important; float: left !important; vertical-align: top !important; }
+.sun-editor .se-menu-list,
+.sun-editor .se-menu-list li      { display: inline-block !important; float: left !important; padding: 0 !important; margin: 0 !important; list-style: none !important; }
+.sun-editor .se-btn               { float: left !important; display: block !important; width: 34px !important; height: 34px !important; }
+/* 이미지 컨트롤러, 드롭다운이 에디터 밖으로 나올 수 있도록 */
+.sun-editor .se-wrapper           { overflow: visible !important; }
+.sun-editor .se-list-layer        { z-index: 999 !important; }
+.sun-editor .se-controller        { z-index: 999 !important; overflow: visible !important; }
 
-/* 툴바 구분선 */
-.sun-editor .se-toolbar .se-btn-module-border {
-    border-color: var(--border-light);
-}
+/* 공지 체크박스 */
+input[name="isNotice"] { accent-color: var(--accent-main); width: 14px; height: 14px; vertical-align: middle; margin-right: 5px; cursor: pointer; }
+input[name="isNotice"] + label { font-size: 13px; color: var(--text-secondary); cursor: pointer; vertical-align: middle; }
 
-/* 리사이즈 바 */
-.sun-editor .se-resizing-bar {
-    background-color: var(--bg-hover);
+.form-actions {
+    display: flex; justify-content: center; gap: 10px;
+    padding-top: 14px; margin-top: 18px;
     border-top: 1px solid var(--border-light);
-    color: var(--text-muted);
 }
 
-/* 포커스 border */
-.sun-editor.focus {
-    border-color: var(--accent-main) !important;
-    box-shadow: 0 0 0 3px var(--bg-accent);
-}
+/* 파일업로드 패널 */
+.demo-panel { border: 1px solid var(--border-light); border-radius: 6px; overflow: hidden; }
+.panel-header { padding: 10px 14px; background: var(--bg-hover); border-bottom: 1px solid var(--border-light); }
+.panel-title { font-size: 13px; font-weight: 600; color: var(--text-primary); }
+.panel-sub { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+.panel-body { padding: 14px; }
 
-/* 다크 스킨에서 코드뷰 textarea */
-.sun-editor .se-wrapper .se-wrapper-code {
-    background-color: var(--bg-surface) !important;
-    color: var(--text-primary) !important;
-}
-
-/* ── 반응형 ── */
+/* ── 모바일 반응형 (768px 이하에서만 적용) ── */
 @media (max-width: 768px) {
-    .form-container {
-        padding: 18px;
-        margin: 8px;
-        min-width: unset;
-    }
-
-    .form-title { font-size: 22px; }
-
-    .form-actions {
-        flex-direction: column;
-        align-items: center;
-    }
-
-    .btn { width: 100%; max-width: 200px; }
+    .form-container { margin: 0; min-width: unset; }
+    .form-container form { padding: 14px; }
+    .form-actions { flex-direction: column; align-items: center; }
+    .btn { width: 100%; max-width: 180px; justify-content: center; }
 }

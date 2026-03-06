@@ -1,246 +1,79 @@
-/* 게시판 상세보기 페이지 스타일 */
-
+/* =================================================
+   board/detail.css — 게시글 상세
+   ================================================= */
 .detail-container {
     max-width: 1400px;
     min-width: 650px;
     margin: 0 auto;
-    padding: 20px;
     background: var(--bg-surface);
-    border-radius: 12px;
-    box-shadow: 0 2px 8px var(--shadow-soft);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--shadow-soft);
+    overflow: hidden;
 }
 
-.detail-header {
-    border-bottom: 2px solid var(--border-light);
-    padding-bottom: 20px;
-    margin-bottom: 30px;
-}
-
-.detail-title {
-    text-align: center;
-    font-size: 28px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin: 0 0 15px 0;
-    line-height: 1.4;
-}
-
-.detail-meta {
-    justify-content: end;
-    display: flex;
-    align-items: center;
-    gap: 20px;
-    color: var(--text-secondary);
-    font-size: 14px;
-}
-
-.detail-meta-item {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
-.detail-meta-item i {
-    color: var(--accent-main);
-    width: 16px;
-}
+.detail-header { padding: 18px 22px 14px; border-bottom: 1px solid var(--border-light); background: var(--bg-hover); }
+.detail-title { font-size: 19px; font-weight: 600; color: var(--text-primary); margin: 0 0 10px; line-height: 1.4; }
+.detail-meta { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.detail-meta-item { display: flex; align-items: center; gap: 4px; font-size: 12px; color: var(--text-muted); }
+.detail-meta-item i { color: var(--accent-main); width: 13px; text-align: center; }
 
 .detail-content {
-    margin-bottom: 40px;
-    line-height: 1.8;
-    color: var(--text-primary);
-    font-size: 16px;
-    min-height: 200px;
+    padding: 22px; min-height: 180px; line-height: 1.8;
+    color: var(--text-primary); font-size: 14px;
+    border-bottom: 1px solid var(--border-light);
 }
 
-.detail-content img {
-    max-width: 100%;
-    height: auto;
-    border-radius: 8px;
-    margin: 10px 0;
-}
+/* SunEditor 이미지 정렬 지원 */
+.detail-content .se-component { display: flex; margin: 0 0 10px; }
+.detail-content .__se__float-left  { float: left;  margin-right: 10px; }
+.detail-content .__se__float-right { float: right; margin-left: 10px; }
+.detail-content .__se__float-center { float: none !important; justify-content: center; }
+.detail-content .__se__float-none  { float: none; }
+.detail-content::after { content: ""; display: table; clear: both; }
+.detail-content img { max-width: 100%; height: auto; border-radius: 5px; cursor: pointer; }
+.detail-content img:hover { opacity: .9; }
+.detail-content a { color: var(--accent-main); text-decoration: none; }
+.detail-content a:hover { text-decoration: underline; }
 
-.detail-attachments {
-    margin-bottom: 30px;
-    padding: 20px;
-    background: var(--bg-hover);
-    border-radius: 8px;
-    border-left: 4px solid var(--accent-main);
-}
-
-.attachments-title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--text-primary);
-    margin-bottom: 15px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.attachments-title i {
-    color: var(--accent-main);
-}
-
-.attachment-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
+.detail-attachments { padding: 14px 22px; border-bottom: 1px solid var(--border-light); background: var(--bg-hover); }
+.attachments-title { display: flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--text-secondary); margin-bottom: 10px; }
+.attachments-title i { color: var(--accent-main); }
+.attachment-list { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 5px; }
 .attachment-item {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 8px 15px;
-    background: var(--bg-surface);
-    border-radius: 6px;
-    margin-bottom: 8px;
-    border: 1px solid var(--border-light);
-    transition: all 0.2s ease;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 12px; background: var(--bg-surface);
+    border: 1px solid var(--border-light); border-radius: 6px; transition: border-color .15s;
 }
+.attachment-item:hover { border-color: var(--accent-light); }
+.attachment-info { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.attachment-icon { width: 26px; height: 26px; background: var(--info-bg); border: 1px solid var(--info-border); border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.attachment-icon i { color: var(--accent-main); font-size: 12px; }
+.attachment-name { font-size: 13px; font-weight: 500; color: var(--text-primary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.attachment-name a { color: var(--text-primary); text-decoration: none; }
+.attachment-name a:hover { color: var(--accent-main); }
+.attachment-size { font-size: 11px; color: var(--text-muted); flex-shrink: 0; margin-left: 6px; }
+.attachment-download { display: inline-flex; align-items: center; gap: 4px; padding: 4px 10px; background: var(--btn-bg-primary); color: #fff; text-decoration: none; border-radius: 4px; font-size: 12px; font-weight: 500; flex-shrink: 0; transition: background .15s; }
+.attachment-download:hover { background: var(--btn-bg-primary-hover); color: #fff; text-decoration: none; }
 
-.attachment-item:hover {
-    background: var(--bg-accent);
-    border-color: var(--accent-light);
-}
+.detail-actions { display: flex; justify-content: space-between; align-items: center; padding: 12px 22px; background: var(--bg-hover); }
+.detail-actions-left, .detail-actions-right { display: flex; gap: 7px; align-items: center; }
 
-.attachment-info {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+.btn { display: inline-flex; align-items: center; gap: 5px; padding: 7px 14px; border: none; border-radius: 5px; font-size: 13px; font-weight: 500; cursor: pointer; text-decoration: none; transition: background .15s, transform .1s; line-height: 1.4; font-family: inherit; }
+.btn:hover { transform: translateY(-1px); text-decoration: none; }
+.btn i { font-size: 11px; }
+.btn-primary  { background: var(--btn-bg-primary);   color: #fff; }
+.btn-primary:hover  { background: var(--btn-bg-primary-hover); color: #fff; }
+.btn-secondary{ background: var(--btn-bg-secondary); color: var(--text-secondary); border: 1px solid var(--border); }
+.btn-secondary:hover{ background: var(--btn-bg-secondary-hover); }
+.btn-danger   { background: var(--btn-bg-danger);    color: #fff; }
+.btn-danger:hover   { background: var(--btn-bg-danger-hover); color: #fff; }
 
-.attachment-info > div {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-}
-
-.attachment-icon {
-    width: 24px;
-    height: 24px;
-    background: var(--accent-main);
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--text-inverse);
-    font-size: 12px;
-}
-
-.attachment-name {
-    font-weight: 500;
-    color: var(--text-primary);
-}
-
-.attachment-size {
-    font-size: 12px;
-    color: var(--text-muted);
-}
-
-.attachment-download {
-    padding: 6px 12px;
-    background: var(--btn-bg-primary);
-    color: var(--text-inverse);
-    text-decoration: none;
-    border-radius: 4px;
-    font-size: 12px;
-    transition: background-color 0.2s ease;
-}
-
-.attachment-download:hover {
-    background: var(--btn-bg-primary-hover);
-}
-
-.detail-actions {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 20px;
-    border-top: 1px solid var(--border-light);
-}
-
-.detail-actions-left {
-    display: flex;
-    gap: 10px;
-}
-
-.detail-actions-right {
-    display: flex;
-    gap: 10px;
-}
-
-.btn {
-    padding: 10px 20px;
-    border: none;
-    border-radius: 6px;
-    text-decoration: none;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-}
-
-.btn-primary {
-    background: var(--btn-bg-primary);
-    color: var(--text-inverse);
-}
-
-.btn-primary:hover {
-    background: var(--btn-bg-primary-hover);
-}
-
-.btn-secondary {
-    background: var(--btn-bg-secondary);
-    color: var(--text-primary);
-}
-
-.btn-secondary:hover {
-    background: var(--btn-bg-secondary-hover);
-}
-
-.btn-danger {
-    background: var(--btn-bg-danger);
-    color: var(--text-inverse);
-}
-
-.btn-danger:hover {
-    background: var(--btn-bg-danger-hover);
-}
-
-.btn i {
-    font-size: 12px;
-}
-
-/* 반응형 디자인 */
 @media (max-width: 768px) {
-    .detail-container {
-        margin: 10px;
-        padding: 15px;
-    }
-    
-    .detail-title {
-        font-size: 24px;
-    }
-    
-    .detail-meta {
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 10px;
-    }
-    
-    .detail-actions {
-        flex-direction: column;
-        gap: 15px;
-    }
-    
-    .detail-actions-left,
-    .detail-actions-right {
-        width: 100%;
-        justify-content: center;
-    }
+    .detail-container { min-width: unset; }
+    .detail-header { padding: 12px 14px; }
+    .detail-title { font-size: 16px; }
+    .detail-content { padding: 14px; }
+    .detail-actions { flex-direction: column; gap: 8px; padding: 10px 14px; }
+    .detail-actions-left, .detail-actions-right { width: 100%; justify-content: center; }
 }

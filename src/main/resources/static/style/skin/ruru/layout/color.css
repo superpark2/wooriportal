@@ -1,41 +1,43 @@
 :root {
-    /* ==== 기본 배경 ==== */
-    --bg-body: #1a1a1a; /* ruru-base-background */
-    --bg-surface: #20060E; /* ruru-shadow-based-background */
-    --bg-hover: #300914; /* ruru-shadow-based-background-light */
-    --bg-accent: #67001f; /* ruru-shadow-border-color */
-
-    /* ==== 기본 텍스트 ==== */
-    --text-primary: #E8DDE3; /* ruru-text-color */
-    --text-secondary: #FFF1F6; /* ruru-sub-accent-text-color */
-    --text-muted: #FFAACF; /* ruru-sub-accent-color */
-    --text-inverse: #ffffff;
-
-    /* ==== 포인트 컬러 ==== */
-    --accent-light: rgba(245, 71, 132, 0.1); /* ruru-main-accent-transparent-bg */
-    --accent-main: #F54784; /* ruru-main-accent-color */
-    --accent-dark: #FF6B8B; /* ruru-bright-reddish-color */
-
-    /* ==== 상태 색상 ==== */
-    --success: #FFAACF; /* 대체: 서브 강조색 */
-    --warning: #FF6B8B; /* 밝은 빨강 계열 */
-    --danger: #ff8080; /* ruru-error-color */
-    --info: #3b3b3b; /* ruru-medium-dark-gray-bg */
-
-    /* ==== 테두리 ==== */
-    --border-light: rgba(255, 255, 255, 0.1); /* ruru-faint-border-color */
-    --border: #67001f; /* ruru-shadow-border-color */
-    --border-strong: #F54784; /* 주요 강조색으로 강한 보더 */
-
-    /* ==== 버튼 ==== */
-    --btn-bg-primary: #F54784; /* 메인 강조 */
-    --btn-bg-primary-hover: #FF6B8B; /* 밝은 버전 */
-    --btn-bg-secondary: #FFAACF; /* 서브 강조 */
-    --btn-bg-secondary-hover: #FFF1F6; /* 밝은 서브 강조 */
-    --btn-bg-danger: #ff8080; /* 에러 컬러 */
-    --btn-bg-danger-hover: #FF6B8B; /* 밝은 빨강 호버 */
-
-    /* ==== 그림자 ==== */
-    --shadow-soft: rgba(255, 80, 120, 0.6); /* ruru-hover-accent-shadow */
-    --shadow-strong: rgba(245, 71, 132, 0.4); /* ruru-main-accent-shadow-light */
+    --bg-body:     #1a1a1a;
+    --bg-surface:  #20060e;
+    --bg-hover:    #300914;
+    --bg-accent:   #4a0020;
+    --sidebar-bg:           #0f0308;
+    --sidebar-border:       #3a0018;
+    --sidebar-text:         #d8a0bc;
+    --sidebar-text-hover:   #ffe0ee;
+    --sidebar-active-bg:    #4a0028;
+    --sidebar-active-text:  #ff99cc;
+    --sidebar-section-label:#9a5070;
+    --sidebar-icon:         #b06080;
+    --sidebar-hover-bg:     rgba(255,255,255,0.07);
+    --sidebar-submenu-bg:   rgba(0,0,0,0.30);
+    --sidebar-width:        160px;
+    --header-bg:     #0f0308;
+    --header-border: #3a0018;
+    --header-height: 52px;
+    --text-primary:   #e8dde3;
+    --text-secondary: #fff1f6;
+    --text-muted:     #ffaacf;
+    --text-inverse:   #ffffff;
+    --accent-light: rgba(245,71,132,0.15);
+    --accent-main:  #f54784;
+    --accent-dark:  #cc2060;
+    --success:#ffaacf; --success-bg:#200818; --success-border:#4a1030;
+    --warning:#ff6b8b; --warning-bg:#1f0a0e; --warning-border:#4a1520;
+    --danger: #ff8080; --danger-bg: #200808; --danger-border: #4a1010;
+    --info:   #3b3b3b; --info-bg:   #1a1a1a; --info-border:   #333333;
+    --border-light:  rgba(255,255,255,0.08);
+    --border:        #67001f;
+    --border-strong: #f54784;
+    --btn-bg-primary:         #f54784;
+    --btn-bg-primary-hover:   #cc2060;
+    --btn-bg-secondary:       #3a1028;
+    --btn-bg-secondary-hover: #4a1838;
+    --btn-bg-danger:          #ff5050;
+    --btn-bg-danger-hover:    #dd2020;
+    --shadow-soft:   rgba(255,80,120,0.20);
+    --shadow-medium: rgba(245,71,132,0.30);
+    --shadow-strong: rgba(200,30,80,0.45);
 }

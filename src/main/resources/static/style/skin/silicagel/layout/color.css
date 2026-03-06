@@ -1,41 +1,43 @@
 :root {
-    /* ==== 기본 배경 ==== */
-    --bg-body: #0d0d0f;
-    --bg-surface: #171721;
-    --bg-hover: #222233;
-    --bg-accent: #1b1035;       /* 보랏빛으로 약간 이동 */
-
-    /* ==== 기본 텍스트 ==== */
-    --text-primary: #e9e6f5;    /* 약간 보라 섞인 화이트 */
+    --bg-body:     #0d0d0f;
+    --bg-surface:  #171721;
+    --bg-hover:    #222233;
+    --bg-accent:   #1b1035;
+    --sidebar-bg:           #0a0a12;
+    --sidebar-border:       #1e1830;
+    --sidebar-text:         #c0b0e0;
+    --sidebar-text-hover:   #e8e0ff;
+    --sidebar-active-bg:    #251848;
+    --sidebar-active-text:  #d4b8ff;
+    --sidebar-section-label:#8070a8;
+    --sidebar-icon:         #9878c8;
+    --sidebar-hover-bg:     rgba(255,255,255,0.07);
+    --sidebar-submenu-bg:   rgba(0,0,0,0.30);
+    --sidebar-width:        160px;
+    --header-bg:     #0a0a12;
+    --header-border: #1e1830;
+    --header-height: 52px;
+    --text-primary:   #e9e6f5;
     --text-secondary: #c6c1d8;
-    --text-muted: #9d97b3;
-    --text-inverse: #111015;
-
-    /* ==== 엑센트 컬러 계열 (메인 테마) ==== */
-    --accent-light: #cfa6ff;    /* 밝은 네온 라벤더 */
-    --accent-main: #9b5bff;     /* 메인 보라 (네온 바이올렛) */
-    --accent-dark: #6b32cc;     /* 깊은 퍼플 */
-
-    /* ==== 상태 색상 ==== */
-    --success: #4be39e;
-    --warning: #ffd966;
-    --danger: #ff5f87;
-    --info: #7b8fff;            /* 보라빛 하늘색 */
-
-    /* ==== 테두리 ==== */
-    --border-light: #2a2a3a;
-    --border: var(--accent-light);
-    --border-strong: var(--accent-main);
-
-    /* ==== 버튼 ==== */
-    --btn-bg-primary: var(--accent-main);          /* 기본 보라 */
-    --btn-bg-primary-hover: var(--accent-dark);    /* 어두운 퍼플로 깊이감 */
-    --btn-bg-secondary: #3a3050;                   /* 그레이퍼플 */
+    --text-muted:     #9d97b3;
+    --text-inverse:   #111015;
+    --accent-light: #4820a0;
+    --accent-main:  #9b5bff;
+    --accent-dark:  #6b32cc;
+    --success:#4be39e; --success-bg:#081a14; --success-border:#103028;
+    --warning:#ffd966; --warning-bg:#1a1500; --warning-border:#3a3000;
+    --danger: #ff5f87; --danger-bg: #1a0814; --danger-border: #3a1028;
+    --info:   #7b8fff; --info-bg:   #0a0e20; --info-border:   #181e40;
+    --border-light:  #2a2a3a;
+    --border:        #3a2858;
+    --border-strong: #9b5bff;
+    --btn-bg-primary:         #9b5bff;
+    --btn-bg-primary-hover:   #6b32cc;
+    --btn-bg-secondary:       #3a3050;
     --btn-bg-secondary-hover: #4a3c65;
-    --btn-bg-danger: #d84a9c;                      /* 핑크보라 톤 */
-    --btn-bg-danger-hover: #c03b87;
-
-    /* ==== 그림자 ==== */
-    --shadow-soft: rgba(80, 60, 120, 0.4);
-    --shadow-strong: rgba(140, 100, 200, 0.7);
+    --btn-bg-danger:          #d84a9c;
+    --btn-bg-danger-hover:    #b02878;
+    --shadow-soft:   rgba(80,60,120,0.35);
+    --shadow-medium: rgba(100,60,160,0.50);
+    --shadow-strong: rgba(140,100,200,0.65);
 }

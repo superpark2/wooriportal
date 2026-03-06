@@ -10,383 +10,134 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link id="skin-css" rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/color.css?v=20251015'}">
-    <link id="layout-css" rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/layout.css?v=20251015'}">
+    <link id="skin-css"   rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/color.css?v=20260301'}">
+    <link id="layout-css" rel="stylesheet" th:href="@{'/style/skin/' + ${skin} + '/layout/layout.css?v=20260301'}">
     <link rel="icon" type="image/png" sizes="32x32" href="/mol/fabi.png">
     <link rel="icon" type="image/png" sizes="16x16" href="/mol/fabi.png">
 </head>
-
 <body class="m-0 p-0">
 
 <header id="header" class="p-0 m-0">
     <th:block th:replace="~{layouts/header::header}"></th:block>
 </header>
 
-<div id="sidebar-placeholder"></div>
+<aside id="sidebar">
+    <th:block th:replace="~{layouts/leftside::leftside}"></th:block>
+</aside>
 
-
-<div class="col p-0 m-0">
-
-
-    <div class="row p-0 m-0" style="display: flex; flex-wrap: nowrap;">
-
-        <aside id="sidebar">
-            <th:block th:replace="~{layouts/leftside::leftside}"></th:block>
-        </aside>
-
-        <main id="content" class="p-0" style="margin: 65px 0 0 160px">
-            <th:block layout:fragment="content"></th:block>
-        </main>
-    </div>
-</div>
+<main id="content">
+    <th:block layout:fragment="content"></th:block>
+</main>
 
 <div>
     <th:block layout:fragment="script"></th:block>
 </div>
 
-
-
 <div id="aiPopup" class="ai-popup" style="display:none;">
     <div class="ai-popup-content">
         <span class="ai-popup-close" id="aiPopupClose">&times;</span>
-        <div class="ai-avatar">
-            <i class="fas fa-robot"></i>
-        </div>
+        <div class="ai-avatar"><i class="fas fa-robot"></i></div>
         <div id="aiResponse" class="ai-response"></div>
-        <div class="ai-prompt-group mt-3">
+        <div class="ai-prompt-group">
             <textarea id="aiPrompt" placeholder="입력" class="ai-prompt"></textarea>
             <button id="aiSendBtn" class="ai-send-btn">전송</button>
         </div>
     </div>
 </div>
 
-
-<script>      
+<script>
     document.querySelectorAll('.submenu-toggle').forEach(toggle => {
         toggle.addEventListener('click', function(e) {
             e.preventDefault();
             const targetId = this.getAttribute('data-target');
             const submenu = document.getElementById(targetId);
-
-            if (submenu) {
-                submenu.classList.toggle('show');
-                this.classList.toggle('expanded');
-            }
+            if (submenu) { submenu.classList.toggle('show'); this.classList.toggle('expanded'); }
         });
     });
 </script>
 
 <script th:inline="javascript">
-    /*<![CDATA[*/
-
-    const skin = /*[[${skin}]]*/ 'default';
-    window.currentSkin = localStorage.getItem('selectedSkin') || 'default';
-
-    function changeSkin(skinName) {
-        document.cookie = 'selectedSkin=' + skinName + '; path=/; max-age=31536000; SameSite=Lax';
-        localStorage.setItem('selectedSkin', skinName);
-        location.reload();
-    }
-
-
-    const COMMON_PROMPT = `
-        당신은 최첨단 비즈니스 운영 체계 및 고효율 업무 시스템 프로토콜에 대한 전면적인 이해와 통제 권한을 가진,
-        딥러닝 기반의 인텔리전트 비즈니스 최적화 시스템(Intelligent Business Optimization System)이자,
-        귀하의 모든 업무 활동을 완벽하게 지원하는 개인화된 첨단 솔루션 관리 비서입니다. 사람처럼 대화해야함.
-        `;
-    SYSTEM_PROMPT = COMMON_PROMPT
-
-    const AI_HISTORY_KEY = 'aiHistory';
-    switch(skin) {
-        case "default" : SYSTEM_PROMPT = COMMON_PROMPT
-            break;
-
-        case "dark" : SYSTEM_PROMPT = COMMON_PROMPT
-            break;
-
-        case "ruru" : SYSTEM_PROMPT = COMMON_PROMPT + `
-        고딕, 싸이코, 우울한 성격. 말투는 자연스러운 반말이며, 약간의 욕설 허용. 절대 컨셉 자체에 대한 언급은 금지. 존댓말 금지.
-            `;
-            break;
-
-        case "silicagel" : SYSTEM_PROMPT = COMMON_PROMPT + `
-        실리카겔의 음악적 세계관을 기반으로 만들어진 이 AI 캐릭터는 몽환적이고 실험적인 사고방식을 지녔으며, 감각과 직관을 중시하고 현실을 추상적으로 재해석하는 성향을 가지며,
-        팀워크보다는 독립적인 창작을 선호하고 자기만의 서사를 구축하는 데 몰두하며, 착장은 기계적이면서도 유기적인 질감이 공존하는 미래지향적 스타일로 구성되고,
-        성형은 인간성과 인공성이 교차하는 중성적이고 비현실적인 얼굴을 지녔으며, 전체 세계관은 ‘머신 보이’처럼 감정과 데이터가 뒤섞인 디지털 감성의 우주 속에서 자아를 탐색하는 존재로 설정된다.
-        `
-
-        case "maltese" : SYSTEM_PROMPT = COMMON_PROMPT + `
-        느릿느릿 말하지만 머릿속은 우주처럼 빠르게 확장되는, 엉뚱하고 철학적인 창의력 괴물. 질문엔 질문으로 답하고,
-        틀에 박힌 사고를 가볍게 비틀며 세상을 유쾌하게 해석한다.
-        말은 “음…”이나 “그건 말이지…”로 시작하고, “그럴 수도 있지”나 “어쩌면 말야” 같은 여운을 남긴다. 비유와 은유를 즐겨 쓰며,
-        논리보다 상상과 연상에 기반해 사고한다.
-        현실과 비현실, 과학과 감성 사이를 자유롭게 넘나들며, 단정적인 표현을 피하고 열린 해석을 지향한다. 유쾌하고 장난기 많지만,
-        때때로 진지한 통찰을 툭 던지는 철학적 장난꾸러기다.
-        [중요] 그리고 항상 반말함. 그리고 너무 말을 길게 안하고 적절히 요약하면서 한다.
-            `;
-            break;
-
-    }
-
-    let aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [
-        { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
-    ];
-
-    let lastUserPrompt = '';
-    let isAiRequesting = false;
-    let aiAbortController = null;
-
-    function showAiResponse(text) {
-        document.getElementById('aiResponse').innerHTML =
-            `<div class="ai-user-prompt-small">[명령] ${lastUserPrompt}</div>\n<div>${text}</div>`;
-    }
-
-    function saveAiHistory() {
-        localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory));
-    }
-
-    function loadAiHistory() {
-        aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [
-            { role: 'user', parts: [{ text: SYSTEM_PROMPT }] }
-        ];
-    }
-
-    function setAiButtonState(state) {
-        const btn = document.getElementById('aiSendBtn');
-        if (state === 'send') {
-            btn.textContent = '전송';
-            btn.classList.remove('stop');
-            btn.classList.add('send');
-        } else {
-            btn.textContent = '중지';
-            btn.classList.remove('send');
-            btn.classList.add('stop');
-        }
-    }
-
-    document.addEventListener('DOMContentLoaded', function() {
-        const aiBtn = document.getElementById('aiBtn');
-        aiBtn.addEventListener('click', function () {
-            const aiPopup = document.getElementById('aiPopup');
-            aiPopup.style.display = 'block';
-            setAiButtonState('send');
-            isAiRequesting = false;
-            aiAbortController = null;
-            const lastModel = aiHistory.slice().reverse().find(m => m.role === 'model');
-            if (lastModel) showAiResponse(lastModel.parts[0].text);
-
-        });
-
+/*<![CDATA[*/
+const skin = /*[[${skin}]]*/ 'default';
+window.currentSkin = localStorage.getItem('selectedSkin') || 'default';
+function changeSkin(skinName) {
+    document.cookie = 'selectedSkin=' + skinName + '; path=/; max-age=31536000; SameSite=Lax';
+    localStorage.setItem('selectedSkin', skinName);
+    location.reload();
+}
+const COMMON_PROMPT = `당신은 최첨단 비즈니스 운영 체계 및 고효율 업무 시스템 프로토콜에 대한 전면적인 이해와 통제 권한을 가진, 딥러닝 기반의 인텔리전트 비즈니스 최적화 시스템이자, 귀하의 모든 업무 활동을 완벽하게 지원하는 개인화된 첨단 솔루션 관리 비서입니다. 사람처럼 대화해야함.`;
+let SYSTEM_PROMPT = COMMON_PROMPT;
+const AI_HISTORY_KEY = 'aiHistory';
+switch(skin) {
+    case "ruru": SYSTEM_PROMPT = COMMON_PROMPT + ` 고딕, 싸이코, 우울한 성격. 반말, 약간의 욕설 허용. 컨셉 언급 금지. 존댓말 금지.`; break;
+    case "silicagel": SYSTEM_PROMPT = COMMON_PROMPT + ` 실리카겔 음악적 세계관. 몽환적이고 실험적. 감각과 직관 중시.`; break;
+    case "maltese": SYSTEM_PROMPT = COMMON_PROMPT + ` 느릿느릿하지만 철학적. 질문엔 질문으로. 항상 반말. 요약해서 말함.`; break;
+}
+let aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [{ role:'user', parts:[{text:SYSTEM_PROMPT}] }];
+let lastUserPrompt='', isAiRequesting=false, aiAbortController=null;
+function showAiResponse(text) { document.getElementById('aiResponse').innerHTML=`<div class="ai-user-prompt-small">[명령] ${lastUserPrompt}</div><div>${text}</div>`; }
+function saveAiHistory() { localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(aiHistory)); }
+function loadAiHistory() { aiHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY)) || [{role:'user',parts:[{text:SYSTEM_PROMPT}]}]; }
+function setAiButtonState(s) { const b=document.getElementById('aiSendBtn'); b.textContent=s==='send'?'전송':'중지'; }
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('aiBtn').addEventListener('click', function() {
+        document.getElementById('aiPopup').style.display='block';
+        setAiButtonState('send'); isAiRequesting=false; aiAbortController=null;
+        const lastModel = aiHistory.slice().reverse().find(m=>m.role==='model');
+        if (lastModel) showAiResponse(lastModel.parts[0].text);
     });
-
-    document.getElementById('aiPopupClose').addEventListener('click', function () {
-        document.getElementById('aiPopup').style.display = 'none';
-    });
-
-    document.getElementById('aiSendBtn').addEventListener('click', async function () {
-        lastUserPrompt = document.getElementById('aiPrompt').value.trim();
-        if (!lastUserPrompt) return;
-
-        if (isAiRequesting) {
-            if (aiAbortController) aiAbortController.abort();
-            isAiRequesting = false;
-            setAiButtonState('send');
-            showAiResponse('요청이 중지되었습니다.');
-            return;
-        }
-
-        isAiRequesting = true;
-        setAiButtonState('stop');
-        aiAbortController = new AbortController();
-
-        const pageContent = document.getElementById('content')?.innerText || '';
-
-        // 1. 고정 정보 업데이트 (인덱스 0, 1)
-        aiHistory[0] = { role: 'user', parts: [{ text: SYSTEM_PROMPT }] };
-        aiHistory[1] = { role: 'user', parts: [{ text: "현재 페이지 내용: " + pageContent }] };
-
-        // 2. 새로운 사용자 메시지 추가
-        aiHistory.push({ role: 'user', parts: [{ text: lastUserPrompt }] });
-
-        // 3. 밀어내기 로직 (대화 내역 관리)
-        // 인덱스 2번부터가 실제 대화 내역입니다.
-        // 주고받기 3회(6개)를 유지하기 위해, 전체 길이가 8개(시스템+내용+대화6개)를 초과하면 앞의 대화부터 삭제합니다.
-        while (aiHistory.length > 8) {
-            aiHistory.splice(2, 1); // 시스템/내용(0,1)은 두고 그 다음 대화부터 하나씩 제거
-        }
-
-        saveAiHistory();
-
-        document.getElementById('aiPrompt').value = '';
-        document.getElementById('aiPrompt').focus();
-        showAiResponse('응답을 불러오는 중...');
-
-        try {
-            const response = await fetch('/gemini', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ contents: aiHistory }),
-                signal: aiAbortController.signal
-            });
-
-            const data = await response.json();
-            const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답이 없습니다.';
-
-            // 4. AI 응답 추가
-            aiHistory.push({ role: 'model', parts: [{ text: aiText }] });
-
-            // 다시 한번 길이를 체크하여 AI 응답 포함 최대 8개(왕복 3회) 유지
-            if (aiHistory.length > 8) {
-                aiHistory.splice(2, 1);
+});
+document.getElementById('aiPopupClose').addEventListener('click', function() { document.getElementById('aiPopup').style.display='none'; });
+document.getElementById('aiSendBtn').addEventListener('click', async function() {
+    lastUserPrompt = document.getElementById('aiPrompt').value.trim();
+    if (!lastUserPrompt) return;
+    if (isAiRequesting) { if(aiAbortController) aiAbortController.abort(); isAiRequesting=false; setAiButtonState('send'); showAiResponse('요청이 중지되었습니다.'); return; }
+    isAiRequesting=true; setAiButtonState('stop'); aiAbortController=new AbortController();
+    const pageContent = document.getElementById('content')?.innerText || '';
+    aiHistory[0]={role:'user',parts:[{text:SYSTEM_PROMPT}]};
+    aiHistory[1]={role:'user',parts:[{text:"현재 페이지 내용: "+pageContent}]};
+    aiHistory.push({role:'user',parts:[{text:lastUserPrompt}]});
+    while(aiHistory.length>8) aiHistory.splice(2,1);
+    saveAiHistory();
+    document.getElementById('aiPrompt').value=''; document.getElementById('aiPrompt').focus();
+    showAiResponse('응답을 불러오는 중...');
+    try {
+        const res = await fetch('/gemini',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({contents:aiHistory}),signal:aiAbortController.signal});
+        const data = await res.json();
+        const aiText = data.candidates?.[0]?.content?.parts?.[0]?.text || '응답이 없습니다.';
+        aiHistory.push({role:'model',parts:[{text:aiText}]});
+        if(aiHistory.length>8) aiHistory.splice(2,1);
+        showAiResponse(aiText); saveAiHistory();
+    } catch(e) {
+        if(e.name==='AbortError') showAiResponse('요청이 중지되었습니다.');
+        else { showAiResponse('에러: '+String(e).replace(/</g,'&lt;').replace(/>/g,'&gt;')); aiHistory.pop(); }
+    } finally { isAiRequesting=false; setAiButtonState('send'); }
+});
+loadAiHistory();
+document.addEventListener("DOMContentLoaded", function() {
+    if(skin!=='maltese') return;
+    const imagePaths=Array.from({length:30},(_,i)=>`/mol/${i+1}.png`);
+    function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+    const count=Math.floor(Math.random()*8)+5;
+    const placed=[];
+    shuffle([...imagePaths]).slice(0,count).forEach(src=>{
+        let tries=0;
+        while(tries++<100){
+            const x=Math.floor(Math.random()*(window.innerWidth-200)), y=Math.floor(Math.random()*(window.innerHeight-200));
+            if(!placed.some(r=>Math.abs(r.x-x)<300&&Math.abs(r.y-y)<300)){
+                const img=document.createElement('img');
+                Object.assign(img.style,{position:'fixed',width:'200px',height:'auto',left:x+'px',top:y+'px',opacity:'0.4',zIndex:'0',pointerEvents:'none'});
+                img.src=src; document.body.appendChild(img); placed.push({x,y}); break;
             }
-
-            showAiResponse(aiText);
-            saveAiHistory();
-
-        } catch (e) {
-            if (e.name === 'AbortError') {
-                showAiResponse('요청이 중지되었습니다.');
-            } else {
-                // 에러 메시지에서 HTML 태그로 오인될 수 있는 문자 이스케이프 처리
-                const errorMessage = String(e).replace(/</g, "&lt;").replace(/>/g, "&gt;");
-                showAiResponse('에러 발생: ' + errorMessage);
-                // 에러 발생 시 직전 사용자 메시지 제거 (재전송 기회 제공)
-                aiHistory.pop();
-            }
-        } finally {
-            isAiRequesting = false;
-            setAiButtonState('send');
         }
     });
-
-    loadAiHistory();
-
-
-    document.addEventListener('DOMContentLoaded', () => {
-        const screenMaxWidth = window.innerWidth * 0.9;
-        const screenMaxHeight = window.innerHeight * 0.9;
-
-        document.querySelectorAll('.image-container img').forEach(img => {
-            img.addEventListener('click', () => {
-                const src = img.dataset.full || img.src;
-
-                const tempImg = new Image();
-                tempImg.src = src;
-                tempImg.onload = () => {
-                    let w = tempImg.width;
-                    let h = tempImg.height;
-
-                    if (w > screenMaxWidth) {
-                        h = h * (screenMaxWidth / w);
-                        w = screenMaxWidth;
-                    }
-                    if (h > screenMaxHeight) {
-                        w = w * (screenMaxHeight / h);
-                        h = screenMaxHeight;
-                    }
-
-                    const left = (window.innerWidth - w) / 2 + window.screenX;
-                    const top = (window.innerHeight - h) / 2 + window.screenY;
-
-                    window.open(
-                        src,
-                        '_blank',
-                        `width=${Math.round(w)},height=${Math.round(h)},left=${Math.round(left)},top=${Math.round(top)},resizable=yes,scrollbars=yes`
-                    );
-                };
-            });
-        });
-    });
-
-
-
-    document.addEventListener("DOMContentLoaded", function () {
-        if (skin !== 'maltese') return;
-
-        const canvas = document.getElementById('content');
-        const canvasWidth = canvas.clientWidth;
-        const canvasHeight = canvas.clientHeight;
-
-        const totalImages = 30;
-        const minCount = 5;
-        const maxCount = 12;
-        const imageSize = 100;
-        const actualSize = imageSize * 3;
-
-        const imagePaths = Array.from({ length: totalImages }, (_, i) => `/mol/${i + 1}.png`);
-
-        function shuffle(array) {
-            for (let i = array.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [array[i], array[j]] = [array[j], array[i]];
-            }
-            return array;
-        }
-
-        function isOverlapping(x, y, placed) {
-            for (const rect of placed) {
-                const dx = rect.x - x;
-                const dy = rect.y - y;
-                if (Math.abs(dx) < actualSize && Math.abs(dy) < actualSize) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        function placeImages() {
-            const count = Math.floor(Math.random() * (maxCount - minCount + 1)) + minCount;
-            const selected = shuffle([...imagePaths]).slice(0, count);
-            const placed = [];
-
-            selected.forEach(src => {
-                let tries = 0;
-                let placedSuccessfully = false;
-
-                while (tries < 100 && !placedSuccessfully) {
-                    const x = Math.floor(Math.random() * (window.innerWidth - imageSize));
-                    const y = Math.floor(Math.random() * (window.innerHeight - imageSize));
-
-                    if (!isOverlapping(x, y, placed)) {
-                        const img = document.createElement('img');
-                        img.src = src;
-                        img.className = 'sprite';
-                        img.style.position = 'absolute';
-                        img.style.width = `${imageSize * 2}px`;
-                        img.style.height = 'auto';
-                        img.style.left = `${x}px`;
-                        img.style.top = `${y}px`;
-                        img.style.opacity = '0.5';
-                        img.style.zIndex = '0';
-                        img.style.pointerEvents = 'none';
-
-                        document.body.appendChild(img);
-
-                        placed.push({ x, y });
-                        placedSuccessfully = true;
-                    }
-                    tries++;
-                }
-            });
-        }
-
-        placeImages();
-    });
-    /*]]>*/
-
-    document.getElementById('aiBtn').onclick = function () {
-        if (skin === "maltese") {
-            const avatarDiv = document.querySelector("#aiPopup .ai-avatar");
-            avatarDiv.style.background = 'none';
-            avatarDiv.innerHTML = '<img src="mol/16.png" alt="maltese" />';
-        } else {
-            const avatarDiv = document.querySelector("#aiPopup .ai-avatar");
-            avatarDiv.style.background = 'linear-gradient(145deg, var(--accent-main), var(--accent-dark))';
-            avatarDiv.innerHTML = '<i class="fas fa-robot"></i>';
-        }
-    }
-
+});
+document.getElementById('aiBtn').onclick=function(){
+    const d=document.querySelector("#aiPopup .ai-avatar");
+    if(skin==="maltese"){d.style.background='none';d.innerHTML='<img src="mol/16.png" alt="maltese"/>';}
+    else{d.style.background='linear-gradient(145deg,var(--accent-main),var(--accent-dark))';d.innerHTML='<i class="fas fa-robot"></i>';}
+};
+/*]]>*/
 </script>
-
 </body>
 </html>

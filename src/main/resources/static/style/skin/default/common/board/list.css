@@ -1,237 +1,87 @@
+/* =================================================
+   board/list.css — 게시판 목록
+   ================================================= */
 .dashboard-container {
     max-width: 1400px;
-    min-width: 650px;
-    min-height: 92vh;
-    margin: auto;
+    min-width: 580px;
+    margin: 0 auto;
 }
 
-/* ==== 테이블 ==== */
 .table-section {
     background: var(--bg-surface);
-    padding: 20px;
-    border-radius: 12px;
-    box-shadow: 0 2px 10px var(--shadow-soft);
+    border: 1px solid var(--border-light);
+    border-radius: 8px;
+    box-shadow: 0 1px 3px var(--shadow-soft);
+    overflow: hidden;
 }
 
 .table-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 14px 18px; border-bottom: 1px solid var(--border-light); gap: 10px; flex-wrap: wrap;
 }
 
-.table-title {
-    font-size: 20px;
-    font-weight: bold;
-    color: var(--text-primary);
+.table-title { font-size: 15px; font-weight: 600; color: var(--text-primary); flex-shrink: 0; }
+.table-controls { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+
+.entries-selector {
+    width: auto !important; padding: 6px 26px 6px 9px !important;
+    font-size: 13px !important; border: 1px solid var(--border) !important;
+    border-radius: 5px !important; background: var(--bg-surface) !important;
+    color: var(--text-secondary) !important; cursor: pointer !important;
 }
 
-.table-controls {
-    display: flex;
-    align-items: center;
-    gap: 20px;
-}
-
-.entries-selector,
+.search-area { display: flex; align-items: center; gap: 5px; }
 .search-box {
-    padding: 8px 12px;
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
-    background-color: var(--bg-surface);
-    color: var(--text-primary);
+    padding: 6px 10px; border: 1px solid var(--border); border-radius: 5px;
+    background: var(--bg-surface); color: var(--text-primary); font-size: 13px; width: 180px;
+    transition: border-color .15s, box-shadow .15s;
 }
+.search-box:focus { outline: none; border-color: var(--accent-main); box-shadow: 0 0 0 3px rgba(49,130,206,.12); }
+.search-box::placeholder { color: var(--text-muted); }
 
-.search-box {
-    width: 200px;
+.search-btn, .write-button {
+    display: inline-flex; align-items: center; justify-content: center; gap: 4px;
+    padding: 6px 13px; height: 32px;
+    background: var(--btn-bg-primary); color: #fff;
+    border: none; border-radius: 5px; font-size: 13px; font-weight: 500;
+    cursor: pointer; text-decoration: none; transition: background .15s, transform .1s; white-space: nowrap;
 }
+.search-btn:hover, .write-button:hover { background: var(--btn-bg-primary-hover); color: #fff; text-decoration: none; transform: translateY(-1px); }
+.button-container { display: flex; align-items: center; }
 
-.data-table {
-    width: 100%;
-    border-collapse: collapse;
-    margin-top: 15px;
-}
-
+.data-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.data-table thead tr { background: var(--bg-hover); border-bottom: 2px solid var(--border-light); }
 .data-table th {
-    background-color: var(--bg-body);
-    padding: 15px 10px;
-    text-align: center;
-    font-weight: 600;
-    color: var(--text-secondary);
-    border-bottom: 2px solid var(--border-light);
+    padding: 11px 12px; text-align: center;
+    font-weight: 600; font-size: 11px; color: var(--text-muted);
+    text-transform: uppercase; letter-spacing: .4px; white-space: nowrap; border: none;
 }
-
 .data-table td {
-    text-align: center;
-    padding: 15px 10px;
+    padding: 12px 12px; text-align: center;
     border-bottom: 1px solid var(--border-light);
-    color: var(--text-primary);
-    text-decoration: none;
+    color: var(--text-primary); vertical-align: middle; border-left: none; border-right: none; border-top: none;
 }
+.data-table td:nth-child(2), .data-table td.title-col { text-align: left; padding-left: 18px; }
+.data-table td a { color: var(--text-primary); text-decoration: none; font-weight: 500; transition: color .15s; }
+.data-table td a:hover { color: var(--accent-main); }
+.data-table tbody tr:hover { background: var(--bg-accent); }
+.data-table tbody tr.notice-row { background: var(--info-bg); }
 
-.data-table td:nth-child(2) {
-    text-align: left;
-    color: var(--accent-main);
-    padding-left: 10%;
-}
+.empty-data { text-align: center; padding: 50px 20px; color: var(--text-muted); }
 
-.data-table td a {
-    color: var(--text-secondary);
-    text-decoration: none;
-    font-weight: 500;
-}
-
-.data-table tbody tr:nth-child(even) {
-    background-color: var(--bg-hover);
-}
-
-.data-table tbody tr:hover {
-    background-color: var(--bg-accent);
-}
-
-/* ==== 빈 데이터 ==== */
-.empty-data {
-    text-align: center;
-    padding: 40px;
-    color: var(--text-muted);
-    font-style: italic;
-}
-
-/* ==== 작성 버튼 ==== */
-.button-container {
-    float: right;
-    padding: 10px 20px 0 0;
-}
-
-.write-button {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    width: 60px;
-    height: 40px;
-    font-size: 1.2rem;
-    background: var(--btn-bg-primary);
-    border: 2px solid var(--border);
-    color: var(--text-inverse);
-    text-decoration: none;
-    border-radius: 10%;
-    transition: background-color 0.3s, border-color 0.3s;
-}
-
-.write-button:hover {
-    background: var(--btn-bg-primary-hover);
-    border-color: var(--border-strong);
-}
-
-.write-button i {
-    font-size: 18px;
-    margin-bottom: 2px;
-}
-
-.write-button span {
-    font-size: 10px;
-    line-height: 1;
-}
-
-/* ==== 페이징 ==== */
 .pagination-container {
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    margin-top: 30px;
-    padding: 20px 0;
+    display: flex; justify-content: center; align-items: center;
+    padding: 14px 18px; border-top: 1px solid var(--border-light); background: var(--bg-hover);
 }
-
-.pagination {
-    display: flex;
-    align-items: center;
-    gap: 5px;
-}
-
+.pagination { display: flex; align-items: center; gap: 3px; list-style: none; margin: 0; padding: 0; }
 .pagination-btn {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 40px;
-    height: 40px;
-    padding: 8px 12px;
-    background-color: var(--bg-surface);
-    color: var(--text-secondary);
-    text-decoration: none;
-    border: 1px solid var(--border-light);
-    border-radius: 6px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.3s ease;
-    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    min-width: 32px; height: 32px; padding: 5px 9px;
+    background: var(--bg-surface); color: var(--text-secondary);
+    text-decoration: none; border: 1px solid var(--border-light);
+    border-radius: 5px; font-size: 13px; font-weight: 500; transition: all .15s; cursor: pointer;
 }
-
-.pagination-btn:hover {
-    background-color: var(--bg-hover);
-    color: var(--accent-main);
-    border-color: var(--accent-light);
-    transform: translateY(-1px);
-    box-shadow: 0 2px 8px var(--shadow-soft);
-}
-
-.pagination-btn.current {
-    background-color: var(--btn-bg-primary);
-    color: var(--text-inverse);
-    border-color: var(--btn-bg-primary);
-    font-weight: 600;
-}
-
-.pagination-btn.current:hover {
-    background-color: var(--btn-bg-primary-hover);
-    border-color: var(--btn-bg-primary-hover);
-    transform: none;
-    box-shadow: none;
-}
-
-.pagination-btn i {
-    font-size: 12px;
-}
-
-/* 처음/마지막 버튼 스타일 */
-.first-btn, .last-btn {
-    background-color: var(--bg-hover);
-    color: var(--text-muted);
-}
-
-.first-btn:hover, .last-btn:hover {
-    background-color: var(--accent-light);
-    color: var(--accent-dark);
-}
-
-/* 이전/다음 버튼 스타일 */
-.prev-btn, .next-btn {
-    background-color: var(--bg-surface);
-    color: var(--text-secondary);
-}
-
-.prev-btn:hover, .next-btn:hover {
-    background-color: var(--bg-accent);
-    color: var(--accent-main);
-}
-
-/* 페이지 번호 버튼들 사이 간격 조정 */
-.page-btn {
-    margin: 0 2px;
-}
-
-/* 반응형 디자인 */
-@media (max-width: 768px) {
-    .pagination-btn {
-        min-width: 35px;
-        height: 35px;
-        padding: 6px 8px;
-        font-size: 12px;
-    }
-    
-    .pagination {
-        gap: 3px;
-    }
-    
-    .page-btn {
-        margin: 0 1px;
-    }
-}
+.pagination-btn:hover { background: var(--bg-accent); color: var(--accent-main); border-color: var(--accent-light); text-decoration: none; }
+.pagination-btn.current { background: var(--accent-main); color: #fff; border-color: var(--accent-main); font-weight: 600; }
+.pagination-btn.current:hover { background: var(--accent-dark); border-color: var(--accent-dark); }
+.first-btn, .last-btn, .prev-btn, .next-btn { color: var(--text-muted); }
