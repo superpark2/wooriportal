@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="ko"
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout">
@@ -224,1220 +225,1272 @@
 <body>
 
 
-    <div class="filemanager-wrapper">
-        <!-- 상단 툴바 -->
-        <div class="fm-toolbar">
-            <div class="fm-toolbar-left">
-                <button class="fm-toolbar-btn" id="btn-back" title="뒤로" disabled>
-                    <span class="fm-icon">◀</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-forward" title="앞으로" disabled>
-                    <span class="fm-icon">▶</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-up" title="위로">
-                    <span class="fm-icon">▲</span>
-                </button>
-                <div class="fm-toolbar-separator"></div>
-                <button class="fm-toolbar-btn" id="btn-refresh" title="새로고침">
-                    <span class="fm-icon">🔄</span>
-                </button>
-                <div class="fm-toolbar-separator"></div>
-                <button class="fm-toolbar-btn" id="btn-upload" title="업로드">
-                    <span class="fm-icon">📤</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-new-folder" title="새 폴더">
-                    <span class="fm-icon">📁</span>
-                </button>
-                <div class="fm-toolbar-separator"></div>
-                <button class="fm-toolbar-btn" id="btn-copy" title="복사" disabled>
-                    <span class="fm-icon">📋</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-cut" title="잘라내기" disabled>
-                    <span class="fm-icon">✂️</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-paste" title="붙여넣기" disabled>
-                    <span class="fm-icon">📌</span>
-                </button>
-                <div class="fm-toolbar-separator"></div>
-                <button class="fm-toolbar-btn" id="btn-rename" title="이름 변경" disabled>
-                    <span class="fm-icon">✏️</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-delete" title="삭제" disabled>
-                    <span class="fm-icon">🗑️</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-download" title="다운로드" disabled>
-                    <span class="fm-icon">⬇️</span>
-                </button>
-                <div class="fm-toolbar-separator"></div>
-                <button class="fm-toolbar-btn active" id="btn-view-list" title="리스트 뷰">
-                    <span class="fm-icon">☰</span>
-                </button>
-                <button class="fm-toolbar-btn" id="btn-view-thumb" title="썸네일 뷰">
-                    <span class="fm-icon">⊞</span>
-                </button>
-            </div>
-            <div class="fm-toolbar-right">
-                <!-- 디스크 사용량 표시 -->
-                <div class="fm-disk-usage" id="fm-disk-usage" title="디스크 사용량">
-                    <div class="fm-disk-bar-container">
-                        <div class="fm-disk-bar" id="fm-disk-bar"></div>
-                    </div>
-                    <span id="fm-disk-text">0%</span>
-                </div>
-                <input type="text" class="fm-search" id="fm-search" placeholder="검색...">
-            </div>
+<div class="filemanager-wrapper">
+    <!-- 상단 툴바 -->
+    <div class="fm-toolbar">
+        <div class="fm-toolbar-left">
+            <button class="fm-toolbar-btn" id="btn-back" title="뒤로" disabled>
+                <span class="fm-icon">◀</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-forward" title="앞으로" disabled>
+                <span class="fm-icon">▶</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-up" title="위로">
+                <span class="fm-icon">▲</span>
+            </button>
+            <div class="fm-toolbar-separator"></div>
+            <button class="fm-toolbar-btn" id="btn-refresh" title="새로고침">
+                <span class="fm-icon">🔄</span>
+            </button>
+            <div class="fm-toolbar-separator"></div>
+            <button class="fm-toolbar-btn" id="btn-upload" title="업로드">
+                <span class="fm-icon">📤</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-new-folder" title="새 폴더">
+                <span class="fm-icon">📁</span>
+            </button>
+            <div class="fm-toolbar-separator"></div>
+            <button class="fm-toolbar-btn" id="btn-copy" title="복사" disabled>
+                <span class="fm-icon">📋</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-cut" title="잘라내기" disabled>
+                <span class="fm-icon">✂️</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-paste" title="붙여넣기" disabled>
+                <span class="fm-icon">📌</span>
+            </button>
+            <div class="fm-toolbar-separator"></div>
+            <button class="fm-toolbar-btn" id="btn-rename" title="이름 변경" disabled>
+                <span class="fm-icon">✏️</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-delete" title="삭제" disabled>
+                <span class="fm-icon">🗑️</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-download" title="다운로드" disabled>
+                <span class="fm-icon">⬇️</span>
+            </button>
+            <div class="fm-toolbar-separator"></div>
+            <button class="fm-toolbar-btn active" id="btn-view-list" title="리스트 뷰">
+                <span class="fm-icon">☰</span>
+            </button>
+            <button class="fm-toolbar-btn" id="btn-view-thumb" title="썸네일 뷰">
+                <span class="fm-icon">⊞</span>
+            </button>
         </div>
-
-        <!-- 메인 레이아웃 -->
-        <div class="fm-layout">
-            <!-- 좌측: 폴더 트리 -->
-            <div class="fm-tree-panel">
-                <div class="fm-tree-header">폴더</div>
-                <div id="fm-tree" class="fm-tree"></div>
-                <div class="fm-tree-footer">
-                    <div class="fm-stats" id="fm-stats">
-                        <div class="stat-item">
-                            <span class="stat-label">선택:</span>
-                            <span class="stat-value" id="stat-selected">0</span>
-                        </div>
-                        <div class="stat-item">
-                            <span class="stat-label">총 크기:</span>
-                            <span class="stat-value" id="stat-size">0 B</span>
-                        </div>
-                    </div>
+        <div class="fm-toolbar-right">
+            <!-- 디스크 사용량 표시 -->
+            <div class="fm-disk-usage" id="fm-disk-usage" title="디스크 사용량">
+                <div class="fm-disk-bar-container">
+                    <div class="fm-disk-bar" id="fm-disk-bar"></div>
                 </div>
+                <span id="fm-disk-text">0%</span>
             </div>
+            <input type="text" class="fm-search" id="fm-search" placeholder="검색...">
+        </div>
+    </div>
 
-            <!-- 중앙: 파일 영역 -->
-            <div class="fm-content-panel">
-                <div class="fm-path-bar" id="fm-path-bar">/</div>
-                <div class="fm-view-container">
-                    <!-- 리스트 뷰 -->
-                    <div id="fm-list-view" class="fm-view">
-                        <table class="fm-table">
-                            <thead>
-                                <tr>
-                                    <th class="col-check"><input type="checkbox" id="check-all"></th>
-                                    <th class="col-name">이름</th>
-                                    <th class="col-size">크기</th>
-                                    <th class="col-date">수정일</th>
-                                    <th class="col-type">유형</th>
-                                </tr>
-                            </thead>
-                            <tbody id="fm-list-body"></tbody>
-                        </table>
+    <!-- 메인 레이아웃 -->
+    <div class="fm-layout">
+        <!-- 좌측: 폴더 트리 -->
+        <div class="fm-tree-panel">
+            <div class="fm-tree-header">폴더</div>
+            <div id="fm-tree" class="fm-tree"></div>
+            <div class="fm-tree-footer">
+                <div class="fm-stats" id="fm-stats">
+                    <div class="stat-item">
+                        <span class="stat-label">선택:</span>
+                        <span class="stat-value" id="stat-selected">0</span>
                     </div>
-                    <!-- 썸네일 뷰 -->
-                    <div id="fm-thumb-view" class="fm-view" style="display: none;">
-                        <div class="fm-thumb-grid" id="fm-thumb-grid"></div>
+                    <div class="stat-item">
+                        <span class="stat-label">총 크기:</span>
+                        <span class="stat-value" id="stat-size">0 B</span>
                     </div>
                 </div>
             </div>
+        </div>
 
-            <!-- 우측: 상세 정보 -->
-            <div class="fm-details-panel">
-                <div class="fm-details-header">속성</div>
-                <div class="fm-details-content" id="fm-details-content">
-                    <div class="fm-no-selection">항목을 선택하세요</div>
+        <!-- 중앙: 파일 영역 -->
+        <div class="fm-content-panel">
+            <div class="fm-path-bar" id="fm-path-bar">/</div>
+            <div class="fm-view-container">
+                <!-- 리스트 뷰 -->
+                <div id="fm-list-view" class="fm-view">
+                    <table class="fm-table">
+                        <thead>
+                        <tr>
+                            <th class="col-check"><input type="checkbox" id="check-all"></th>
+                            <th class="col-name">이름</th>
+                            <th class="col-size">크기</th>
+                            <th class="col-date">수정일</th>
+                            <th class="col-type">유형</th>
+                        </tr>
+                        </thead>
+                        <tbody id="fm-list-body"></tbody>
+                    </table>
+                </div>
+                <!-- 썸네일 뷰 -->
+                <div id="fm-thumb-view" class="fm-view" style="display: none;">
+                    <div class="fm-thumb-grid" id="fm-thumb-grid"></div>
                 </div>
             </div>
         </div>
 
-        <!-- 컨텍스트 메뉴 -->
-        <div id="fm-context-menu" class="fm-context-menu">
-            <div class="fm-context-item" data-action="open">열기</div>
-            <div class="fm-context-item" data-action="download">다운로드</div>
-            <div class="fm-context-separator"></div>
-            <div class="fm-context-item" data-action="cut">잘라내기</div>
-            <div class="fm-context-item" data-action="copy">복사</div>
-            <div class="fm-context-item" data-action="paste" style="display: none;">붙여넣기</div>
-            <div class="fm-context-separator"></div>
-            <div class="fm-context-item" data-action="rename">이름 변경</div>
-            <div class="fm-context-item" data-action="delete">삭제</div>
-            <div class="fm-context-separator"></div>
-            <div class="fm-context-item" data-action="properties">속성</div>
-        </div>
-
-        <input type="file" id="file-input" multiple style="display: none;">
-
-        <!-- 업로드 로딩 스크린 -->
-        <div id="upload-loading-screen" class="loading-overlay" style="display: none;">
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">파일 업로드 중...</div>
-                <div class="loading-percent" id="upload-percent">0%</div>
-                <div class="loading-bar-bg">
-                    <div class="loading-bar-fill" id="upload-bar-fill"></div>
-                </div>
-                <div class="loading-file" id="upload-file-name">준비 중...</div>
-                <button class="cancel-btn" id="upload-cancel-btn">업로드 취소</button>
-            </div>
-        </div>
-
-        <!-- 다운로드 로딩 스크린 -->
-        <div id="download-loading-screen" class="loading-overlay" style="display: none;">
-            <div class="loading-content">
-                <div class="loading-spinner"></div>
-                <div class="loading-text">다중 다운로드 준비 중입니다.</div>
-                <div class="loading-percent" id="download-percent">0%</div>
-                <div class="loading-bar-bg">
-                    <div class="loading-bar-fill" id="download-bar-fill"></div>
-                </div>
-                <div class="loading-file" id="download-info">서버에서 압축 파일을 생성하고 있습니다...</div>
-                <button class="cancel-btn" id="download-cancel-btn">다운로드 중단</button>
-            </div>
-        </div>
-
-        <!-- 비밀번호 입력 모달 -->
-        <div id="password-modal" class="fm-password-modal" style="display: none;">
-            <div class="fm-password-modal-content">
-                <div class="fm-password-modal-header">
-                    <h3>잠금 해제</h3>
-                    <button class="fm-password-close" id="password-modal-close">&times;</button>
-                </div>
-                <div class="fm-password-modal-body">
-                    <p>숨김 폴더에 접근하려면 비밀번호를 입력하세요.</p>
-                    <input type="password" id="password-input" class="fm-password-input" placeholder="비밀번호 입력" autofocus>
-                    <div id="password-error" class="fm-password-error" style="display: none;"></div>
-                </div>
-                <div class="fm-password-modal-footer">
-                    <button class="fm-password-btn" id="password-submit">확인</button>
-                    <button class="fm-password-btn fm-password-btn-cancel" id="password-cancel">취소</button>
-                </div>
+        <!-- 우측: 상세 정보 -->
+        <div class="fm-details-panel">
+            <div class="fm-details-header">속성</div>
+            <div class="fm-details-content" id="fm-details-content">
+                <div class="fm-no-selection">항목을 선택하세요</div>
             </div>
         </div>
     </div>
 
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
-    
-    <script>
-        let currentPath = "/";
-        let selectedFiles = [];
-        let allFiles = [];
-        let clipboard = null;
-        let clipboardAction = null;
-        let currentView = 'list'; // 'list' or 'thumb'
-        let history = [];
-        let historyIndex = -1;
-        let folderTree;
-        let tempPassword = null;
-        let uploadXhr = null; // 업로드 요청 객체
-        let downloadXhr = null; // 다운로드 요청 객체
+    <!-- 컨텍스트 메뉴 -->
+    <div id="fm-context-menu" class="fm-context-menu">
+        <div class="fm-context-item" data-action="open">열기</div>
+        <div class="fm-context-item" data-action="download">다운로드</div>
+        <div class="fm-context-separator"></div>
+        <div class="fm-context-item" data-action="cut">잘라내기</div>
+        <div class="fm-context-item" data-action="copy">복사</div>
+        <div class="fm-context-item" data-action="paste" style="display: none;">붙여넣기</div>
+        <div class="fm-context-separator"></div>
+        <div class="fm-context-item" data-action="rename">이름 변경</div>
+        <div class="fm-context-item" data-action="delete">삭제</div>
+        <div class="fm-context-separator"></div>
+        <div class="fm-context-item" data-action="properties">속성</div>
+    </div>
 
-        $(document).ready(function() {
-            initFolderTree();
-            initEventHandlers();
-            initPasswordModal();
-            loadFiles(currentPath);
-            loadDiskUsage(); // 디스크 사용량 로드
+    <input type="file" id="file-input" multiple style="display: none;">
+
+    <!-- 업로드 로딩 스크린 -->
+    <div id="upload-loading-screen" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">파일 업로드 중...</div>
+            <div class="loading-percent" id="upload-percent">0%</div>
+            <div class="loading-bar-bg">
+                <div class="loading-bar-fill" id="upload-bar-fill"></div>
+            </div>
+            <div class="loading-file" id="upload-file-name">준비 중...</div>
+            <button class="cancel-btn" id="upload-cancel-btn">업로드 취소</button>
+        </div>
+    </div>
+
+    <!-- 다운로드 로딩 스크린 -->
+    <div id="download-loading-screen" class="loading-overlay" style="display: none;">
+        <div class="loading-content">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">다중 다운로드 준비 중입니다.</div>
+            <div class="loading-percent" id="download-percent">0%</div>
+            <div class="loading-bar-bg">
+                <div class="loading-bar-fill" id="download-bar-fill"></div>
+            </div>
+            <div class="loading-file" id="download-info">서버에서 압축 파일을 생성하고 있습니다...</div>
+            <button class="cancel-btn" id="download-cancel-btn">다운로드 중단</button>
+        </div>
+    </div>
+
+    <!-- 비밀번호 입력 모달 -->
+    <div id="password-modal" class="fm-password-modal" style="display: none;">
+        <div class="fm-password-modal-content">
+            <div class="fm-password-modal-header">
+                <h3>잠금 해제</h3>
+                <button class="fm-password-close" id="password-modal-close">&times;</button>
+            </div>
+            <div class="fm-password-modal-body">
+                <p>숨김 폴더에 접근하려면 비밀번호를 입력하세요.</p>
+                <input type="password" id="password-input" class="fm-password-input" placeholder="비밀번호 입력" autofocus>
+                <div id="password-error" class="fm-password-error" style="display: none;"></div>
+            </div>
+            <div class="fm-password-modal-footer">
+                <button class="fm-password-btn" id="password-submit">확인</button>
+                <button class="fm-password-btn fm-password-btn-cancel" id="password-cancel">취소</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jstree/3.3.12/jstree.min.js"></script>
+
+<script>
+    let currentPath = "/";
+    let selectedFiles = [];
+    let allFiles = [];
+    let clipboard = null;
+    let clipboardAction = null;
+    let currentView = 'list'; // 'list' or 'thumb'
+    let history = [];
+    let historyIndex = -1;
+    let folderTree;
+    let tempPassword = null;
+    let uploadXhr = null; // 업로드 요청 객체
+    let downloadXhr = null; // 다운로드 요청 객체
+
+    $(document).ready(function() {
+        initFolderTree();
+        initEventHandlers();
+        initPasswordModal();
+        loadFiles(currentPath);
+        loadDiskUsage(); // 디스크 사용량 로드
+    });
+
+    function initFolderTree() {
+        folderTree = $('#fm-tree').jstree({
+            'core': {
+                'data': {
+                    'url': '/filestorage/api/files/tree',
+                    'data': function (node) {
+                        return {
+                            'path': node.id === '#' ? '/' : node.id,
+                            'password': tempPassword
+                        };
+                    }
+                },
+                'check_callback': true,
+                'themes': {
+                    'name': 'default',
+                    'dots': false, // 점선 제거
+                    'icons': true
+                }
+            },
+            'plugins': ['dnd'],
+            'dnd': { 'is_draggable': () => true },
+            'types': {
+                'default': {
+                    'icon': 'jstree-folder',
+                    'li_attr': { 'class': 'jstree-folder-custom' }
+                }
+            }
         });
 
-        function initFolderTree() {
-            folderTree = $('#fm-tree').jstree({
-                'core': {
-                    'data': {
-                        'url': '/filestorage/api/files/tree',
-                        'data': function (node) {
-                            return {
-                                'path': node.id === '#' ? '/' : node.id,
-                                'password': tempPassword
-                            };
-                        }
-                    },
-                    'check_callback': true,
-                    'themes': {
-                        'name': 'default',
-                        'dots': false, // 점선 제거
-                        'icons': true
+        folderTree.on('select_node.jstree', function (e, data) {
+            const path = data.node.id === '#' ? '/' : data.node.id;
+            navigateTo(path);
+        });
+
+        folderTree.on('move_node.jstree', function (e, data) {
+            const from = data.node.id === '#' ? '/' : data.node.id;
+            const to = data.parent === '#' ? '/' : data.parent;
+            moveItem(from, to, true);
+        });
+    }
+
+    function initEventHandlers() {
+        // 툴바 버튼
+        $('#btn-back').click(() => historyBack());
+        $('#btn-forward').click(() => historyForward());
+        $('#btn-up').click(() => {
+            if (currentPath !== '/') {
+                const parts = currentPath.split('/').filter(p => p);
+                parts.pop();
+                navigateTo('/' + parts.join('/'));
+            }
+        });
+        $('#btn-refresh').click(() => {
+            loadFiles(currentPath);
+            if (folderTree && folderTree.jstree(true)) {
+                folderTree.jstree(true).refresh();
+            }
+            loadDiskUsage(); // 새로고침 시 디스크 사용량도 갱신
+        });
+        $('#btn-upload').click(() => $('#file-input').click());
+        $('#btn-new-folder').click(() => {
+            Swal.fire({
+                title: '새 폴더',
+                input: 'text',
+                inputPlaceholder: '폴더 이름을 입력하세요',
+                showCancelButton: true,
+                confirmButtonText: '만들기',
+                cancelButtonText: '취소',
+                inputValidator: (value) => {
+                    if (!value || !value.trim()) return '폴더 이름을 입력하세요.';
+                }
+            }).then((result) => {
+                if (result.isConfirmed && result.value) createFolder(result.value.trim());
+            });
+        });
+        $('#btn-copy').click(() => {
+            if (selectedFiles.length > 0) {
+                clipboard = selectedFiles[0];
+                clipboardAction = 'copy';
+                updateToolbar();
+                displayFiles(allFiles); // 복사 시 잘라낸 표시 제거
+            }
+        });
+        $('#btn-cut').click(() => {
+            if (selectedFiles.length > 0) {
+                clipboard = selectedFiles[0];
+                clipboardAction = 'cut';
+                updateToolbar();
+                displayFiles(allFiles); // 잘라낸 파일 표시 업데이트
+            }
+        });
+        $('#btn-paste').click(() => {
+            if (clipboard) {
+                moveItem(clipboard.id, currentPath, clipboardAction === 'cut');
+            }
+        });
+        $('#btn-rename').click(() => {
+            if (selectedFiles.length === 1) {
+                Swal.fire({
+                    title: '이름 변경',
+                    input: 'text',
+                    inputValue: selectedFiles[0].name,
+                    showCancelButton: true,
+                    confirmButtonText: '변경',
+                    cancelButtonText: '취소',
+                    inputValidator: (value) => {
+                        if (!value || !value.trim()) return '이름을 입력하세요.';
                     }
-                },
-                'plugins': ['dnd'],
-                'dnd': { 'is_draggable': () => true },
-                'types': {
-                    'default': { 
-                        'icon': 'jstree-folder',
-                        'li_attr': { 'class': 'jstree-folder-custom' }
-                    }
-                }
-            });
-
-            folderTree.on('select_node.jstree', function (e, data) {
-                const path = data.node.id === '#' ? '/' : data.node.id;
-                navigateTo(path);
-            });
-
-            folderTree.on('move_node.jstree', function (e, data) {
-                const from = data.node.id === '#' ? '/' : data.node.id;
-                const to = data.parent === '#' ? '/' : data.parent;
-                moveItem(from, to, true);
-            });
-        }
-
-        function initEventHandlers() {
-            // 툴바 버튼
-            $('#btn-back').click(() => historyBack());
-            $('#btn-forward').click(() => historyForward());
-            $('#btn-up').click(() => {
-                if (currentPath !== '/') {
-                    const parts = currentPath.split('/').filter(p => p);
-                    parts.pop();
-                    navigateTo('/' + parts.join('/'));
-                }
-            });
-            $('#btn-refresh').click(() => {
-                loadFiles(currentPath);
-                if (folderTree && folderTree.jstree(true)) {
-                    folderTree.jstree(true).refresh();
-                }
-                loadDiskUsage(); // 새로고침 시 디스크 사용량도 갱신
-            });
-            $('#btn-upload').click(() => $('#file-input').click());
-            $('#btn-new-folder').click(() => {
-                const name = prompt('폴더 이름:');
-                if (name) createFolder(name);
-            });
-            $('#btn-copy').click(() => {
-                if (selectedFiles.length > 0) {
-                    clipboard = selectedFiles[0];
-                    clipboardAction = 'copy';
-                    updateToolbar();
-                    displayFiles(allFiles); // 복사 시 잘라낸 표시 제거
-                }
-            });
-            $('#btn-cut').click(() => {
-                if (selectedFiles.length > 0) {
-                    clipboard = selectedFiles[0];
-                    clipboardAction = 'cut';
-                    updateToolbar();
-                    displayFiles(allFiles); // 잘라낸 파일 표시 업데이트
-                }
-            });
-            $('#btn-paste').click(() => {
-                if (clipboard) {
-                    moveItem(clipboard.id, currentPath, clipboardAction === 'cut');
-                }
-            });
-            $('#btn-rename').click(() => {
-                if (selectedFiles.length === 1) {
-                    const newName = prompt('새 이름:', selectedFiles[0].name);
-                    if (newName) renameItem(selectedFiles[0].id, newName);
-                }
-            });
-            $('#btn-delete').click(() => {
-                if (selectedFiles.length > 0 && confirm('삭제하시겠습니까?')) {
-                    deleteSelected();
-                }
-            });
-            $('#btn-download').click(() => {
-                if (selectedFiles.length > 0) {
-                    downloadSelected();
-                }
-            });
-            $('#btn-view-list').click(() => switchView('list'));
-            $('#btn-view-thumb').click(() => switchView('thumb'));
-
-            // 파일 입력
-            $('#file-input').change(function(e) {
-                const files = e.target.files;
-                if (files.length > 0) uploadFiles(files);
-            });
-
-            // 업로드 취소
-            $('#upload-cancel-btn').click(function() {
-                if (uploadXhr) {
-                    uploadXhr.abort();
-                }
-            });
-
-            // 다운로드 취소
-            $('#download-cancel-btn').click(function() {
-                if (downloadXhr) {
-                    downloadXhr.abort();
-                }
-            });
-
-            // 전체 선택
-            $('#check-all').change(function() {
-                $('.file-checkbox').prop('checked', $(this).prop('checked'));
-                updateSelection();
-            });
-
-            // 파일 선택 (리스트 뷰)
-            $(document).on('change', '.file-checkbox', updateSelection);
-            $(document).on('click', '.fm-file-item', function(e) {
-                if ($(e.target).is('input[type="checkbox"]')) return;
-                
-                const isCtrl = e.ctrlKey || e.metaKey;
-                const isShift = e.shiftKey;
-                const checkbox = $(this).find('.file-checkbox');
-                
-                if (isShift && selectedFiles.length > 0) {
-                    const $items = $('.fm-file-item');
-                    const currentIdx = $items.index($(this));
-                    const lastIdx = $items.index($('.fm-file-item:has(.file-checkbox:checked)').last());
-                    const start = Math.min(currentIdx, lastIdx);
-                    const end = Math.max(currentIdx, lastIdx);
-                    $items.slice(start, end + 1).find('.file-checkbox').prop('checked', true);
-                } else if (!isCtrl) {
-                    $('.file-checkbox').prop('checked', false);
-                    checkbox.prop('checked', true);
-                } else {
-                    checkbox.prop('checked', !checkbox.prop('checked'));
-                }
-                
-                updateSelection();
-            });
-
-            // 썸네일 선택
-            $(document).on('click', '.fm-thumb-item', function(e) {
-                if ($(e.target).is('input[type="checkbox"]')) return;
-                
-                const isCtrl = e.ctrlKey || e.metaKey;
-                const isShift = e.shiftKey;
-                const checkbox = $(this).find('.file-checkbox');
-                
-                if (isShift && selectedFiles.length > 0) {
-                    const $items = $('.fm-thumb-item');
-                    const currentIdx = $items.index($(this));
-                    const lastIdx = $items.index($('.fm-thumb-item:has(.file-checkbox:checked)').last());
-                    const start = Math.min(currentIdx, lastIdx);
-                    const end = Math.max(currentIdx, lastIdx);
-                    $items.slice(start, end + 1).find('.file-checkbox').prop('checked', true);
-                } else if (!isCtrl) {
-                    $('.file-checkbox').prop('checked', false);
-                    checkbox.prop('checked', true);
-                } else {
-                    checkbox.prop('checked', !checkbox.prop('checked'));
-                }
-                
-                updateSelection();
-            });
-
-            // 더블클릭 (리스트 뷰)
-            $(document).on('dblclick', '.fm-file-item.folder', function() {
-                const file = $(this).data('file');
-                navigateTo(file.id);
-            });
-            $(document).on('dblclick', '.fm-file-item.file', function() {
-                const file = $(this).data('file');
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(file.ext)) {
-                    window.open('/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true', '_blank');
-                } else {
-                    downloadFile(file.id);
-                }
-            });
-
-            // 더블클릭 (썸네일 뷰)
-            $(document).on('dblclick', '.fm-thumb-item.folder', function() {
-                const file = $(this).data('file');
-                navigateTo(file.id);
-            });
-            $(document).on('dblclick', '.fm-thumb-item.file', function() {
-                const file = $(this).data('file');
-                if (['jpg', 'jpeg', 'png', 'gif'].includes(file.ext)) {
-                    window.open('/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true', '_blank');
-                } else {
-                    downloadFile(file.id);
-                }
-            });
-
-            // 컨텍스트 메뉴 (리스트 뷰)
-            $(document).on('contextmenu', '.fm-file-item', function(e) {
-                e.preventDefault();
-                const file = $(this).data('file');
-                if (!selectedFiles.find(f => f.id === file.id)) {
-                    $('.file-checkbox').prop('checked', false);
-                    $(this).find('.file-checkbox').prop('checked', true);
-                    updateSelection();
-                }
-                showContextMenu(e.pageX, e.pageY);
-            });
-
-            // 컨텍스트 메뉴 (썸네일 뷰)
-            $(document).on('contextmenu', '.fm-thumb-item', function(e) {
-                e.preventDefault();
-                const file = $(this).data('file');
-                if (!selectedFiles.find(f => f.id === file.id)) {
-                    $('.file-checkbox').prop('checked', false);
-                    $(this).find('.file-checkbox').prop('checked', true);
-                    updateSelection();
-                }
-                showContextMenu(e.pageX, e.pageY);
-            });
-            $(document).on('click', function(e) {
-                if (!$(e.target).closest('#fm-context-menu').length) {
-                    $('#fm-context-menu').hide();
-                }
-            });
-            $(document).on('click', '.fm-context-item', function() {
-                const action = $(this).data('action');
-                handleContextAction(action);
-                $('#fm-context-menu').hide();
-            });
-
-            // 검색
-            $('#fm-search').on('keyup', function() {
-                const query = $(this).val().toLowerCase();
-                filterFiles(query);
-            });
-
-            // 키보드 단축키: 위로셋 아래로셋 위로일곱 (FileStorage와 동일)
-            (function() {
-                const sequence = [
-                    'ArrowUp','ArrowUp','ArrowUp',
-                    'ArrowDown','ArrowDown','ArrowDown',
-                    'ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp'
-                ];
-                let buffer = [];
-
-                $(document).on('keydown', function(e) {
-                    const key = e.key;
-                    buffer.push(key);
-                    if (buffer.length > sequence.length) buffer.shift();
-                    if (JSON.stringify(buffer) === JSON.stringify(sequence)) {
-                        buffer = [];
-                        showPasswordModal();
-                    }
+                }).then((result) => {
+                    if (result.isConfirmed && result.value) renameItem(selectedFiles[0].id, result.value.trim());
                 });
-            })();
+            }
+        });
+        $('#btn-delete').click(() => {
+            if (selectedFiles.length > 0) {
+                Swal.fire({
+                    icon: 'warning',
+                    title: '삭제 확인',
+                    text: selectedFiles.length + '개 항목을 삭제하시겠습니까?',
+                    showCancelButton: true,
+                    confirmButtonText: '삭제',
+                    cancelButtonText: '취소',
+                    confirmButtonColor: '#d33'
+                }).then((result) => {
+                    if (result.isConfirmed) deleteSelected();
+                });
+            }
+        });
+        $('#btn-download').click(() => {
+            if (selectedFiles.length > 0) {
+                downloadSelected();
+            }
+        });
+        $('#btn-view-list').click(() => switchView('list'));
+        $('#btn-view-thumb').click(() => switchView('thumb'));
 
-            // 드래그 앤 드롭 (항상 가능하되, 클릭/더블클릭은 그대로 유지)
-            let draggedFile = null;
-            let draggedElement = null;
+        // 파일 입력
+        $('#file-input').change(function(e) {
+            const files = e.target.files;
+            if (files.length > 0) uploadFiles(files);
+        });
 
-            $(document).on('dragstart', '.fm-file-item, .fm-thumb-item', function(e) {
-                draggedElement = $(this);
-                const file = $(this).data('file');
-                if (file) {
-                    draggedFile = file;
-                    $(this).addClass('fm-dragging');
-                    e.originalEvent.dataTransfer.effectAllowed = 'move';
-                    e.originalEvent.dataTransfer.setData('text/plain', file.id);
-                }
-            });
+        // 업로드 취소
+        $('#upload-cancel-btn').click(function() {
+            if (uploadXhr) {
+                uploadXhr.abort();
+            }
+        });
 
-            $(document).on('dragend', '.fm-file-item, .fm-thumb-item', function() {
-                $(this).removeClass('fm-dragging');
-                $('.fm-drop-target').removeClass('fm-drop-target');
-                draggedFile = null;
-                draggedElement = null;
-            });
+        // 다운로드 취소
+        $('#download-cancel-btn').click(function() {
+            if (downloadXhr) {
+                downloadXhr.abort();
+            }
+        });
 
-            $(document).on('dragover', '.fm-file-item.folder, .fm-thumb-item.folder', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                const targetFile = $(this).data('file');
-                if (draggedFile && targetFile && draggedFile.id !== targetFile.id) {
-                    $(this).addClass('fm-drop-target');
-                    e.originalEvent.dataTransfer.dropEffect = 'move';
-                }
-            });
+        // 전체 선택
+        $('#check-all').change(function() {
+            $('.file-checkbox').prop('checked', $(this).prop('checked'));
+            updateSelection();
+        });
 
-            $('#fm-tree').on('dragover', '.jstree-node', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (draggedFile) {
-                    $(this).addClass('fm-drop-target');
-                    e.originalEvent.dataTransfer.dropEffect = 'move';
-                }
-            });
+        // 파일 선택 (리스트 뷰)
+        $(document).on('change', '.file-checkbox', updateSelection);
+        $(document).on('click', '.fm-file-item', function(e) {
+            if ($(e.target).is('input[type="checkbox"]')) return;
 
-            $(document).on('dragleave', '.fm-file-item, .fm-thumb-item', function() {
-                $(this).removeClass('fm-drop-target');
-            });
+            const isCtrl = e.ctrlKey || e.metaKey;
+            const isShift = e.shiftKey;
+            const checkbox = $(this).find('.file-checkbox');
 
-            $('#fm-tree').on('dragleave', '.jstree-node', function() {
-                $(this).removeClass('fm-drop-target');
-            });
-
-            $(document).on('drop', '.fm-file-item.folder, .fm-thumb-item.folder', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $(this).removeClass('fm-drop-target');
-                
-                if (draggedFile) {
-                    const targetFile = $(this).data('file');
-                    if (targetFile && targetFile.type === 'folder' && draggedFile.id !== targetFile.id) {
-                        moveItem(draggedFile.id, targetFile.id, false);
-                    }
-                }
-            });
-
-            // 트리 노드에 드롭
-            $('#fm-tree').on('drop', '.jstree-node', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $(this).removeClass('fm-drop-target');
-                
-                if (draggedFile) {
-                    const $node = $(this);
-                    const nodeId = folderTree.jstree('get_node', $node).id;
-                    const targetPath = nodeId === '#' ? '/' : nodeId;
-                    if (draggedFile.id !== targetPath) {
-                        moveItem(draggedFile.id, targetPath, false);
-                    }
-                }
-            });
-
-            // 파일 영역에 드롭 (현재 폴더로 이동)
-            $(document).on('dragover', '.fm-view-container', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                if (draggedFile && draggedFile.id !== currentPath) {
-                    $(this).addClass('fm-drop-target');
-                    e.originalEvent.dataTransfer.dropEffect = 'move';
-                }
-            });
-
-            $(document).on('dragleave', '.fm-view-container', function() {
-                $(this).removeClass('fm-drop-target');
-            });
-
-            $(document).on('drop', '.fm-view-container', function(e) {
-                e.preventDefault();
-                e.stopPropagation();
-                $(this).removeClass('fm-drop-target');
-                
-                if (draggedFile && draggedFile.id !== currentPath) {
-                    moveItem(draggedFile.id, currentPath, false);
-                }
-            });
-        }
-
-        function loadFiles(path) {
-            $.ajax({
-                url: '/filestorage/api/files',
-                method: 'GET',
-                data: { path: path, password: tempPassword },
-                success: function(files) {
-                    allFiles = files;
-                    displayFiles(files);
-                    currentPath = path;
-                    updatePathBar(path);
-                    addToHistory(path);
-                    selectedFiles = [];
-                    updateSelection();
-                },
-                error: function(xhr) {
-                    alert('파일 목록을 불러오는데 실패했습니다.');
-                    console.error(xhr);
-                }
-            });
-        }
-
-        function displayFiles(files) {
-            if (currentView === 'list') {
-                displayListView(files);
+            if (isShift && selectedFiles.length > 0) {
+                const $items = $('.fm-file-item');
+                const currentIdx = $items.index($(this));
+                const lastIdx = $items.index($('.fm-file-item:has(.file-checkbox:checked)').last());
+                const start = Math.min(currentIdx, lastIdx);
+                const end = Math.max(currentIdx, lastIdx);
+                $items.slice(start, end + 1).find('.file-checkbox').prop('checked', true);
+            } else if (!isCtrl) {
+                $('.file-checkbox').prop('checked', false);
+                checkbox.prop('checked', true);
             } else {
-                displayThumbView(files);
-            }
-        }
-
-        function displayListView(files) {
-            const $tbody = $('#fm-list-body');
-            $tbody.empty();
-
-            if (files.length === 0) {
-                $tbody.html('<tr><td colspan="5" class="fm-empty">폴더가 비어있습니다.</td></tr>');
-                return;
+                checkbox.prop('checked', !checkbox.prop('checked'));
             }
 
-            files.sort((a, b) => {
-                if (a.type === 'folder' && b.type !== 'folder') return -1;
-                if (a.type !== 'folder' && b.type === 'folder') return 1;
-                return a.name.localeCompare(b.name);
-            });
+            updateSelection();
+        });
 
-            files.forEach(function(file) {
-                const icon = file.type === 'folder' ? '📁' : getFileIcon(file.ext);
-                const size = file.type === 'folder' ? '' : formatSize(file.size);
-                const type = file.type === 'folder' ? '폴더' : (file.ext ? file.ext.toUpperCase() : '파일');
-                const isCut = clipboard && clipboard.id === file.id && clipboardAction === 'cut';
-                const cutClass = isCut ? 'fm-cut-item' : '';
-                
-                const $row = $('<tr class="fm-file-item ' + file.type + ' ' + cutClass + '" draggable="true" data-file=\'' + JSON.stringify(file).replace(/'/g, "&#39;") + '\'>');
-                $row.html(
-                    '<td class="col-check"><input type="checkbox" class="file-checkbox"></td>' +
-                    '<td class="col-name"><span class="fm-file-icon">' + icon + '</span> ' + 
-                    (isCut ? '<span class="fm-cut-indicator">✂️</span> ' : '') + 
-                    file.name + '</td>' +
-                    '<td class="col-size">' + size + '</td>' +
-                    '<td class="col-date">' + formatDate(file.date) + '</td>' +
-                    '<td class="col-type">' + type + '</td>'
-                );
-                $tbody.append($row);
-            });
-        }
+        // 썸네일 선택
+        $(document).on('click', '.fm-thumb-item', function(e) {
+            if ($(e.target).is('input[type="checkbox"]')) return;
 
-        function displayThumbView(files) {
-            const $grid = $('#fm-thumb-grid');
-            $grid.empty();
+            const isCtrl = e.ctrlKey || e.metaKey;
+            const isShift = e.shiftKey;
+            const checkbox = $(this).find('.file-checkbox');
 
-            if (files.length === 0) {
-                $grid.html('<div class="fm-empty">폴더가 비어있습니다.</div>');
-                return;
+            if (isShift && selectedFiles.length > 0) {
+                const $items = $('.fm-thumb-item');
+                const currentIdx = $items.index($(this));
+                const lastIdx = $items.index($('.fm-thumb-item:has(.file-checkbox:checked)').last());
+                const start = Math.min(currentIdx, lastIdx);
+                const end = Math.max(currentIdx, lastIdx);
+                $items.slice(start, end + 1).find('.file-checkbox').prop('checked', true);
+            } else if (!isCtrl) {
+                $('.file-checkbox').prop('checked', false);
+                checkbox.prop('checked', true);
+            } else {
+                checkbox.prop('checked', !checkbox.prop('checked'));
             }
 
-            files.sort((a, b) => {
-                if (a.type === 'folder' && b.type !== 'folder') return -1;
-                if (a.type !== 'folder' && b.type === 'folder') return 1;
-                return a.name.localeCompare(b.name);
-            });
+            updateSelection();
+        });
 
-            files.forEach(function(file) {
-                const icon = file.type === 'folder' ? '📁' : getFileIcon(file.ext);
-                const size = file.type === 'folder' ? '' : formatSize(file.size);
-                const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(file.ext);
-                const isCut = clipboard && clipboard.id === file.id && clipboardAction === 'cut';
-                const cutClass = isCut ? 'fm-cut-item' : '';
-                
-                const $item = $('<div class="fm-thumb-item ' + file.type + ' ' + cutClass + '" draggable="true" data-file=\'' + JSON.stringify(file).replace(/'/g, "&#39;") + '\'>');
-                
-                let thumbHtml = '<div class="fm-thumb-check"><input type="checkbox" class="file-checkbox"></div>';
-                if (isImage) {
-                    thumbHtml += '<div class="fm-thumb-image"><img src="/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true" alt="' + file.name + '"></div>';
-                } else {
-                    thumbHtml += '<div class="fm-thumb-icon">' + icon + '</div>';
+        // 더블클릭 (리스트 뷰)
+        $(document).on('dblclick', '.fm-file-item.folder', function() {
+            const file = $(this).data('file');
+            navigateTo(file.id);
+        });
+        $(document).on('dblclick', '.fm-file-item.file', function() {
+            const file = $(this).data('file');
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(file.ext)) {
+                window.open('/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true', '_blank');
+            } else {
+                downloadFile(file.id);
+            }
+        });
+
+        // 더블클릭 (썸네일 뷰)
+        $(document).on('dblclick', '.fm-thumb-item.folder', function() {
+            const file = $(this).data('file');
+            navigateTo(file.id);
+        });
+        $(document).on('dblclick', '.fm-thumb-item.file', function() {
+            const file = $(this).data('file');
+            if (['jpg', 'jpeg', 'png', 'gif'].includes(file.ext)) {
+                window.open('/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true', '_blank');
+            } else {
+                downloadFile(file.id);
+            }
+        });
+
+        // 컨텍스트 메뉴 (리스트 뷰)
+        $(document).on('contextmenu', '.fm-file-item', function(e) {
+            e.preventDefault();
+            const file = $(this).data('file');
+            if (!selectedFiles.find(f => f.id === file.id)) {
+                $('.file-checkbox').prop('checked', false);
+                $(this).find('.file-checkbox').prop('checked', true);
+                updateSelection();
+            }
+            showContextMenu(e.pageX, e.pageY);
+        });
+
+        // 컨텍스트 메뉴 (썸네일 뷰)
+        $(document).on('contextmenu', '.fm-thumb-item', function(e) {
+            e.preventDefault();
+            const file = $(this).data('file');
+            if (!selectedFiles.find(f => f.id === file.id)) {
+                $('.file-checkbox').prop('checked', false);
+                $(this).find('.file-checkbox').prop('checked', true);
+                updateSelection();
+            }
+            showContextMenu(e.pageX, e.pageY);
+        });
+        $(document).on('click', function(e) {
+            if (!$(e.target).closest('#fm-context-menu').length) {
+                $('#fm-context-menu').hide();
+            }
+        });
+        $(document).on('click', '.fm-context-item', function() {
+            const action = $(this).data('action');
+            handleContextAction(action);
+            $('#fm-context-menu').hide();
+        });
+
+        // 검색
+        $('#fm-search').on('keyup', function() {
+            const query = $(this).val().toLowerCase();
+            filterFiles(query);
+        });
+
+        // 키보드 단축키: 위로셋 아래로셋 위로일곱 (FileStorage와 동일)
+        (function() {
+            const sequence = [
+                'ArrowUp','ArrowUp','ArrowUp',
+                'ArrowDown','ArrowDown','ArrowDown',
+                'ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp','ArrowUp'
+            ];
+            let buffer = [];
+
+            $(document).on('keydown', function(e) {
+                const key = e.key;
+                buffer.push(key);
+                if (buffer.length > sequence.length) buffer.shift();
+                if (JSON.stringify(buffer) === JSON.stringify(sequence)) {
+                    buffer = [];
+                    showPasswordModal();
                 }
-                thumbHtml += '<div class="fm-thumb-name">' + 
-                    (isCut ? '<span class="fm-cut-indicator">✂️</span> ' : '') + 
-                    file.name + '</div>';
-                if (file.type === 'file') {
-                    thumbHtml += '<div class="fm-thumb-size">' + size + '</div>';
+            });
+        })();
+
+        // 드래그 앤 드롭 (항상 가능하되, 클릭/더블클릭은 그대로 유지)
+        let draggedFile = null;
+        let draggedElement = null;
+
+        $(document).on('dragstart', '.fm-file-item, .fm-thumb-item', function(e) {
+            draggedElement = $(this);
+            const file = $(this).data('file');
+            if (file) {
+                draggedFile = file;
+                $(this).addClass('fm-dragging');
+                e.originalEvent.dataTransfer.effectAllowed = 'move';
+                e.originalEvent.dataTransfer.setData('text/plain', file.id);
+            }
+        });
+
+        $(document).on('dragend', '.fm-file-item, .fm-thumb-item', function() {
+            $(this).removeClass('fm-dragging');
+            $('.fm-drop-target').removeClass('fm-drop-target');
+            draggedFile = null;
+            draggedElement = null;
+        });
+
+        $(document).on('dragover', '.fm-file-item.folder, .fm-thumb-item.folder', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const targetFile = $(this).data('file');
+            if (draggedFile && targetFile && draggedFile.id !== targetFile.id) {
+                $(this).addClass('fm-drop-target');
+                e.originalEvent.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        $('#fm-tree').on('dragover', '.jstree-node', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (draggedFile) {
+                $(this).addClass('fm-drop-target');
+                e.originalEvent.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        $(document).on('dragleave', '.fm-file-item, .fm-thumb-item', function() {
+            $(this).removeClass('fm-drop-target');
+        });
+
+        $('#fm-tree').on('dragleave', '.jstree-node', function() {
+            $(this).removeClass('fm-drop-target');
+        });
+
+        $(document).on('drop', '.fm-file-item.folder, .fm-thumb-item.folder', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('fm-drop-target');
+
+            if (draggedFile) {
+                const targetFile = $(this).data('file');
+                if (targetFile && targetFile.type === 'folder' && draggedFile.id !== targetFile.id) {
+                    moveItem(draggedFile.id, targetFile.id, false);
                 }
-                
-                $item.html(thumbHtml);
-                $grid.append($item);
-            });
+            }
+        });
+
+        // 트리 노드에 드롭
+        $('#fm-tree').on('drop', '.jstree-node', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('fm-drop-target');
+
+            if (draggedFile) {
+                const $node = $(this);
+                const nodeId = folderTree.jstree('get_node', $node).id;
+                const targetPath = nodeId === '#' ? '/' : nodeId;
+                if (draggedFile.id !== targetPath) {
+                    moveItem(draggedFile.id, targetPath, false);
+                }
+            }
+        });
+
+        // 파일 영역에 드롭 (현재 폴더로 이동)
+        $(document).on('dragover', '.fm-view-container', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (draggedFile && draggedFile.id !== currentPath) {
+                $(this).addClass('fm-drop-target');
+                e.originalEvent.dataTransfer.dropEffect = 'move';
+            }
+        });
+
+        $(document).on('dragleave', '.fm-view-container', function() {
+            $(this).removeClass('fm-drop-target');
+        });
+
+        $(document).on('drop', '.fm-view-container', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            $(this).removeClass('fm-drop-target');
+
+            if (draggedFile && draggedFile.id !== currentPath) {
+                moveItem(draggedFile.id, currentPath, false);
+            }
+        });
+    }
+
+    function loadFiles(path) {
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'GET',
+            data: { path: path, password: tempPassword },
+            success: function(files) {
+                allFiles = files;
+                displayFiles(files);
+                currentPath = path;
+                updatePathBar(path);
+                addToHistory(path);
+                selectedFiles = [];
+                updateSelection();
+            },
+            error: function(xhr) {
+                Swal.fire({ icon: 'error', title: '오류', text: '파일 목록을 불러오는데 실패했습니다.' });
+                console.error(xhr);
+            }
+        });
+    }
+
+    function displayFiles(files) {
+        if (currentView === 'list') {
+            displayListView(files);
+        } else {
+            displayThumbView(files);
+        }
+    }
+
+    function displayListView(files) {
+        const $tbody = $('#fm-list-body');
+        $tbody.empty();
+
+        if (files.length === 0) {
+            $tbody.html('<tr><td colspan="5" class="fm-empty">폴더가 비어있습니다.</td></tr>');
+            return;
         }
 
-        function switchView(view) {
-            currentView = view;
-            $('#btn-view-list, #btn-view-thumb').removeClass('active');
-            $('#btn-view-' + view).addClass('active');
-            $('#fm-list-view, #fm-thumb-view').hide();
-            $('#fm-' + view + '-view').show();
-            displayFiles(allFiles);
+        files.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') return -1;
+            if (a.type !== 'folder' && b.type === 'folder') return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        files.forEach(function(file) {
+            const icon = file.type === 'folder' ? '📁' : getFileIcon(file.ext);
+            const size = file.type === 'folder' ? '' : formatSize(file.size);
+            const type = file.type === 'folder' ? '폴더' : (file.ext ? file.ext.toUpperCase() : '파일');
+            const isCut = clipboard && clipboard.id === file.id && clipboardAction === 'cut';
+            const cutClass = isCut ? 'fm-cut-item' : '';
+
+            const $row = $('<tr class="fm-file-item ' + file.type + ' ' + cutClass + '" draggable="true" data-file=\'' + JSON.stringify(file).replace(/'/g, "&#39;") + '\'>');
+            $row.html(
+                '<td class="col-check"><input type="checkbox" class="file-checkbox"></td>' +
+                '<td class="col-name"><span class="fm-file-icon">' + icon + '</span> ' +
+                (isCut ? '<span class="fm-cut-indicator">✂️</span> ' : '') +
+                file.name + '</td>' +
+                '<td class="col-size">' + size + '</td>' +
+                '<td class="col-date">' + formatDate(file.date) + '</td>' +
+                '<td class="col-type">' + type + '</td>'
+            );
+            $tbody.append($row);
+        });
+    }
+
+    function displayThumbView(files) {
+        const $grid = $('#fm-thumb-grid');
+        $grid.empty();
+
+        if (files.length === 0) {
+            $grid.html('<div class="fm-empty">폴더가 비어있습니다.</div>');
+            return;
         }
 
-        function updateSelection() {
-            selectedFiles = [];
-            $('.file-checkbox:checked').each(function() {
-                const $item = $(this).closest('.fm-file-item, .fm-thumb-item');
-                const file = $item.data('file');
-                if (file) selectedFiles.push(file);
-            });
-            
-            $('#check-all').prop('checked', allFiles.length > 0 && selectedFiles.length === allFiles.length);
-            updateStats();
-            updateDetails();
-            updateToolbar();
+        files.sort((a, b) => {
+            if (a.type === 'folder' && b.type !== 'folder') return -1;
+            if (a.type !== 'folder' && b.type === 'folder') return 1;
+            return a.name.localeCompare(b.name);
+        });
+
+        files.forEach(function(file) {
+            const icon = file.type === 'folder' ? '📁' : getFileIcon(file.ext);
+            const size = file.type === 'folder' ? '' : formatSize(file.size);
+            const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(file.ext);
+            const isCut = clipboard && clipboard.id === file.id && clipboardAction === 'cut';
+            const cutClass = isCut ? 'fm-cut-item' : '';
+
+            const $item = $('<div class="fm-thumb-item ' + file.type + ' ' + cutClass + '" draggable="true" data-file=\'' + JSON.stringify(file).replace(/'/g, "&#39;") + '\'>');
+
+            let thumbHtml = '<div class="fm-thumb-check"><input type="checkbox" class="file-checkbox"></div>';
+            if (isImage) {
+                thumbHtml += '<div class="fm-thumb-image"><img src="/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true" alt="' + file.name + '"></div>';
+            } else {
+                thumbHtml += '<div class="fm-thumb-icon">' + icon + '</div>';
+            }
+            thumbHtml += '<div class="fm-thumb-name">' +
+                (isCut ? '<span class="fm-cut-indicator">✂️</span> ' : '') +
+                file.name + '</div>';
+            if (file.type === 'file') {
+                thumbHtml += '<div class="fm-thumb-size">' + size + '</div>';
+            }
+
+            $item.html(thumbHtml);
+            $grid.append($item);
+        });
+    }
+
+    function switchView(view) {
+        currentView = view;
+        $('#btn-view-list, #btn-view-thumb').removeClass('active');
+        $('#btn-view-' + view).addClass('active');
+        $('#fm-list-view, #fm-thumb-view').hide();
+        $('#fm-' + view + '-view').show();
+        displayFiles(allFiles);
+    }
+
+    function updateSelection() {
+        selectedFiles = [];
+        $('.file-checkbox:checked').each(function() {
+            const $item = $(this).closest('.fm-file-item, .fm-thumb-item');
+            const file = $item.data('file');
+            if (file) selectedFiles.push(file);
+        });
+
+        $('#check-all').prop('checked', allFiles.length > 0 && selectedFiles.length === allFiles.length);
+        updateStats();
+        updateDetails();
+        updateToolbar();
+    }
+
+    function updateStats() {
+        $('#stat-selected').text(selectedFiles.length);
+        let totalSize = 0;
+        selectedFiles.forEach(f => {
+            if (f.type === 'file') totalSize += f.size;
+        });
+        $('#stat-size').text(formatSize(totalSize));
+    }
+
+    function updateDetails() {
+        const $content = $('#fm-details-content');
+
+        if (selectedFiles.length === 0) {
+            $content.html('<div class="fm-no-selection">항목을 선택하세요</div>');
+            return;
         }
 
-        function updateStats() {
-            $('#stat-selected').text(selectedFiles.length);
+        if (selectedFiles.length === 1) {
+            const file = selectedFiles[0];
+            const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(file.ext);
+            const previewHtml = isImage ?
+                '<div class="fm-preview"><img src="/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true" alt="' + file.name + '"></div>' :
+                '<div class="fm-preview-icon">' + (file.type === 'folder' ? '📁' : getFileIcon(file.ext)) + '</div>';
+
+            $content.html(
+                previewHtml +
+                '<div class="fm-detail-list">' +
+                '<div class="fm-detail-row"><span class="fm-detail-label">이름:</span><span class="fm-detail-value">' + file.name + '</span></div>' +
+                '<div class="fm-detail-row"><span class="fm-detail-label">유형:</span><span class="fm-detail-value">' + (file.type === 'folder' ? '폴더' : (file.ext ? file.ext.toUpperCase() + ' 파일' : '파일')) + '</span></div>' +
+                (file.type === 'file' ? '<div class="fm-detail-row"><span class="fm-detail-label">크기:</span><span class="fm-detail-value">' + formatSize(file.size) + '</span></div>' : '') +
+                '<div class="fm-detail-row"><span class="fm-detail-label">수정일:</span><span class="fm-detail-value">' + formatDate(file.date) + '</span></div>' +
+                '<div class="fm-detail-row"><span class="fm-detail-label">경로:</span><span class="fm-detail-value fm-path">' + file.id + '</span></div>' +
+                '</div>'
+            );
+        } else {
             let totalSize = 0;
             selectedFiles.forEach(f => {
                 if (f.type === 'file') totalSize += f.size;
             });
-            $('#stat-size').text(formatSize(totalSize));
-        }
 
-        function updateDetails() {
-            const $content = $('#fm-details-content');
-            
-            if (selectedFiles.length === 0) {
-                $content.html('<div class="fm-no-selection">항목을 선택하세요</div>');
-                return;
+            $content.html(
+                '<div class="fm-preview-icon">📄</div>' +
+                '<div class="fm-detail-list">' +
+                '<div class="fm-detail-row"><span class="fm-detail-label">선택된 항목:</span><span class="fm-detail-value">' + selectedFiles.length + '개</span></div>' +
+                '<div class="fm-detail-row"><span class="fm-detail-label">총 크기:</span><span class="fm-detail-value">' + formatSize(totalSize) + '</span></div>' +
+                '</div>'
+            );
+        }
+    }
+
+    function updateToolbar() {
+        $('#btn-paste').prop('disabled', !clipboard);
+        $('#btn-copy, #btn-cut, #btn-rename, #btn-delete, #btn-download').prop('disabled', selectedFiles.length === 0);
+    }
+
+    function updatePathBar(path) {
+        const $pathBar = $('#fm-path-bar');
+        $pathBar.empty();
+
+        // Root (Home)
+        const $root = $('<span class="fm-path-segment" data-path="/">Home</span>');
+        $root.click(() => navigateTo('/'));
+        $pathBar.append($root);
+
+        if (path === '/' || !path) return;
+
+        const parts = path.split('/').filter(p => p);
+        let currentBuild = '';
+
+        parts.forEach((part, index) => {
+            currentBuild += '/' + part;
+            $pathBar.append('<span class="fm-path-separator">/</span>');
+
+            const targetPath = currentBuild;
+            const isLast = index === parts.length - 1;
+
+            const $part = $('<span class="fm-path-segment ' + (isLast ? 'fm-path-current' : '') + '">' + part + '</span>');
+            if (!isLast) {
+                $part.click(() => navigateTo(targetPath));
             }
+            $pathBar.append($part);
+        });
+    }
 
-            if (selectedFiles.length === 1) {
-                const file = selectedFiles[0];
-                const isImage = ['jpg', 'jpeg', 'png', 'gif'].includes(file.ext);
-                const previewHtml = isImage ? 
-                    '<div class="fm-preview"><img src="/filestorage/api/files/download?path=' + encodeURIComponent(file.id) + '&preview=true" alt="' + file.name + '"></div>' :
-                    '<div class="fm-preview-icon">' + (file.type === 'folder' ? '📁' : getFileIcon(file.ext)) + '</div>';
-                
-                $content.html(
-                    previewHtml +
-                    '<div class="fm-detail-list">' +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">이름:</span><span class="fm-detail-value">' + file.name + '</span></div>' +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">유형:</span><span class="fm-detail-value">' + (file.type === 'folder' ? '폴더' : (file.ext ? file.ext.toUpperCase() + ' 파일' : '파일')) + '</span></div>' +
-                        (file.type === 'file' ? '<div class="fm-detail-row"><span class="fm-detail-label">크기:</span><span class="fm-detail-value">' + formatSize(file.size) + '</span></div>' : '') +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">수정일:</span><span class="fm-detail-value">' + formatDate(file.date) + '</span></div>' +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">경로:</span><span class="fm-detail-value fm-path">' + file.id + '</span></div>' +
-                    '</div>'
-                );
-            } else {
-                let totalSize = 0;
-                selectedFiles.forEach(f => {
-                    if (f.type === 'file') totalSize += f.size;
-                });
-                
-                $content.html(
-                    '<div class="fm-preview-icon">📄</div>' +
-                    '<div class="fm-detail-list">' +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">선택된 항목:</span><span class="fm-detail-value">' + selectedFiles.length + '개</span></div>' +
-                        '<div class="fm-detail-row"><span class="fm-detail-label">총 크기:</span><span class="fm-detail-value">' + formatSize(totalSize) + '</span></div>' +
-                    '</div>'
-                );
-            }
+    function navigateTo(path) {
+        loadFiles(path);
+    }
+
+    function addToHistory(path) {
+        if (history[historyIndex] !== path) {
+            history = history.slice(0, historyIndex + 1);
+            history.push(path);
+            historyIndex = history.length - 1;
         }
+        $('#btn-back').prop('disabled', historyIndex <= 0);
+        $('#btn-forward').prop('disabled', historyIndex >= history.length - 1);
+    }
 
-        function updateToolbar() {
-            $('#btn-paste').prop('disabled', !clipboard);
-            $('#btn-copy, #btn-cut, #btn-rename, #btn-delete, #btn-download').prop('disabled', selectedFiles.length === 0);
+    function historyBack() {
+        if (historyIndex > 0) {
+            historyIndex--;
+            loadFiles(history[historyIndex]);
         }
+    }
 
-        function updatePathBar(path) {
-            const $pathBar = $('#fm-path-bar');
-            $pathBar.empty();
-
-            // Root (Home)
-            const $root = $('<span class="fm-path-segment" data-path="/">Home</span>');
-            $root.click(() => navigateTo('/'));
-            $pathBar.append($root);
-
-            if (path === '/' || !path) return;
-
-            const parts = path.split('/').filter(p => p);
-            let currentBuild = '';
-
-            parts.forEach((part, index) => {
-                currentBuild += '/' + part;
-                $pathBar.append('<span class="fm-path-separator">/</span>');
-
-                const targetPath = currentBuild;
-                const isLast = index === parts.length - 1;
-
-                const $part = $('<span class="fm-path-segment ' + (isLast ? 'fm-path-current' : '') + '">' + part + '</span>');
-                if (!isLast) {
-                    $part.click(() => navigateTo(targetPath));
-                }
-                $pathBar.append($part);
-            });
+    function historyForward() {
+        if (historyIndex < history.length - 1) {
+            historyIndex++;
+            loadFiles(history[historyIndex]);
         }
+    }
 
-        function navigateTo(path) {
-            loadFiles(path);
+    function getFileIcon(ext) {
+        const icons = {
+            'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
+            'pdf': '📕', 'doc': '📄', 'docx': '📄',
+            'xls': '📊', 'xlsx': '📊', 'mp4': '🎬', 'avi': '🎬',
+            'mp3': '🎵', 'wav': '🎵', 'zip': '📦', 'rar': '📦'
+        };
+        return icons[ext] || '📄';
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+    }
+
+    function formatDate(timestamp) {
+        const date = new Date(timestamp);
+        return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
+    }
+
+    function filterFiles(query) {
+        if (!query) {
+            displayFiles(allFiles);
+            return;
         }
+        const filtered = allFiles.filter(f => f.name.toLowerCase().includes(query));
+        displayFiles(filtered);
+    }
 
-        function addToHistory(path) {
-            if (history[historyIndex] !== path) {
-                history = history.slice(0, historyIndex + 1);
-                history.push(path);
-                historyIndex = history.length - 1;
-            }
-            $('#btn-back').prop('disabled', historyIndex <= 0);
-            $('#btn-forward').prop('disabled', historyIndex >= history.length - 1);
+    function uploadFiles(files) {
+        const formData = new FormData();
+        for (let i = 0; i < files.length; i++) {
+            formData.append('file', files[i]);
         }
+        formData.append('path', currentPath);
 
-        function historyBack() {
-            if (historyIndex > 0) {
-                historyIndex--;
-                loadFiles(history[historyIndex]);
-            }
-        }
+        // 업로드 모달 보이기
+        $('#upload-loading-screen').fadeIn(200);
+        $('#upload-percent').text('0%');
+        $('#upload-bar-fill').css('width', '0%');
 
-        function historyForward() {
-            if (historyIndex < history.length - 1) {
-                historyIndex++;
-                loadFiles(history[historyIndex]);
-            }
-        }
+        let fileNames = Array.from(files).map(f => f.name).join(', ');
+        if (fileNames.length > 50) fileNames = fileNames.substring(0, 47) + '...';
+        $('#upload-file-name').text('파일: ' + fileNames);
 
-        function getFileIcon(ext) {
-            const icons = {
-                'jpg': '🖼️', 'jpeg': '🖼️', 'png': '🖼️', 'gif': '🖼️',
-                'pdf': '📕', 'doc': '📄', 'docx': '📄',
-                'xls': '📊', 'xlsx': '📊', 'mp4': '🎬', 'avi': '🎬',
-                'mp3': '🎵', 'wav': '🎵', 'zip': '📦', 'rar': '📦'
-            };
-            return icons[ext] || '📄';
-        }
-
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
-        }
-
-        function formatDate(timestamp) {
-            const date = new Date(timestamp);
-            return date.toLocaleDateString('ko-KR') + ' ' + date.toLocaleTimeString('ko-KR', {hour: '2-digit', minute: '2-digit'});
-        }
-
-        function filterFiles(query) {
-            if (!query) {
-                displayFiles(allFiles);
-                return;
-            }
-            const filtered = allFiles.filter(f => f.name.toLowerCase().includes(query));
-            displayFiles(filtered);
-        }
-
-        function uploadFiles(files) {
-            const formData = new FormData();
-            for (let i = 0; i < files.length; i++) {
-                formData.append('file', files[i]);
-            }
-            formData.append('path', currentPath);
-
-            // 업로드 모달 보이기
-            $('#upload-loading-screen').fadeIn(200);
-            $('#upload-percent').text('0%');
-            $('#upload-bar-fill').css('width', '0%');
-
-            let fileNames = Array.from(files).map(f => f.name).join(', ');
-            if (fileNames.length > 50) fileNames = fileNames.substring(0, 47) + '...';
-            $('#upload-file-name').text('파일: ' + fileNames);
-
-            uploadXhr = $.ajax({
-                url: '/filestorage/api/files/upload',
-                method: 'POST',
-                data: formData,
-                processData: false,
-                contentType: false,
-                xhr: function() {
-                    const xhr = new window.XMLHttpRequest();
-                    xhr.upload.addEventListener('progress', function(evt) {
-                        if (evt.lengthComputable) {
-                            const percentComplete = Math.round((evt.loaded / evt.total) * 100);
-                            $('#upload-percent').text(percentComplete + '%');
-                            $('#upload-bar-fill').css('width', percentComplete + '%');
-                        }
-                    }, false);
-                    return xhr;
-                },
-                success: function() {
-                    // alert('업로드 완료 (' + files.length + '개 파일)');
-                    loadFiles(currentPath);
-                    $('#file-input').val('');
-                    loadDiskUsage(); // 업로드 후 디스크 사용량 갱신
-                },
-                error: function(xhr) {
-                    if (xhr.statusText === 'abort') {
-                        alert('업로드가 취소되었습니다.');
-                    } else {
-                        alert('업로드 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
+        uploadXhr = $.ajax({
+            url: '/filestorage/api/files/upload',
+            method: 'POST',
+            data: formData,
+            processData: false,
+            contentType: false,
+            xhr: function() {
+                const xhr = new window.XMLHttpRequest();
+                xhr.upload.addEventListener('progress', function(evt) {
+                    if (evt.lengthComputable) {
+                        const percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                        $('#upload-percent').text(percentComplete + '%');
+                        $('#upload-bar-fill').css('width', percentComplete + '%');
                     }
-                },
-                complete: function() {
-                    // 모달 숨기기 및 초기화
-                    $('#upload-loading-screen').fadeOut(200);
-                    uploadXhr = null;
+                }, false);
+                return xhr;
+            },
+            success: function() {
+                // alert('업로드 완료 (' + files.length + '개 파일)');
+                loadFiles(currentPath);
+                $('#file-input').val('');
+                loadDiskUsage(); // 업로드 후 디스크 사용량 갱신
+            },
+            error: function(xhr) {
+                if (xhr.statusText === 'abort') {
+                    Swal.fire({ icon: 'warning', title: '취소됨', text: '업로드가 취소되었습니다.' });
+                } else {
+                    Swal.fire({ icon: 'error', title: '업로드 실패', text: xhr.responseJSON?.message || xhr.statusText });
                 }
-            });
-        }
+            },
+            complete: function() {
+                // 모달 숨기기 및 초기화
+                $('#upload-loading-screen').fadeOut(200);
+                uploadXhr = null;
+            }
+        });
+    }
 
-        function createFolder(name) {
-            $.ajax({
-                url: '/filestorage/api/files',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ path: currentPath, name: name, type: 'folder' }),
-                success: function() {
-                    loadFiles(currentPath);
-                    folderTree.jstree('refresh');
-                },
-                error: function(xhr) {
-                    alert('폴더 생성 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
-                }
-            });
-        }
-
-        function deleteSelected() {
-            const promises = selectedFiles.map(file => {
-                return $.ajax({
-                    url: '/filestorage/api/files',
-                    method: 'DELETE',
-                    data: { path: file.id }
-                });
-            });
-
-            Promise.all(promises).then(() => {
-                alert('삭제 완료');
+    function createFolder(name) {
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ path: currentPath, name: name, type: 'folder' }),
+            success: function() {
                 loadFiles(currentPath);
                 folderTree.jstree('refresh');
-                loadDiskUsage(); // 삭제 후 디스크 사용량 갱신
-            }).catch(function(xhr) {
-                alert('삭제 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
-            });
-        }
+            },
+            error: function(xhr) {
+                Swal.fire({ icon: 'error', title: '폴더 생성 실패', text: xhr.responseJSON?.message || xhr.statusText });
+            }
+        });
+    }
 
-        function renameItem(path, newName) {
-            $.ajax({
+    function deleteSelected() {
+        const promises = selectedFiles.map(file => {
+            return $.ajax({
                 url: '/filestorage/api/files',
-                method: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify({ action: 'rename', path: path, newName: newName }),
-                success: function() {
-                    loadFiles(currentPath);
-                    folderTree.jstree('refresh');
-                },
-                error: function(xhr) {
-                    alert('이름 변경 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
-                }
+                method: 'DELETE',
+                data: { path: file.id }
             });
-        }
+        });
 
-        function downloadFile(path) {
-            window.location.href = '/filestorage/api/files/download?path=' + encodeURIComponent(path);
-        }
+        Promise.all(promises).then(() => {
+            Swal.fire({ icon: 'success', title: '삭제 완료', timer: 1500, showConfirmButton: false });
+            loadFiles(currentPath);
+            folderTree.jstree('refresh');
+            loadDiskUsage(); // 삭제 후 디스크 사용량 갱신
+        }).catch(function(xhr) {
+            Swal.fire({ icon: 'error', title: '삭제 실패', text: xhr.responseJSON?.message || xhr.statusText });
+        });
+    }
 
-        function downloadSelected() {
-            const filePaths = selectedFiles.filter(f => f.type === 'file').map(f => f.id);
-            if (filePaths.length === 0) {
-                alert('다운로드할 파일을 선택하세요.');
-                return;
+    function renameItem(path, newName) {
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ action: 'rename', path: path, newName: newName }),
+            success: function() {
+                loadFiles(currentPath);
+                folderTree.jstree('refresh');
+            },
+            error: function(xhr) {
+                Swal.fire({ icon: 'error', title: '이름 변경 실패', text: xhr.responseJSON?.message || xhr.statusText });
             }
-            
-            if (filePaths.length === 1) {
-                downloadFile(filePaths[0]);
-            } else {
-                downloadMultipleFiles(filePaths);
-            }
+        });
+    }
+
+    function downloadFile(path) {
+        window.location.href = '/filestorage/api/files/download?path=' + encodeURIComponent(path);
+    }
+
+    function downloadSelected() {
+        const filePaths = selectedFiles.filter(f => f.type === 'file').map(f => f.id);
+        if (filePaths.length === 0) {
+            Swal.fire({ icon: 'info', title: '선택 없음', text: '다운로드할 파일을 선택하세요.' });
+            return;
         }
 
-        function downloadMultipleFiles(paths) {
-            // 모달 표시
-            $('#download-loading-screen').fadeIn(200);
-            $('#download-percent').text('0%');
-            $('#download-bar-fill').css('width', '0%');
-            $('#download-info').text('서버에서 압축 파일을 생성하고 있습니다...');
+        if (filePaths.length === 1) {
+            downloadFile(filePaths[0]);
+        } else {
+            downloadMultipleFiles(filePaths);
+        }
+    }
 
-            downloadXhr = $.ajax({
-                url: '/filestorage/api/files/download-multiple',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ paths: paths }),
-                xhrFields: {
-                    responseType: 'blob'
-                },
-                xhr: function() {
-                    const xhr = new window.XMLHttpRequest();
-                    xhr.addEventListener('progress', function(evt) {
-                        if (evt.lengthComputable) {
-                            const percentComplete = Math.round((evt.loaded / evt.total) * 100);
-                            $('#download-percent').text(percentComplete + '%');
-                            $('#download-bar-fill').css('width', percentComplete + '%');
-                            $('#download-info').text(formatSize(evt.loaded) + ' / ' + formatSize(evt.total));
-                        } else {
-                            $('#download-percent').text('');
-                            $('#download-bar-fill').css('width', '100%');
-                            $('#download-info').text(formatSize(evt.loaded) + ' 다운로드 중...');
-                        }
-                    }, false);
-                    return xhr;
-                },
-                success: function(blob) {
-                    const url = window.URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = 'files_' + Date.now() + '.zip';
-                    document.body.appendChild(a);
-                    a.click();
-                    window.URL.revokeObjectURL(url);
-                    document.body.removeChild(a);
-                },
-                error: function(xhr) {
-                    if (xhr.statusText === 'abort') {
-                        alert('다운로드가 중단되었습니다.');
+    function downloadMultipleFiles(paths) {
+        // 모달 표시
+        $('#download-loading-screen').fadeIn(200);
+        $('#download-percent').text('0%');
+        $('#download-bar-fill').css('width', '0%');
+        $('#download-info').text('서버에서 압축 파일을 생성하고 있습니다...');
+
+        downloadXhr = $.ajax({
+            url: '/filestorage/api/files/download-multiple',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ paths: paths }),
+            xhrFields: {
+                responseType: 'blob'
+            },
+            xhr: function() {
+                const xhr = new window.XMLHttpRequest();
+                xhr.addEventListener('progress', function(evt) {
+                    if (evt.lengthComputable) {
+                        const percentComplete = Math.round((evt.loaded / evt.total) * 100);
+                        $('#download-percent').text(percentComplete + '%');
+                        $('#download-bar-fill').css('width', percentComplete + '%');
+                        $('#download-info').text(formatSize(evt.loaded) + ' / ' + formatSize(evt.total));
                     } else {
-                        alert('다운로드 실패: ' + (xhr.responseJSON?.message || xhr.statusText));
+                        $('#download-percent').text('');
+                        $('#download-bar-fill').css('width', '100%');
+                        $('#download-info').text(formatSize(evt.loaded) + ' 다운로드 중...');
                     }
-                },
-                complete: function() {
-                    $('#download-loading-screen').fadeOut(200);
-                    downloadXhr = null;
+                }, false);
+                return xhr;
+            },
+            success: function(blob) {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'files_' + Date.now() + '.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
+                document.body.removeChild(a);
+            },
+            error: function(xhr) {
+                if (xhr.statusText === 'abort') {
+                    Swal.fire({ icon: 'warning', title: '중단됨', text: '다운로드가 중단되었습니다.' });
+                } else {
+                    Swal.fire({ icon: 'error', title: '다운로드 실패', text: xhr.responseJSON?.message || xhr.statusText });
                 }
-            });
-        }
+            },
+            complete: function() {
+                $('#download-loading-screen').fadeOut(200);
+                downloadXhr = null;
+            }
+        });
+    }
 
-        function moveItem(sourcePath, targetPath, isCut) {
-            $.ajax({
-                url: '/filestorage/api/files',
-                method: 'PUT',
-                contentType: 'application/json',
-                data: JSON.stringify({ action: 'move', source: sourcePath, target: targetPath }),
-                success: function() {
-                    if (isCut || (clipboard && clipboard.id === sourcePath && clipboardAction === 'cut')) {
-                        clipboard = null;
-                        clipboardAction = null;
+    function moveItem(sourcePath, targetPath, isCut) {
+        $.ajax({
+            url: '/filestorage/api/files',
+            method: 'PUT',
+            contentType: 'application/json',
+            data: JSON.stringify({ action: 'move', source: sourcePath, target: targetPath }),
+            success: function() {
+                if (isCut || (clipboard && clipboard.id === sourcePath && clipboardAction === 'cut')) {
+                    clipboard = null;
+                    clipboardAction = null;
+                }
+                loadFiles(currentPath);
+                folderTree.jstree('refresh');
+                updateToolbar();
+            },
+            error: function(xhr) {
+                const msg = xhr.responseJSON?.message || xhr.statusText;
+                if (msg && msg.includes('Destination already exists')) return;
+                // alert('실패: ' + msg);
+            }
+        });
+    }
+
+    function showContextMenu(x, y) {
+        const $menu = $('#fm-context-menu');
+        $menu.find('[data-action="paste"]').toggle(clipboard !== null).show();
+        $menu.css({ left: x + 'px', top: y + 'px', display: 'block' });
+    }
+
+    function handleContextAction(action) {
+        switch(action) {
+            case 'open':
+                if (selectedFiles.length === 1) {
+                    const file = selectedFiles[0];
+                    if (file.type === 'folder') {
+                        navigateTo(file.id);
+                    } else {
+                        downloadFile(file.id);
                     }
-                    loadFiles(currentPath);
-                    folderTree.jstree('refresh');
+                }
+                break;
+            case 'download':
+                downloadSelected();
+                break;
+            case 'cut':
+                if (selectedFiles.length > 0) {
+                    clipboard = selectedFiles[0];
+                    clipboardAction = 'cut';
                     updateToolbar();
-                },
-                error: function(xhr) {
-                    const msg = xhr.responseJSON?.message || xhr.statusText;
-                    if (msg && msg.includes('Destination already exists')) return;
-                    // alert('실패: ' + msg);
                 }
-            });
-        }
-
-        function showContextMenu(x, y) {
-            const $menu = $('#fm-context-menu');
-            $menu.find('[data-action="paste"]').toggle(clipboard !== null).show();
-            $menu.css({ left: x + 'px', top: y + 'px', display: 'block' });
-        }
-
-        function handleContextAction(action) {
-            switch(action) {
-                case 'open':
-                    if (selectedFiles.length === 1) {
-                        const file = selectedFiles[0];
-                        if (file.type === 'folder') {
-                            navigateTo(file.id);
-                        } else {
-                            downloadFile(file.id);
+                break;
+            case 'copy':
+                if (selectedFiles.length > 0) {
+                    clipboard = selectedFiles[0];
+                    clipboardAction = 'copy';
+                    updateToolbar();
+                }
+                break;
+            case 'paste':
+                if (clipboard) {
+                    moveItem(clipboard.id, currentPath, clipboardAction === 'cut');
+                    clipboard = null;
+                    clipboardAction = null;
+                    updateToolbar();
+                }
+                break;
+            case 'rename':
+                if (selectedFiles.length === 1) {
+                    Swal.fire({
+                        title: '이름 변경',
+                        input: 'text',
+                        inputValue: selectedFiles[0].name,
+                        showCancelButton: true,
+                        confirmButtonText: '변경',
+                        cancelButtonText: '취소',
+                        inputValidator: (value) => {
+                            if (!value || !value.trim()) return '이름을 입력하세요.';
                         }
-                    }
-                    break;
-                case 'download':
-                    downloadSelected();
-                    break;
-                case 'cut':
-                    if (selectedFiles.length > 0) {
-                        clipboard = selectedFiles[0];
-                        clipboardAction = 'cut';
-                        updateToolbar();
-                    }
-                    break;
-                case 'copy':
-                    if (selectedFiles.length > 0) {
-                        clipboard = selectedFiles[0];
-                        clipboardAction = 'copy';
-                        updateToolbar();
-                    }
-                    break;
-                case 'paste':
-                    if (clipboard) {
-                        moveItem(clipboard.id, currentPath, clipboardAction === 'cut');
-                        clipboard = null;
-                        clipboardAction = null;
-                        updateToolbar();
-                    }
-                    break;
-                case 'rename':
-                    if (selectedFiles.length === 1) {
-                        const newName = prompt('새 이름:', selectedFiles[0].name);
-                        if (newName) renameItem(selectedFiles[0].id, newName);
-                    }
-                    break;
-                case 'delete':
-                    if (confirm('삭제하시겠습니까?')) {
-                        deleteSelected();
-                    }
-                    break;
-                case 'properties':
-                    updateDetails();
-                    break;
-            }
+                    }).then((result) => {
+                        if (result.isConfirmed && result.value) renameItem(selectedFiles[0].id, result.value.trim());
+                    });
+                }
+                break;
+            case 'delete':
+                Swal.fire({
+                    icon: 'warning',
+                    title: '삭제 확인',
+                    text: selectedFiles.length + '개 항목을 삭제하시겠습니까?',
+                    showCancelButton: true,
+                    confirmButtonText: '삭제',
+                    cancelButtonText: '취소',
+                    confirmButtonColor: '#d33'
+                }).then((result) => {
+                    if (result.isConfirmed) deleteSelected();
+                });
+                break;
+            case 'properties':
+                updateDetails();
+                break;
         }
+    }
 
-        function initPasswordModal() {
-            $('#password-modal-close, #password-cancel').click(function() {
-                hidePasswordModal();
-            });
+    function initPasswordModal() {
+        $('#password-modal-close, #password-cancel').click(function() {
+            hidePasswordModal();
+        });
 
-            $('#password-submit').click(function() {
+        $('#password-submit').click(function() {
+            verifyPassword();
+        });
+
+        $('#password-input').on('keypress', function(e) {
+            if (e.which === 13) { // Enter 키
                 verifyPassword();
-            });
-
-            $('#password-input').on('keypress', function(e) {
-                if (e.which === 13) { // Enter 키
-                    verifyPassword();
-                }
-            });
-
-            // 모달 외부 클릭 시 닫기
-            $('#password-modal').click(function(e) {
-                if ($(e.target).is('#password-modal')) {
-                    hidePasswordModal();
-                }
-            });
-        }
-
-        function showPasswordModal() {
-            $('#password-modal').fadeIn(200);
-            $('#password-input').focus();
-            $('#password-error').hide();
-            $('#password-input').val('');
-        }
-
-        function hidePasswordModal() {
-            $('#password-modal').fadeOut(200);
-            $('#password-input').val('');
-            $('#password-error').hide();
-        }
-
-        function verifyPassword() {
-            const password = $('#password-input').val();
-            
-            if (!password) {
-                $('#password-error').text('비밀번호를 입력하세요.').show();
-                return;
             }
+        });
 
-            $.ajax({
-                url: '/filestorage/api/lock/verify',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify({ password: password }),
-                success: function(response) {
-                    if (response.success) {
-                        tempPassword = password;
-                        hidePasswordModal();
-                        alert('잠금이 해제되었습니다. 숨김 폴더가 표시됩니다.');
-                        // 파일 목록과 트리 새로고침
-                        loadFiles(currentPath);
-                        if (folderTree) {
-                            folderTree.jstree(true).destroy();
-                        }
-                        initFolderTree();
-                    } else {
-                        $('#password-error').text(response.message || '비밀번호가 일치하지 않습니다.').show();
-                        $('#password-input').val('').focus();
+        // 모달 외부 클릭 시 닫기
+        $('#password-modal').click(function(e) {
+            if ($(e.target).is('#password-modal')) {
+                hidePasswordModal();
+            }
+        });
+    }
+
+    function showPasswordModal() {
+        $('#password-modal').fadeIn(200);
+        $('#password-input').focus();
+        $('#password-error').hide();
+        $('#password-input').val('');
+    }
+
+    function hidePasswordModal() {
+        $('#password-modal').fadeOut(200);
+        $('#password-input').val('');
+        $('#password-error').hide();
+    }
+
+    function verifyPassword() {
+        const password = $('#password-input').val();
+
+        if (!password) {
+            $('#password-error').text('비밀번호를 입력하세요.').show();
+            return;
+        }
+
+        $.ajax({
+            url: '/filestorage/api/lock/verify',
+            method: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ password: password }),
+            success: function(response) {
+                if (response.success) {
+                    tempPassword = password;
+                    hidePasswordModal();
+                    Swal.fire({ icon: 'success', title: '잠금 해제', text: '숨김 폴더가 표시됩니다.', timer: 1500, showConfirmButton: false });
+                    // 파일 목록과 트리 새로고침
+                    loadFiles(currentPath);
+                    if (folderTree) {
+                        folderTree.jstree(true).destroy();
                     }
-                },
-                error: function(xhr) {
-                    const errorMsg = xhr.responseJSON?.message || '비밀번호 검증에 실패했습니다.';
-                    $('#password-error').text(errorMsg).show();
+                    initFolderTree();
+                } else {
+                    $('#password-error').text(response.message || '비밀번호가 일치하지 않습니다.').show();
                     $('#password-input').val('').focus();
                 }
-            });
-        }
+            },
+            error: function(xhr) {
+                const errorMsg = xhr.responseJSON?.message || '비밀번호 검증에 실패했습니다.';
+                $('#password-error').text(errorMsg).show();
+                $('#password-input').val('').focus();
+            }
+        });
+    }
 
-        function loadDiskUsage() {
-            $.ajax({
-                url: '/filestorage/api/disk/usage',
-                method: 'GET',
-                success: function(data) {
-                    const percent = data.percent;
-                    const used = formatSize(data.used);
-                    const total = formatSize(data.total);
+    function loadDiskUsage() {
+        $.ajax({
+            url: '/filestorage/api/disk/usage',
+            method: 'GET',
+            success: function(data) {
+                const percent = data.percent;
+                const used = formatSize(data.used);
+                const total = formatSize(data.total);
 
-                    $('#fm-disk-bar').css('width', percent + '%');
-                    $('#fm-disk-text').text(percent + '% (' + used + ' / ' + total + ')');
+                $('#fm-disk-bar').css('width', percent + '%');
+                $('#fm-disk-text').text(percent + '% (' + used + ' / ' + total + ')');
 
-                    // 색상 변경
-                    $('#fm-disk-bar').removeClass('warning danger');
-                    if (percent >= 90) {
-                        $('#fm-disk-bar').addClass('danger');
-                    } else if (percent >= 70) {
-                        $('#fm-disk-bar').addClass('warning');
-                    }
-                },
-                error: function() {
-                    console.error('디스크 사용량 조회 실패');
+                // 색상 변경
+                $('#fm-disk-bar').removeClass('warning danger');
+                if (percent >= 90) {
+                    $('#fm-disk-bar').addClass('danger');
+                } else if (percent >= 70) {
+                    $('#fm-disk-bar').addClass('warning');
                 }
-            });
-        }
-    </script>
+            },
+            error: function() {
+                console.error('디스크 사용량 조회 실패');
+            }
+        });
+    }
+</script>
 </body>
 </html>

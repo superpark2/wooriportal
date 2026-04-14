@@ -1,292 +1,507 @@
+:root {
+    --g: #00ff41;
+    --g2: #00c832;
+    --g3: #008f20;
+    --glow: rgba(0,255,65,0.6);
+    --glow2: rgba(0,255,65,0.15);
+    --bg: #000500;
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+
 body {
-    margin: 0;
-    padding: 0;
-    font-family: 'Courier New', monospace;
-    background-color: black;
-    overflow: hidden;
-    height: 100vh;
-}
-
-.matrix-background {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: url('/bg/matrix.gif');
-    background-repeat: repeat;
-    background-size: 50%;
-    opacity: 0.4;
-    z-index: -1;
-}
-
-.login-container {
-    position: absolute;
-    top: 45%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    background-color: rgba(0, 0, 0, 0.85);
-    padding: 0 30px 20px 30px;
-    border: 2px solid rgb(0, 166, 18);
-    border-radius: 8px;
-    text-align: center;
-    width: 300px;
-    box-shadow: 0 0 15px rgba(0, 255, 0, 0.2);
+    background: var(--bg);
+    min-height: 100vh;
     display: flex;
-    flex-direction: column;
     align-items: center;
+    justify-content: center;
+    font-family: 'Share Tech Mono', monospace;
+    overflow: hidden;
+    cursor: none;
 }
 
-/* 폼 제목 */
-.login-container h2 {
-    color: rgb(0, 166, 18);
-    margin-bottom: 20px;
+/* ─── CUSTOM CURSOR ─── */
+#cursor {
+    position: fixed;
+    width: 8px; height: 8px;
+    background: var(--g);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9999;
+    transform: translate(-50%,-50%);
+    box-shadow: 0 0 6px var(--g), 0 0 20px var(--g), 0 0 40px rgba(0,255,65,0.3);
+    transition: transform 0.05s;
+}
+#cursor-ring {
+    position: fixed;
+    width: 36px; height: 36px;
+    border: 1px solid rgba(0,255,65,0.45);
+    border-radius: 50%;
+    pointer-events: none;
+    z-index: 9998;
+    transform: translate(-50%,-50%);
+    transition: width .25s, height .25s, opacity .25s, border-color .25s;
+}
+body:has(input:focus) #cursor-ring {
+    width: 50px; height: 50px;
+    border-color: rgba(0,255,65,0.8);
 }
 
-/* 입력창 */
-.login-container input {
-    width: 100%;
-    padding: 10px;
-    margin: 8px 0;
-    background-color: black;
-    border: 1px solid rgb(0, 166, 18);
-    color: rgb(0, 166, 18);
-    font-size: 16px;
-    border-radius: 4px;
-    box-sizing: border-box;
+/* ─── MATRIX CANVAS LAYERS (3 depth planes) ─── */
+.matrix-canvas {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    pointer-events: none;
+}
+#c-far  { z-index: 1; opacity: 0.18; }
+#c-mid  { z-index: 2; opacity: 0.45; }
+#c-near { z-index: 3; opacity: 0.85; }
+
+/* ─── SCANLINE OVERLAY ─── */
+.scanlines {
+    position: fixed; inset: 0;
+    background: repeating-linear-gradient(
+            0deg, transparent, transparent 3px,
+            rgba(0,0,0,0.13) 3px, rgba(0,0,0,0.13) 4px
+    );
+    animation: scanScroll 10s linear infinite;
+    pointer-events: none;
+    z-index: 20;
+}
+@keyframes scanScroll {
+    to { background-position: 0 200px; }
 }
 
-/* 기본 버튼 (로그인 / 회원가입) */
-.login-container button.submit-btn {
-    width: 100%;
-    padding: 10px;
+/* ─── FLICKER ─── */
+.flicker {
+    position: fixed; inset: 0;
+    pointer-events: none;
+    z-index: 19;
+    animation: flicker 8s step-end infinite;
+}
+@keyframes flicker {
+    0%,100% { opacity: 0; }
+    92%      { opacity: 0; }
+    92.5%    { opacity: 0.04; background: var(--g); }
+    93%      { opacity: 0; }
+    95%      { opacity: 0.02; background: var(--g); }
+    95.3%    { opacity: 0; }
+}
+
+/* ─── VIGNETTE ─── */
+.vignette {
+    position: fixed; inset: 0;
+    background: radial-gradient(ellipse at center,
+    transparent 25%, rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.95) 100%);
+    pointer-events: none;
+    z-index: 4;
+}
+
+/* ─── MOUSE TRAIL RIPPLES ─── */
+.ripple {
+    position: fixed;
+    border-radius: 50%;
+    border: 1px solid rgba(0,255,65,0.55);
+    pointer-events: none;
+    z-index: 9990;
+    transform: translate(-50%,-50%) scale(0);
+    animation: rippleOut 1.2s ease-out forwards;
+}
+@keyframes rippleOut {
+    to { transform: translate(-50%,-50%) scale(5); opacity: 0; }
+}
+
+/* ─── GLITCH TEXT EFFECT ─── */
+@keyframes glitch1 {
+    0%,100% { clip-path: inset(40% 0 61% 0); transform: translate(-2px,0); }
+    20%     { clip-path: inset(92% 0 1% 0); transform: translate(2px,0); }
+    40%     { clip-path: inset(43% 0 1% 0); transform: translate(-2px,0); }
+    60%     { clip-path: inset(25% 0 58% 0); transform: translate(2px,0); }
+    80%     { clip-path: inset(54% 0 7% 0); transform: translate(-2px,0); }
+}
+@keyframes glitch2 {
+    0%,100% { clip-path: inset(50% 0 30% 0); transform: translate(2px,0); color: #0ff; }
+    25%     { clip-path: inset(15% 0 70% 0); transform: translate(-2px,0); }
+    50%     { clip-path: inset(80% 0 5% 0); transform: translate(2px,0); color: #f0f; }
+    75%     { clip-path: inset(5% 0 85% 0); transform: translate(-2px,0); }
+}
+
+/* ─── LOGIN WRAPPER (3D tilt) ─── */
+.login-outer {
+    position: relative;
+    z-index: 100;
+    width: 360px;
+    perspective: 900px;
+}
+
+/* ─── LOGIN BOX ─── */
+.login-container {
+    position: relative;
+    background: linear-gradient(160deg,
+    rgba(0,8,2,0.96) 0%,
+    rgba(0,18,6,0.93) 50%,
+    rgba(0,8,2,0.96) 100%
+    );
+    border: 1px solid rgba(0,255,65,0.35);
+    border-radius: 6px;
+    padding: 44px 36px 32px;
+    transform-style: preserve-3d;
+    transition: transform 0.08s linear;
+    box-shadow:
+            0 0 0 1px rgba(0,255,65,0.07),
+            0 0 30px rgba(0,255,65,0.18),
+            0 0 90px rgba(0,255,65,0.07),
+            inset 0 0 50px rgba(0,255,65,0.025),
+            inset 0 1px 0 rgba(0,255,65,0.25);
+}
+
+/* Corner bracket decorations */
+.corner { position: absolute; width: 16px; height: 16px; border-color: var(--g); border-style: solid; }
+.corner.tl { top:-1px; left:-1px;  border-width: 2px 0 0 2px; border-radius: 6px 0 0 0; box-shadow: -2px -2px 10px rgba(0,255,65,0.5); }
+.corner.tr { top:-1px; right:-1px; border-width: 2px 2px 0 0; border-radius: 0 6px 0 0; box-shadow:  2px -2px 10px rgba(0,255,65,0.5); }
+.corner.bl { bottom:-1px; left:-1px;  border-width: 0 0 2px 2px; border-radius: 0 0 0 6px; box-shadow: -2px 2px 10px rgba(0,255,65,0.5); }
+.corner.br { bottom:-1px; right:-1px; border-width: 0 2px 2px 0; border-radius: 0 0 6px 0; box-shadow:  2px 2px 10px rgba(0,255,65,0.5); }
+
+/* Horizontal scan line that travels down box */
+.box-scan {
+    position: absolute;
+    left: 0; right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, transparent, rgba(0,255,65,0.4), transparent);
+    pointer-events: none;
+    animation: boxScanLine 3.5s ease-in-out infinite;
+    border-radius: 6px;
+    z-index: 2;
+}
+@keyframes boxScanLine {
+    0%   { top: 0%; opacity: 0; }
+    5%   { opacity: 1; }
+    95%  { opacity: 1; }
+    100% { top: 100%; opacity: 0; }
+}
+
+/* ─── FORM PANELS ─── */
+#loginForm, #registerForm { width: 100%; }
+#registerForm.hidden, #loginForm.hidden { display: none; }
+
+/* ─── TITLE ─── */
+.form-title-wrap {
+    position: relative;
+    text-align: center;
+    margin-bottom: 32px;
+}
+.form-title {
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 10px;
+    color: var(--g);
+    text-shadow: 0 0 8px var(--g), 0 0 30px rgba(0,255,65,0.5), 0 0 60px rgba(0,255,65,0.25);
+    position: relative;
+}
+.form-title::before,
+.form-title::after {
+    content: attr(data-text);
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    font-family: 'Orbitron', sans-serif;
+    font-size: 20px;
+    font-weight: 900;
+    letter-spacing: 10px;
+}
+.form-title::before {
+    color: rgba(0,255,100,0.7);
+    animation: glitch1 7s infinite linear alternate-reverse;
+}
+.form-title::after {
+    color: rgba(0,200,255,0.5);
+    animation: glitch2 7s infinite linear alternate-reverse;
+    animation-delay: 0.3s;
+}
+
+.title-line {
     margin-top: 10px;
-    background-color: rgb(0, 166, 18);
-    color: black;
-    font-weight: bold;
-    border: none;
-    cursor: pointer;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--g), transparent);
+    box-shadow: 0 0 8px rgba(0,255,65,0.5);
+}
+
+/* ─── INPUTS ─── */
+.input-wrap {
+    position: relative;
+    margin: 10px 0;
+}
+.input-wrap input {
+    width: 100%;
+    padding: 11px 14px 11px 38px;
+    background: rgba(0,20,5,0.6);
+    border: 1px solid rgba(0,255,65,0.25);
     border-radius: 4px;
-    transition: background-color 0.3s;
+    color: var(--g);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 14px;
+    outline: none;
+    transition: border-color .25s, box-shadow .25s, background .25s;
+    caret-color: var(--g);
+}
+.input-wrap input::placeholder { color: rgba(0,200,50,0.35); }
+.input-wrap input:focus {
+    border-color: rgba(0,255,65,0.7);
+    background: rgba(0,25,7,0.8);
+    box-shadow: 0 0 0 1px rgba(0,255,65,0.2),
+    0 0 20px rgba(0,255,65,0.12),
+    inset 0 0 15px rgba(0,255,65,0.05);
 }
 
-.login-container button.submit-btn:hover {
-    background-color: rgb(0, 200, 30);
+/* Input icon */
+.input-icon {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: rgba(0,200,50,0.5);
+    font-size: 13px;
+    pointer-events: none;
+    transition: color .25s;
+}
+.input-wrap:has(input:focus) .input-icon {
+    color: var(--g);
+    text-shadow: 0 0 8px var(--g);
 }
 
-/* 전환용 작은 버튼 */
+/* Input typing line glow */
+.input-wrap::after {
+    content: '';
+    position: absolute;
+    bottom: 0; left: 10%; right: 10%;
+    height: 1px;
+    background: var(--g);
+    transform: scaleX(0);
+    transition: transform .3s;
+    box-shadow: 0 0 8px var(--g);
+}
+.input-wrap:has(input:focus)::after { transform: scaleX(1); }
+
+/* ─── BUTTONS ─── */
+.submit-btn {
+    width: 100%;
+    padding: 12px;
+    margin-top: 18px;
+    background: linear-gradient(90deg, #004010, var(--g2), #004010);
+    background-size: 200% 100%;
+    color: #000;
+    font-family: 'Orbitron', sans-serif;
+    font-weight: 700;
+    font-size: 13px;
+    letter-spacing: 4px;
+    border: none;
+    border-radius: 4px;
+    cursor: none;
+    transition: background-position .4s, box-shadow .3s, transform .1s;
+    box-shadow: 0 0 15px rgba(0,200,50,0.3), inset 0 1px 0 rgba(255,255,255,0.1);
+    position: relative;
+    overflow: hidden;
+}
+.submit-btn:hover {
+    background-position: 100% 0;
+    box-shadow: 0 0 25px rgba(0,255,65,0.5), 0 0 50px rgba(0,255,65,0.2);
+}
+.submit-btn:active { transform: scale(0.98); }
+.submit-btn::before {
+    content: '';
+    position: absolute;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent);
+    transition: left .5s;
+}
+.submit-btn:hover::before { left: 100%; }
+
 .switch-btn {
     background: transparent;
-    border: 1px solid rgb(0, 166, 18);
-    color: rgb(0, 166, 18);
-    font-size: 12px;
-    padding: 4px 10px;
-    border-radius: 4px;
-    cursor: pointer;
-    margin: 10px 0;
-    width: fit-content;
-    transition: all 0.2s ease;
+    border: 1px solid rgba(0,255,65,0.35);
+    color: rgba(0,200,50,0.7);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    padding: 5px 14px;
+    border-radius: 3px;
+    cursor: none;
+    margin: 12px 0 4px;
+    transition: all .25s;
+    letter-spacing: 1px;
 }
-
 .switch-btn:hover {
-    color: rgb(0, 225, 25);
+    border-color: var(--g);
+    color: var(--g);
+    box-shadow: 0 0 10px rgba(0,255,65,0.2);
+    background: rgba(0,255,65,0.05);
 }
 
-/* 전환 애니메이션 */
-.fade-in {
-    animation: fadeIn 0.3s forwards;
-}
-
-.fade-out {
-    animation: fadeOut 0.3s forwards;
-}
-
-@keyframes fadeIn {
-    0% {opacity: 0; transform: translateY(-10px);}
-    100% {opacity: 1; transform: translateY(0);}
-}
-
-@keyframes fadeOut {
-    0% {opacity: 1; transform: translateY(0);}
-    100% {opacity: 0; transform: translateY(10px);}
-}
-
-.hidden {
-    display: none;
-}
-
-/* 파일 업로드 컨테이너 */
+/* ─── FILE UPLOAD ─── */
 .file-upload-container {
     width: 100%;
-    margin: 8px 0;
+    margin: 10px 0;
     display: flex;
     flex-direction: column;
     align-items: center;
 }
-
-/* 이미지 미리보기 영역 */
 .image-preview {
-    width: 30%;
-    min-height: 60px;
+    width: 70px; height: 70px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    border: 1px dashed rgba(0,255,65,0.3);
+    border-radius: 50%;
+    background: rgba(0,255,65,0.03);
     margin-bottom: 10px;
-    padding: 10px;
-    border: 1px dashed rgb(0, 166, 18);
-    border-radius: 4px;
-    background-color: rgba(0, 166, 18, 0.05);
-}
-
-/* 파일 입력 래퍼 */
-.file-input-wrapper {
-    position: relative;
-    width: 100%;
-}
-
-/* 실제 파일 입력 (숨김) */
-.file-input {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
     overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+    transition: border-color .3s, box-shadow .3s;
 }
-
-/* 파일 선택 라벨 (버튼처럼 보이게) */
+.image-preview:has(img) {
+    border-color: var(--g);
+    box-shadow: 0 0 15px rgba(0,255,65,0.3);
+    border-style: solid;
+}
+.image-preview img {
+    width: 100%; height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+}
+.file-input { display: none; }
 .file-input-label {
     display: flex;
     align-items: center;
     justify-content: center;
-    padding: 10px;
-    margin: 8px 0px;
-    background-color: transparent;
-    border: 2px solid rgb(0, 166, 18);
+    width: 100%;
+    padding: 9px;
+    background: transparent;
+    border: 1px solid rgba(0,255,65,0.3);
     border-radius: 4px;
-    color: rgb(0, 166, 18);
-    cursor: pointer;
-    transition: all 0.3s ease;
-    font-size: 14px;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 1px;
+    color: rgba(0,200,50,0.7);
+    cursor: none;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 12px;
+    letter-spacing: 2px;
     position: relative;
     overflow: hidden;
+    transition: all .3s;
 }
-
 .file-input-label:hover {
-    background-color: rgba(0, 166, 18, 0.1);
-    border-color: rgb(0, 225, 25);
-    color: rgb(0, 225, 25);
-    box-shadow: 0 0 10px rgba(0, 255, 0, 0.3);
-    transform: translateY(-1px);
+    border-color: var(--g);
+    color: var(--g);
+    box-shadow: 0 0 15px rgba(0,255,65,0.2);
+    background: rgba(0,255,65,0.04);
 }
-
-.file-input-label:active {
-    transform: translateY(0);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.2);
-}
-
-/* 파일 선택 텍스트 */
-.file-input-text {
-    margin-right: 8px;
-}
-
-/* 파일 아이콘 */
-.file-input-icon {
-    font-size: 16px;
-    animation: pulse 2s infinite;
-}
-
-/* 파일 선택 버튼 애니메이션 */
-@keyframes pulse {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.1);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
-}
-
-/* 파일 선택 버튼에 글로우 효과 */
 .file-input-label::before {
     content: '';
     position: absolute;
-    top: 0;
-    left: -100%;
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(90deg, transparent, rgba(0, 255, 0, 0.2), transparent);
-    transition: left 0.5s;
+    top: 0; left: -100%;
+    width: 100%; height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(0,255,65,0.12), transparent);
+    transition: left .5s;
 }
+.file-input-label:hover::before { left: 100%; }
 
-.file-input-label:hover::before {
-    left: 100%;
-}
-
-/* ID 유효성 검증 메시지 */
+/* ─── ID VALIDATION ─── */
 .id-validation-message {
-    padding: 5px 10px;
-    margin: 5px 0;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
-    border-radius: 4px;
-    transition: all 0.3s ease;
     min-height: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    padding: 4px 10px;
+    font-size: 11px;
+    text-align: center;
+    border-radius: 3px;
+    transition: all .3s;
+    letter-spacing: 1px;
 }
-
-/* 성공 메시지 (사용 가능) */
 .id-validation-message.success {
-    color: rgb(0, 255, 0);
-    background-color: rgba(0, 255, 0, 0.1);
-    border: 1px solid rgb(0, 255, 0);
-    box-shadow: 0 0 5px rgba(0, 255, 0, 0.3);
+    color: var(--g);
+    background: rgba(0,255,65,0.08);
+    border: 1px solid rgba(0,255,65,0.4);
 }
-
-/* 에러 메시지 (중복) */
 .id-validation-message.error {
-    color: rgb(255, 0, 0);
-    background-color: rgba(255, 0, 0, 0.1);
-    border: 1px solid rgb(255, 0, 0);
-    box-shadow: 0 0 5px rgba(255, 0, 0, 0.3);
+    color: #ff4040;
+    background: rgba(255,0,0,0.08);
+    border: 1px solid rgba(255,50,50,0.4);
 }
-
-/* 체크 중 메시지 */
 .id-validation-message.checking {
-    color: rgb(255, 255, 0);
-    background-color: rgba(255, 255, 0, 0.1);
-    border: 1px solid rgb(255, 255, 0);
-    box-shadow: 0 0 5px rgba(255, 255, 0, 0.3);
-    animation: pulse-checking 1.5s infinite;
+    color: #ffe040;
+    background: rgba(255,224,64,0.08);
+    border: 1px solid rgba(255,224,64,0.4);
+    animation: pulse-check 1.2s ease-in-out infinite;
+}
+@keyframes pulse-check {
+    0%,100% { opacity:1; } 50% { opacity:0.5; }
 }
 
-/* 체크 중 애니메이션 */
-@keyframes pulse-checking {
-    0% {
-        opacity: 1;
-        transform: scale(1);
-    }
-    50% {
-        opacity: 0.7;
-        transform: scale(1.02);
-    }
-    100% {
-        opacity: 1;
-        transform: scale(1);
-    }
+/* ─── FORM TRANSITIONS ─── */
+.fade-in  { animation: fadeIn  .35s cubic-bezier(0.16,1,0.3,1) forwards; }
+.fade-out { animation: fadeOut .3s ease forwards; }
+@keyframes fadeIn  {
+    from { opacity:0; transform: translateY(-12px) scale(0.97); }
+    to   { opacity:1; transform: translateY(0) scale(1); }
+}
+@keyframes fadeOut {
+    from { opacity:1; transform: translateY(0); }
+    to   { opacity:0; transform: translateY(12px); }
+}
+
+/* ─── DATA STREAM SIDE PANELS ─── */
+.data-panel {
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 90px;
+    font-size: 9px;
+    color: rgba(0,180,30,0.35);
+    line-height: 1.7;
+    letter-spacing: 1px;
+    pointer-events: none;
+    z-index: 50;
+    text-align: right;
+}
+.data-panel.left  { left: 20px; text-align: left; }
+.data-panel.right { right: 20px; }
+.data-panel span {
+    display: block;
+    animation: dataFlicker 3s ease-in-out infinite;
+}
+.data-panel span:nth-child(even)  { animation-delay: 0.5s; }
+.data-panel span:nth-child(3n)    { animation-delay: 1s; color: rgba(0,255,65,0.25); }
+@keyframes dataFlicker {
+    0%,100% { opacity:1; } 50% { opacity:0.3; }
+}
+
+/* ─── SYSTEM CLOCK (top decoration) ─── */
+.sys-info {
+    position: fixed;
+    top: 18px;
+    right: 24px;
+    text-align: right;
+    font-size: 10px;
+    color: rgba(0,200,40,0.4);
+    letter-spacing: 2px;
+    z-index: 50;
+    line-height: 1.8;
+}
+.sys-info .clock { color: rgba(0,255,65,0.6); font-size: 13px; }
+
+.sys-info-left {
+    position: fixed;
+    top: 18px;
+    left: 24px;
+    font-size: 10px;
+    color: rgba(0,200,40,0.4);
+    letter-spacing: 2px;
+    z-index: 50;
+    line-height: 1.8;
+}
+
+/* ─── ENTRANCE ANIMATION ─── */
+.login-outer {
+    animation: outerEntrance 1.2s cubic-bezier(0.16,1,0.3,1) both;
+}
+@keyframes outerEntrance {
+    from { opacity:0; transform: scale(0.88) translateY(30px); }
+    to   { opacity:1; transform: scale(1) translateY(0); }
 }

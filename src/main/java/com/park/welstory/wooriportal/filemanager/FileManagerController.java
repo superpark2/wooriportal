@@ -13,7 +13,7 @@ import java.util.List;
 import java.util.Map;
 
 @CrossOrigin(
-        origins = "http://localhost:8080",
+        origins = {"http://localhost:8080", "http://woorimis.iptime.org:8080"},
         allowedHeaders = "*",
         methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.DELETE,
                 RequestMethod.PUT, RequestMethod.OPTIONS}

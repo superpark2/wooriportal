@@ -82,6 +82,15 @@
         </ul>
     </div>
 
+    <!-- 데이터베이스 관리 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeSubMenu == 'db' ? 'active' : ''}"
+                   sec:authorize="hasAuthority('admin')"
+                   href="/db"><i class="fas fa-database"></i> 데이터베이스 관리</a></li>
+        </ul>
+    </div>
+
     <!-- 사용자 / 권한 관리 -->
     <div class="sidebar-section">
         <ul class="sidebar-menu">

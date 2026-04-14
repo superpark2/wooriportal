@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.global.utilities.ai;
+package com.park.welstory.wooriportal.utilities.ai;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;

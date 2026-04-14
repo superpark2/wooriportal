@@ -1,194 +1,381 @@
+
 <!DOCTYPE html>
 <html lang="ko">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>𝓦𝓸𝓸𝓻𝓲</title>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style/login.css">
 </head>
-
 <body>
-<div class="matrix-background"></div>
 
-<div class="login-container">
+<!-- Cursor -->
+<div id="cursor"></div>
+<div id="cursor-ring"></div>
 
-    <div id="loginForm">
-        <h2>SIGN IN</h2>
-        <form action="/login" method="post">
-            <input type="text" name="username" placeholder="Username" required>
-            <input type="password" name="password" placeholder="Password" required>
+<!-- Matrix rain layers -->
+<canvas class="matrix-canvas" id="c-far"></canvas>
+<canvas class="matrix-canvas" id="c-mid"></canvas>
+<canvas class="matrix-canvas" id="c-near"></canvas>
 
-            <button type="button" id="toRegister" class="switch-btn">Sign up</button>
+<!-- Overlays -->
+<div class="scanlines"></div>
+<div class="flicker"></div>
+<div class="vignette"></div>
 
-            <button type="submit" class="submit-btn">LOGIN</button>
-        </form>
-    </div>
+<!-- Side data panels -->
+<div class="data-panel left" id="panelLeft"></div>
+<div class="data-panel right" id="panelRight"></div>
 
-    <div id="registerForm" class="hidden">
-        <h2>SIGN UP</h2>
-        <form action="/signup" method="post" enctype="multipart/form-data">
-            <div class="file-upload-container">
-                <div class="image-preview" id="imagePreview"></div>
-                <div class="file-input-wrapper">
-                    <input type="file" name="MemberPicture" id="memberPicture" accept="image/*" class="file-input">
-                    <label for="memberPicture" class="file-input-label">
-                        <span class="file-input-text">Select Your Profile</span>
-                        <span class="file-input-icon"></span>
-                    </label>
-                </div>
+<!-- System info -->
+<div class="sys-info">
+    <div class="clock" id="clock">00:00:00</div>
+    <div id="date-str"></div>
+    <div>SYS:ONLINE</div>
+    <div>ENC:AES-256</div>
+</div>
+<div class="sys-info-left">
+    <div>WOORI_OS v2.4.1</div>
+    <div>NODE:ACTIVE</div>
+    <div id="ip-spoof">IP:---.---.---.---</div>
+</div>
+
+<!-- Login Box -->
+<div class="login-outer">
+    <div class="login-container" id="loginBox">
+        <div class="corner tl"></div>
+        <div class="corner tr"></div>
+        <div class="corner bl"></div>
+        <div class="corner br"></div>
+        <div class="box-scan"></div>
+
+        <!-- SIGN IN -->
+        <div id="loginForm">
+            <div class="form-title-wrap">
+                <div class="form-title" data-text="SIGN IN">SIGN IN</div>
+                <div class="title-line"></div>
             </div>
+            <form action="/login" method="post">
+                <div class="input-wrap">
+                    <span class="input-icon">▶</span>
+                    <input type="text" name="username" placeholder="Username" required>
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon">◆</span>
+                    <input type="password" name="password" placeholder="Password" required>
+                </div>
+                <button type="button" id="toRegister" class="switch-btn">[ SIGN UP ]</button>
+                <button type="submit" class="submit-btn">LOGIN</button>
+            </form>
+        </div>
 
-            <input type="text" name="memberId" id="memberId" placeholder="ID" required minlength="3">
-            <div class="id-validation-message" id="idValidationMessage"></div>
-            <input type="password" name="memberPassword" id="memberPassword" placeholder="Password" required>
-            <input type="password" name="memberPasswordConfirm" id="memberPasswordConfirm" placeholder="Confirm Password" required>
-            <input type="text" name="memberName" id="memberName" placeholder="Your Name" required>
-            <input type="text" name="memberComment" id="memberContent" placeholder="Comment" required>
-
-            <button type="button" id="toLogin" class="switch-btn">Sign in</button>
-            <button type="submit" class="submit-btn">REGISTER</button>
-        </form>
+        <!-- SIGN UP -->
+        <div id="registerForm" class="hidden">
+            <div class="form-title-wrap">
+                <div class="form-title" data-text="SIGN UP">SIGN UP</div>
+                <div class="title-line"></div>
+            </div>
+            <form action="/signup" method="post" enctype="multipart/form-data">
+                <div class="file-upload-container">
+                    <div class="image-preview" id="imagePreview"></div>
+                    <div class="file-input-wrapper" style="width:100%">
+                        <input type="file" name="MemberPicture" id="memberPicture" accept="image/*" class="file-input">
+                        <label for="memberPicture" class="file-input-label">
+                            <span class="file-input-text">▸ SELECT PROFILE</span>
+                        </label>
+                    </div>
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon">▶</span>
+                    <input type="text" name="memberId" id="memberId" placeholder="ID" required minlength="3">
+                </div>
+                <div class="id-validation-message" id="idValidationMessage"></div>
+                <div class="input-wrap">
+                    <span class="input-icon">◆</span>
+                    <input type="password" name="memberPassword" id="memberPassword" placeholder="Password" required>
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon">◆</span>
+                    <input type="password" name="memberPasswordConfirm" id="memberPasswordConfirm" placeholder="Confirm Password" required>
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon">◈</span>
+                    <input type="text" name="memberName" id="memberName" placeholder="Your Name" required>
+                </div>
+                <div class="input-wrap">
+                    <span class="input-icon">░</span>
+                    <input type="text" name="memberComment" id="memberContent" placeholder="Comment" required>
+                </div>
+                <button type="button" id="toLogin" class="switch-btn">[ SIGN IN ]</button>
+                <button type="submit" class="submit-btn">REGISTER</button>
+            </form>
+        </div>
     </div>
-
 </div>
 
 <script>
-    const loginForm = document.getElementById('loginForm');
-    const registerForm = document.getElementById('registerForm');
-    const toRegister = document.getElementById('toRegister');
-    const toLogin = document.getElementById('toLogin');
-    let passwordCheck = false;
+    /* ══════════════════════════════════
+       CURSOR
+    ══════════════════════════════════ */
+    const cursor = document.getElementById('cursor');
+    const cursorRing = document.getElementById('cursor-ring');
+    let mx = -100, my = -100, rx = -100, ry = -100;
+    document.addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+    (function animCursor() {
+        rx += (mx - rx) * 0.18;
+        ry += (my - ry) * 0.18;
+        cursor.style.left = mx + 'px'; cursor.style.top = my + 'px';
+        cursorRing.style.left = rx + 'px'; cursorRing.style.top = ry + 'px';
+        requestAnimationFrame(animCursor);
+    })();
 
-    function switchForms(hideForm, showForm) {
-        hideForm.classList.add('fade-out');
-        hideForm.addEventListener('animationend', () => {
-            hideForm.classList.add('hidden');
-            hideForm.classList.remove('fade-out');
-            showForm.classList.remove('hidden');
-            showForm.classList.add('fade-in');
-            showForm.addEventListener('animationend', () => {
-                showForm.classList.remove('fade-in');
-            }, { once: true });
-        }, { once: true });
+    // Ripple on click
+    document.addEventListener('click', e => {
+        const r = document.createElement('div');
+        r.className = 'ripple';
+        r.style.left = e.clientX + 'px';
+        r.style.top  = e.clientY + 'px';
+        r.style.width = r.style.height = '30px';
+        document.body.appendChild(r);
+        setTimeout(() => r.remove(), 1200);
+    });
+
+    /* ══════════════════════════════════
+       3-LAYER MATRIX RAIN
+    ══════════════════════════════════ */
+    const CHARS = 'アイウエオカキクケコサシスセソタチツテトナニヌネノハヒフヘホマミムメモヤユヨラリルレロワヲン0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ<>{}[]|/\\!@#$%^&*';
+
+    function makeMatrixLayer(id, opts) {
+        const canvas = document.getElementById(id);
+        const ctx = canvas.getContext('2d');
+        const { fontSize, speed, glowLevel, colorFn } = opts;
+
+        let W, H, cols, drops;
+        function init() {
+            W = canvas.width = window.innerWidth;
+            H = canvas.height = window.innerHeight;
+            cols = Math.floor(W / fontSize);
+            drops = Array.from({length: cols}, () => Math.random() * -H/fontSize);
+        }
+        init();
+        window.addEventListener('resize', init);
+
+        // Per-column brightness for 3D parallax feel
+        const brightness = Array.from({length: 9999}, (_,i) =>
+            0.4 + 0.6 * Math.abs(Math.sin(i * 0.618))
+        );
+        // Per-column random highlight
+        const highlights = new Uint8Array(9999);
+
+        function draw() {
+            ctx.fillStyle = `rgba(0,5,0,${opts.trail})`;
+            ctx.fillRect(0, 0, W, H);
+
+            for (let i = 0; i < cols; i++) {
+                const b = brightness[i % brightness.length];
+                const ch = CHARS[Math.floor(Math.random() * CHARS.length)];
+
+                // Leading character — bright white-green
+                if (glowLevel > 0.5) {
+                    ctx.shadowBlur = 12 * glowLevel;
+                    ctx.shadowColor = '#00ff41';
+                    ctx.fillStyle = `rgba(180,255,200,${b})`;
+                } else {
+                    ctx.shadowBlur = 4;
+                    ctx.shadowColor = '#004010';
+                    ctx.fillStyle = colorFn(b);
+                }
+
+                ctx.font = `${fontSize}px 'Share Tech Mono', monospace`;
+                ctx.fillText(ch, i * fontSize, drops[i] * fontSize);
+
+                // Trail chars — dimmer
+                ctx.shadowBlur = 0;
+                ctx.fillStyle = colorFn(b * 0.4);
+                for (let t = 1; t < 4; t++) {
+                    const tc = CHARS[Math.floor(Math.random() * CHARS.length)];
+                    ctx.fillText(tc, i * fontSize, (drops[i] - t) * fontSize);
+                }
+
+                if (drops[i] * fontSize > H && Math.random() > 0.975) drops[i] = 0;
+                drops[i] += speed;
+            }
+            ctx.shadowBlur = 0;
+        }
+
+        setInterval(draw, opts.interval);
     }
 
-    toRegister.addEventListener('click', () => {
-        switchForms(loginForm, registerForm);
+    makeMatrixLayer('c-far', {
+        fontSize: 20,
+        speed: 1.1,
+        trail: 0.06,
+        interval: 105,
+        glowLevel: 0,
+        colorFn: b => `rgba(0,${Math.floor(80+60*b)},0,${0.3+0.4*b})`
+    });
+    makeMatrixLayer('c-mid', {
+        fontSize: 22,
+        speed: 1.1,
+        trail: 0.07,
+        interval: 82,
+        glowLevel: 0.3,
+        colorFn: b => `rgba(0,${Math.floor(140+80*b)},${Math.floor(10*b)},${0.5+0.4*b})`
+    });
+    makeMatrixLayer('c-near', {
+        fontSize: 26,
+        speed: 1.1,
+        trail: 0.1,
+        interval: 65,
+        glowLevel: 0.85,
+        colorFn: b => `rgba(0,${Math.floor(200+55*b)},${Math.floor(30*b)},${0.7+0.3*b})`
     });
 
-    toLogin.addEventListener('click', () => {
-        switchForms(registerForm, loginForm);
+    /* ══════════════════════════════════
+       3D TILT on mouse move
+    ══════════════════════════════════ */
+    const box = document.getElementById('loginBox');
+    document.addEventListener('mousemove', e => {
+        const cx = window.innerWidth / 2, cy = window.innerHeight / 2;
+        const dx = (e.clientX - cx) / cx;
+        const dy = (e.clientY - cy) / cy;
+        box.style.transform = `rotateY(${dx * 8}deg) rotateX(${-dy * 6}deg)`;
     });
 
-    const fileInput = document.getElementById('memberPicture');
+    /* ══════════════════════════════════
+       SYSTEM CLOCK & IP SPOOF
+    ══════════════════════════════════ */
+    function pad(n) { return String(n).padStart(2,'0'); }
+    function updateClock() {
+        const now = new Date();
+        document.getElementById('clock').textContent =
+            `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+        document.getElementById('date-str').textContent =
+            `${now.getFullYear()}.${pad(now.getMonth()+1)}.${pad(now.getDate())}`;
+    }
+    setInterval(updateClock, 1000); updateClock();
+
+    // Fake IP spoofing animation
+    function randByte() { return Math.floor(Math.random()*256); }
+    let ipTimer = 0;
+    setInterval(() => {
+        const el = document.getElementById('ip-spoof');
+        if (ipTimer++ % 5 === 0) {
+            el.textContent = `IP:${randByte()}.${randByte()}.${randByte()}.${randByte()}`;
+        }
+    }, 300);
+
+    /* ══════════════════════════════════
+       SIDE DATA PANELS (live scrolling hex)
+    ══════════════════════════════════ */
+    function randHex(len) {
+        return Array.from({length:len}, () =>
+            Math.floor(Math.random()*16).toString(16).toUpperCase()
+        ).join('');
+    }
+    function populatePanel(id) {
+        const el = document.getElementById(id);
+        const lines = 22;
+        const spans = Array.from({length:lines}, () => {
+            const s = document.createElement('span');
+            el.appendChild(s);
+            return s;
+        });
+        setInterval(() => {
+            const idx = Math.floor(Math.random()*lines);
+            spans[idx].textContent = randHex(8) + ' ' + randHex(4);
+        }, 120);
+    }
+    populatePanel('panelLeft');
+    populatePanel('panelRight');
+
+    /* ══════════════════════════════════
+       FORM SWITCHING
+    ══════════════════════════════════ */
+    const loginForm    = document.getElementById('loginForm');
+    const registerForm = document.getElementById('registerForm');
+    const toRegister   = document.getElementById('toRegister');
+    const toLogin      = document.getElementById('toLogin');
+
+    function switchForms(hide, show) {
+        hide.classList.add('fade-out');
+        hide.addEventListener('animationend', () => {
+            hide.classList.add('hidden');
+            hide.classList.remove('fade-out');
+            show.classList.remove('hidden');
+            show.classList.add('fade-in');
+            show.addEventListener('animationend', () => show.classList.remove('fade-in'), {once:true});
+        }, {once:true});
+    }
+    toRegister.addEventListener('click', () => switchForms(loginForm, registerForm));
+    toLogin.addEventListener('click',    () => switchForms(registerForm, loginForm));
+
+    /* ══════════════════════════════════
+       FILE UPLOAD PREVIEW
+    ══════════════════════════════════ */
+    const fileInput    = document.getElementById('memberPicture');
     const imagePreview = document.getElementById('imagePreview');
-
     fileInput.addEventListener('change', function(e) {
         const file = e.target.files[0];
-
-        if (file) {
-            if (file.type.startsWith('image/')) {
-                const reader = new FileReader();
-
-                reader.onload = function(e) {
-                    imagePreview.innerHTML = '';
-
-                    const img = document.createElement('img');
-                    img.src = e.target.result;
-                    img.style.maxWidth = '100px';
-                    img.style.maxHeight = '100px';
-                    img.style.borderRadius = '4px';
-                    img.style.border = '1px solid rgb(0, 166, 18)';
-                    img.style.marginBottom = '10px';
-                    img.style.objectFit = 'cover';
-
-                    imagePreview.appendChild(img);
-
-                    const fileName = document.createElement('div');
-                    fileName.textContent = file.name;
-                    fileName.style.color = 'rgb(0, 166, 18)';
-                    fileName.style.fontSize = '12px';
-                    fileName.style.marginTop = '5px';
-                    fileName.style.wordBreak = 'break-all';
-
-                    imagePreview.appendChild(fileName);
-                };
-
-                reader.readAsDataURL(file);
-            } else {
-                alert('이미지 파일만 선택해주세요.');
-                fileInput.value = '';
-            }
-        } else {
+        if (!file) { imagePreview.innerHTML = ''; return; }
+        if (!file.type.startsWith('image/')) { alert('이미지 파일만 선택해주세요.'); fileInput.value=''; return; }
+        const reader = new FileReader();
+        reader.onload = e => {
             imagePreview.innerHTML = '';
-        }
+            const img = document.createElement('img');
+            img.src = e.target.result;
+            imagePreview.appendChild(img);
+        };
+        reader.readAsDataURL(file);
     });
 
-    const memberIdInput = document.getElementById('memberId');
+    /* ══════════════════════════════════
+       ID DUPLICATE CHECK
+    ══════════════════════════════════ */
+    const memberIdInput       = document.getElementById('memberId');
     const idValidationMessage = document.getElementById('idValidationMessage');
     let validationTimeout;
-
     memberIdInput.addEventListener('input', function() {
-        const memberId = this.value.trim();
-
+        const v = this.value.trim();
         clearTimeout(validationTimeout);
-
-        if (memberId === '' ||memberId.length < 3) {
-            idValidationMessage.textContent = '';
-            idValidationMessage.className = 'id-validation-message';
-            return;
-        }
-
-        validationTimeout = setTimeout(() => {
-            checkIdDuplicate(memberId);
-        });
+        if (!v || v.length < 3) { idValidationMessage.textContent=''; idValidationMessage.className='id-validation-message'; return; }
+        validationTimeout = setTimeout(() => checkIdDuplicate(v), 400);
     });
-
-    function checkIdDuplicate(memberId) {
-
-        idValidationMessage.textContent = 'Checking...';
+    function checkIdDuplicate(id) {
+        idValidationMessage.textContent = 'CHECKING...';
         idValidationMessage.className = 'id-validation-message checking';
-
-        fetch('/check-id', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'text/plain',
-            },
-            body: memberId
-        })
-            .then(response => response.text())
-            .then(data => {
-                if (data === true) {
-                    idValidationMessage.textContent = 'ID already exists.';
+        fetch('/check-id', { method:'POST', headers:{'Content-Type':'text/plain'}, body:id })
+            .then(r => r.text())
+            .then(d => {
+                if (d === 'true') {
+                    idValidationMessage.textContent = '✖ ID ALREADY EXISTS';
                     idValidationMessage.className = 'id-validation-message error';
                 } else {
-                    idValidationMessage.textContent = 'ID available.';
+                    idValidationMessage.textContent = '✔ ID AVAILABLE';
                     idValidationMessage.className = 'id-validation-message success';
                 }
             })
-            .catch(error => {
-                idValidationMessage.textContent = 'Error checking ID.';
+            .catch(() => {
+                idValidationMessage.textContent = '✖ CONNECTION ERROR';
                 idValidationMessage.className = 'id-validation-message error';
             });
     }
 
+    /* ══════════════════════════════════
+       PASSWORD CONFIRM CHECK
+    ══════════════════════════════════ */
+    let passwordCheck = false;
     document.getElementById('memberPasswordConfirm').addEventListener('keyup', function() {
-        if (document.getElementById('memberPassword').value === this.value) {
-            passwordCheck = true;
-        } else {
-            passwordCheck = false;
-        }
-    })
-
-    registerForm.addEventListener('submit', function(event) {
+        passwordCheck = document.getElementById('memberPassword').value === this.value;
+    });
+    document.getElementById('registerForm').addEventListener('submit', function(e) {
         if (!passwordCheck) {
-            event.preventDefault();
+            e.preventDefault();
             alert('Passwords do not match.');
             document.getElementById('memberPasswordConfirm').focus();
-            return false;
         }
     });
 </script>
-
 </body>
 </html>
