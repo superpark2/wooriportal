@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.global.utilities;
+package com.park.welstory.wooriportal.utilities;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

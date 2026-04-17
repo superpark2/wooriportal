@@ -12,6 +12,7 @@ public class LogDTO {
     
     private Long logNum;
     private String logContent;
+    private String cleanContent; // 태그 제거된 순수 내용
     private LocalDateTime createdAt;
     private PcInfoDTO pcInfo;
     private Long pcinfoNum;

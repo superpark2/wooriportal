@@ -1,6 +1,5 @@
 package com.park.welstory.wooriportal.pcinfo;
 
-import com.park.welstory.wooriportal.location.LocationService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
@@ -21,7 +20,7 @@ public class PcInfoController {
     private final PcInfoService pcinfoService;
 
     @GetMapping("/facility/pcinfo/list")
-    public String pcinfoView(HttpServletRequest request, Model model){
+    public String pcinfoView(HttpServletRequest request, Model model) {
         model.addAttribute("title", "시설장비");
         model.addAttribute("subTitle", "PC관리");
         request.setAttribute("activeMenu", "facility");
@@ -35,24 +34,28 @@ public class PcInfoController {
             PcInfoDTO pc = pcinfoService.getById(pcInfoNum);
             model.addAttribute("pc", pc);
             model.addAttribute("buildingNum", pc.getLocationNum());
-            return "common/pcinfoview";
         } catch (Exception e) {
             model.addAttribute("error", "PC 정보를 찾을 수 없습니다. (ID: " + pcInfoNum + ")");
-            return "common/pcinfoview";
         }
+        return "common/pcinfoview";
     }
 
     @GetMapping("/facility/pcinfo/pclist")
     @ResponseBody
-    public List<PcInfoDTO> pcinfoList(Long location){
+    public List<PcInfoDTO> pcinfoList(Long location) {
         return pcinfoService.getList(location);
     }
 
-    @PostMapping(value = "/facility/pcinfo/add")
-    public ResponseEntity<String> pcInfoAdd(PcInfoDTO pcInfoDTO,
-                                            @RequestParam(required = false) String imageDelete){
-        pcinfoService.pcInfoAdd(pcInfoDTO, imageDelete);
-        return ResponseEntity.ok("success");
+    @PostMapping("/facility/pcinfo/add")
+    @ResponseBody
+    public ResponseEntity<Map<String, Object>> pcInfoAdd(
+            PcInfoDTO pcInfoDTO,
+            @RequestParam(required = false) String imageDelete) {
+        PcInfoEntity saved = pcinfoService.pcInfoAdd(pcInfoDTO, imageDelete);
+        Map<String, Object> result = new HashMap<>();
+        result.put("success", true);
+        result.put("pcInfoNum", saved.getPcInfoNum()); // 프론트에서 pcInfoNum 받아갈 수 있도록
+        return ResponseEntity.ok(result);
     }
 
     @DeleteMapping("/facility/pcinfo/delete")
@@ -69,11 +72,7 @@ public class PcInfoController {
     @ResponseBody
     public ResponseEntity<Object> verifyPassword(@RequestBody String password) {
         Map<String, Object> response = new HashMap<>();
-        if (password.equals("2004")) {
-            response.put("success", true);
-        } else {
-            response.put("success", false);
-        }
+        response.put("success", password.equals("2004"));
         return ResponseEntity.ok(response);
     }
 }

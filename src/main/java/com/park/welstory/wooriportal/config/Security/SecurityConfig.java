@@ -7,7 +7,6 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
-import org.springframework.security.config.annotation.web.configuration.WebSecurityCustomizer;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -34,7 +33,8 @@ public class SecurityConfig {
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
                                 "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
-                                "/pcinfo/require/**", "/location/**", "/log/**", "/db/**"
+                                "/pcinfo/require/**", "/location/**", "/log/**", "/db/**",
+                                "/api/sse/**" // SSE 연결 허용
 
                         ).permitAll()
 
@@ -47,9 +47,16 @@ public class SecurityConfig {
                         .defaultSuccessUrl("/", true)
                         .permitAll()
                 )
+                .rememberMe(remember -> remember
+                        .key("uniqueAndSecret")
+                        .tokenValiditySeconds(604800) // 7일
+                        .userDetailsService(customUserDetailsService)
+                        .rememberMeParameter("remember-me")
+                )
                 .logout(logout -> logout
                         .logoutUrl("/logout")
                         .logoutSuccessUrl("/login?logout")
+                        .deleteCookies("JSESSIONID", "remember-me") // 쿠키 삭제
                         .permitAll()
                 )
                 .userDetailsService(customUserDetailsService);

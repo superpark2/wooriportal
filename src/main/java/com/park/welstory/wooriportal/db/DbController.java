@@ -1,7 +1,6 @@
 package com.park.welstory.wooriportal.db;
 
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -52,12 +51,11 @@ public class DbController {
             model.addAttribute("selectedSchema", selectedSchema);
             model.addAttribute("activeView", view);
 
-            // 권한 관리 모달의 스키마 드롭다운에 항상 전체 스키마 목록이 필요
             try {
                 List<String> allSchemaNames = dbService.getAllSchemas();
                 model.addAttribute("schemaNames", allSchemaNames);
             } catch (Exception e) {
-                // 스키마 목록 로드 실패는 무시 (핵심 기능 아님)
+                // 스키마 목록 로드 실패는 무시
             }
 
             try {
@@ -73,7 +71,6 @@ public class DbController {
                 e.printStackTrace();
             }
 
-            // 테이블 데이터는 별도 try-catch: 손상된 테이블 하나가 스키마 전체 로드를 막지 않도록
             if ("data".equals(view) && selectedTable != null) {
                 model.addAttribute("selectedTable", selectedTable);
                 try {
@@ -96,7 +93,33 @@ public class DbController {
     }
 
     /**
-     * 스키마(데이터베이스)를 삭제하는 엔드포인트
+     * 스키마(데이터베이스) 생성
+     */
+    @PostMapping("/createSchema")
+    public String createSchema(
+            @RequestParam("schemaName") String schemaName,
+            @RequestParam("adminId") String adminId_param,
+            @RequestParam("adminPw") String adminPw_param,
+            RedirectAttributes redirectAttributes) {
+
+        if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
+            redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
+            return "redirect:/db";
+        }
+
+        try {
+            dbService.createSchema(schemaName);
+            redirectAttributes.addFlashAttribute("success", "스키마 '" + schemaName + "'가 성공적으로 생성되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "스키마 생성 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return "redirect:/db";
+    }
+
+    /**
+     * 스키마(데이터베이스) 삭제
      */
     @PostMapping("/dropSchema")
     public String dropSchema(
@@ -105,7 +128,6 @@ public class DbController {
             @RequestParam("adminPw") String adminPw_param,
             RedirectAttributes redirectAttributes) {
 
-        // TODO: 실제 프로젝트의 인증 정보와 연동하여 검증을 강화하세요.
         if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
             redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
             return "redirect:/db";
@@ -120,6 +142,128 @@ public class DbController {
         }
 
         return "redirect:/db";
+    }
+
+    /**
+     * DB 사용자 생성
+     */
+    @PostMapping("/createUser")
+    public String createUser(
+            @RequestParam("newUser") String newUser,
+            @RequestParam("newHost") String newHost,
+            @RequestParam("newPassword") String newPassword,
+            @RequestParam("targetSchema") String targetSchema,
+            @RequestParam("adminId") String adminId_param,
+            @RequestParam("adminPw") String adminPw_param,
+            RedirectAttributes redirectAttributes) {
+
+        if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
+            redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
+            return "redirect:/db?schema=" + targetSchema + "&view=admin";
+        }
+
+        try {
+            dbService.createUser(newUser, newHost, newPassword, targetSchema);
+            redirectAttributes.addFlashAttribute("success",
+                    "사용자 '" + newUser + "'@'" + newHost + "'가 성공적으로 생성되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "사용자 생성 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return "redirect:/db?schema=" + targetSchema + "&view=admin";
+    }
+
+    /**
+     * DB 사용자 삭제
+     */
+    @PostMapping("/dropUser")
+    public String dropUser(
+            @RequestParam("targetUser") String targetUser,
+            @RequestParam("targetHost") String targetHost,
+            @RequestParam("targetSchema") String targetSchema,
+            @RequestParam("adminId") String adminId_param,
+            @RequestParam("adminPw") String adminPw_param,
+            RedirectAttributes redirectAttributes) {
+
+        if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
+            redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
+            return "redirect:/db?schema=" + targetSchema + "&view=admin";
+        }
+
+        try {
+            dbService.dropUser(targetUser, targetHost);
+            redirectAttributes.addFlashAttribute("success",
+                    "사용자 '" + targetUser + "'@'" + targetHost + "'가 성공적으로 삭제되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "사용자 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return "redirect:/db?schema=" + targetSchema + "&view=admin";
+    }
+
+    /**
+     * 권한 GRANT / REVOKE
+     */
+    @PostMapping("/updatePrivilege")
+    public String updatePrivilege(
+            @RequestParam("targetUser") String targetUser,
+            @RequestParam("targetHost") String targetHost,
+            @RequestParam("grantSchema") String grantSchema,
+            @RequestParam("privilege") String privilege,
+            @RequestParam("action") String action,
+            @RequestParam("adminId") String adminId_param,
+            @RequestParam("adminPw") String adminPw_param,
+            @RequestParam(value = "targetSchema", required = false, defaultValue = "") String targetSchema,
+            RedirectAttributes redirectAttributes) {
+
+        if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
+            redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
+            return "redirect:/db?schema=" + (targetSchema.isEmpty() ? grantSchema : targetSchema) + "&view=admin";
+        }
+
+        try {
+            dbService.updatePrivilege(targetUser, targetHost, grantSchema, privilege, action);
+            String verb = "revoke".equalsIgnoreCase(action) ? "회수" : "부여";
+            redirectAttributes.addFlashAttribute("success",
+                    "'" + targetUser + "'@'" + targetHost + "'의 " + privilege + " 권한을 " + verb + "했습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "권한 변경 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        String redirectSchema = targetSchema.isEmpty() ? grantSchema : targetSchema;
+        return "redirect:/db?schema=" + redirectSchema + "&view=admin";
+    }
+
+    /**
+     * 행(Row) 삭제
+     */
+    @PostMapping("/deleteRow")
+    public String deleteRow(
+            @RequestParam("schema") String schema,
+            @RequestParam("table") String table,
+            @RequestParam("pkColumn") String pkColumn,
+            @RequestParam("pkValue") String pkValue,
+            @RequestParam("adminId") String adminId_param,
+            @RequestParam("adminPw") String adminPw_param,
+            RedirectAttributes redirectAttributes) {
+
+        if (!adminId.equals(adminId_param) || !adminPw.equals(adminPw_param)) {
+            redirectAttributes.addFlashAttribute("error", "관리자 인증 정보가 올바르지 않습니다.");
+            return "redirect:/db?schema=" + schema + "&table=" + table;
+        }
+
+        try {
+            dbService.deleteData(schema, table, pkColumn, pkValue);
+            redirectAttributes.addFlashAttribute("success", "행이 성공적으로 삭제되었습니다.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("error", "행 삭제 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+        }
+
+        return "redirect:/db?schema=" + schema + "&table=" + table;
     }
 
     /**
@@ -194,6 +338,7 @@ public class DbController {
     }
 
     /**
+     * 사용자 권한 목록 조회
      */
     @GetMapping("/userPrivileges")
     @ResponseBody

@@ -17,104 +17,75 @@ import java.util.Map;
 @RequiredArgsConstructor
 public class LogController {
 
-    private final LogService LogService;
+    private final LogService logService;
 
+    // ── 로그 목록 페이지 ──────────────────────────────────
     @GetMapping("/facility/log/list")
     public String listPage(Model model, HttpServletRequest request, Pageable pageable) {
-
         model.addAttribute("title", "시설장비");
         model.addAttribute("subTitle", "Log");
         request.setAttribute("activeMenu", "facility");
         request.setAttribute("activeSubMenu", "log");
-
-        model.addAttribute("logs", LogService.getRecentLogs(pageable));
-
-        LocalDate endDate = LocalDate.now();
-        LocalDate startDate = endDate.minusMonths(12);
-        model.addAttribute("startDate", startDate.toString());
-        model.addAttribute("endDate", endDate.toString());
-
-        
+        model.addAttribute("logs", logService.getRecentLogs(pageable));
+        model.addAttribute("startDate", LocalDate.now().minusMonths(12).toString());
+        model.addAttribute("endDate", LocalDate.now().toString());
         return "common/log";
     }
 
-
+    // ── 전체 로그 API ──────────────────────────────────
     @GetMapping("/log/logs")
     @ResponseBody
     public Map<String, Object> getLogs(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        
-        Page<LogDTO> logPage = LogService.getRecentLogs(PageRequest.of(page, size));
-        
-        Map<String, Object> response = new HashMap<>();
-        response.put("content", logPage.getContent());
-        response.put("totalPages", logPage.getTotalPages());
-        response.put("totalElements", logPage.getTotalElements());
-        response.put("currentPage", page);
-        response.put("hasNext", logPage.hasNext());
-        response.put("hasPrevious", logPage.hasPrevious());
-        
-        return response;
+        return toPageMap(logService.getRecentLogs(PageRequest.of(page, size)), page);
     }
 
-
+    // ── 특정 PC 로그 조회 ──────────────────────────────────
     @GetMapping("/log/pc/{pcinfoNum}")
     @ResponseBody
-    public Map<String, Object> getPcLogsForMobile(
+    public Map<String, Object> getPcLogs(
             @PathVariable Long pcinfoNum,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "8") int size) {
-        // 특정 PC의 로그만 조회
-        Page<LogDTO> logPage = LogService.getLogsByPcInfoNum(pcinfoNum, PageRequest.of(page, size));
-        Map<String, Object> response = new HashMap<>();
-        response.put("content", logPage.getContent());
-        response.put("totalPages", logPage.getTotalPages());
-        response.put("totalElements", logPage.getTotalElements());
-        response.put("currentPage", page);
-        response.put("hasNext", logPage.hasNext());
-        response.put("hasPrevious", logPage.hasPrevious());
-        return response;
+        return toPageMap(logService.getLogsByPcInfoNum(pcinfoNum, PageRequest.of(page, size)), page);
     }
 
+    // ── 수동 로그 등록 (pcinfoview "새 기록" 버튼 / 모바일 QR) ──────────────────────────────────
+    // body: { "content": "..." }
     @PostMapping("/log/pc/{pcinfoNum}")
     @ResponseBody
-    public Map<String, Object> addPcLogForMobile(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
+    public Map<String, Object> addPcLog(
+            @PathVariable Long pcinfoNum,
+            @RequestBody Map<String, String> body) {
         String content = body.get("content");
-        LogService.processLog(pcinfoNum, content, "등록");
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        return result;
+        if (content == null || content.isBlank()) {
+            return Map.of("success", false, "message", "내용을 입력하세요.");
+        }
+        logService.savePcLog(pcinfoNum, content);
+        return Map.of("success", true);
     }
 
-
-    @PostMapping("/log/pcinfo/{pcinfoNum}")
-    @ResponseBody
-    public Map<String, Object> savePcLog(@PathVariable Long pcinfoNum, @RequestBody Map<String, String> body) {
-        String content = body.get("content");
-        LogService.processLog(pcinfoNum, content, "저장");
-        Map<String, Object> result = new HashMap<>();
-        result.put("result", "success");
-        return result;
-    }
-
-
-    // QR 로그 삭제 API
+    // ── 로그 삭제 ──────────────────────────────────
     @DeleteMapping("/log/{logNum}")
     @ResponseBody
     public Map<String, Object> deleteLog(@PathVariable Long logNum) {
-        Map<String, Object> result = new HashMap<>();
-        
         try {
-            LogService.deleteLog(logNum);
-            result.put("success", true);
-            result.put("message", "로그가 삭제되었습니다.");
-            
+            logService.deleteLog(logNum);
+            return Map.of("success", true, "message", "로그가 삭제되었습니다.");
         } catch (Exception e) {
-            result.put("success", false);
-            result.put("message", e.getMessage());
+            return Map.of("success", false, "message", e.getMessage());
         }
-        
-        return result;
+    }
+
+    private Map<String, Object> toPageMap(Page<LogDTO> logPage, int page) {
+        Map<String, Object> res = new HashMap<>();
+        res.put("content",       logPage.getContent());
+        res.put("totalPages",    logPage.getTotalPages());
+        res.put("totalElements", logPage.getTotalElements());
+        res.put("currentPage",   page);
+        res.put("hasNext",       logPage.hasNext());
+        res.put("hasPrevious",   logPage.hasPrevious());
+        return res;
     }
 }
