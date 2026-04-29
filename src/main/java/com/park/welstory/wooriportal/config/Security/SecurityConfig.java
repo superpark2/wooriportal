@@ -34,7 +34,7 @@ public class SecurityConfig {
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
                                 "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
                                 "/pcinfo/require/**", "/location/**", "/log/**", "/db/**",
-                                "/api/sse/**" // SSE 연결 허용
+                                "/api/sse/**", "/ai/**" // SSE 연결 허용
 
                         ).permitAll()
 

@@ -82,6 +82,17 @@
         </ul>
     </div>
 
+    <!-- AI 도구 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeMenu == 'ai' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="ai-submenu"><i class="fas fa-robot"></i> AI 도구</a></li>
+        </ul>
+        <ul th:classappend="${activeMenu == 'ai' ? 'show' : ''}" class="sidebar-menu submenu" id="ai-submenu">
+            <li><a th:classappend="${activeSubMenu == 'aiChat' ? 'active' : ''}" href="/ai"><i class="fas fa-comment-dots"></i> AI 채팅</a></li>
+            <li><a th:classappend="${activeSubMenu == 'aiExcel' ? 'active' : ''}" href="/excel"><i class="fas fa-file-excel"></i> 엑셀 AI</a></li>
+        </ul>
+    </div>
+
     <!-- 데이터베이스 관리 -->
     <div class="sidebar-section">
         <ul class="sidebar-menu">

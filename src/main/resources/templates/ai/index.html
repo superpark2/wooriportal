@@ -1,0 +1,1530 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WOORI AI</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/marked@9/marked.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+    <script th:inline="none">
+        MathJax = {
+            tex: {
+                inlineMath:  [['$', '$'], ['\\(', '\\)']],
+                displayMath: [['$$', '$$'], ['\\[', '\\]']],
+                processEscapes: true,
+            },
+            options: {
+                skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code'],
+                // mermaid-wrap / mermaid 컨테이너는 MathJax가 건드리지 않도록 제외
+                ignoreHtmlClass: 'mermaid-wrap|mermaid',
+            },
+            startup: { typeset: false },
+        };
+    </script>
+    <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+
+    <style>
+        html, body {
+            height: 100%;
+            font-family: 'Noto Sans KR', sans-serif;
+            background-color: #f5f7fb;
+        }
+
+        .chat-wrapper {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #fff;
+            box-shadow: 0 0 0 1px #e3e6ef;
+        }
+
+        /* ── 헤더 ── */
+        .chat-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 12px 20px;
+            background: #fff;
+            border-bottom: 1px solid #e3e6ef;
+            flex-shrink: 0;
+        }
+        .chat-header .avatar-wrap {
+            width: 38px; height: 38px;
+            border-radius: 50%; overflow: hidden; flex-shrink: 0;
+            background: #e8edf8;
+            display: flex; align-items: center; justify-content: center;
+        }
+        .chat-header .avatar-wrap img { width: 100%; height: 100%; object-fit: cover; }
+        .chat-header .title-block h6 { margin: 0; font-size: 14px; font-weight: 700; color: #1a1f36; }
+        .chat-header .title-block small { font-size: 11px; color: #8b95b0; }
+
+        /* ── 상태 뱃지 ── */
+        .status-badge {
+            font-size: 10px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            background: #e8f5e9;
+            color: #2e7d32;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .status-badge.search { background: #e3f2fd; color: #1565c0; }
+        .status-badge.image  { background: #fce4ec; color: #b71c1c; }
+        .status-badge::before {
+            content: '';
+            width: 6px; height: 6px;
+            border-radius: 50%;
+            background: currentColor;
+            display: inline-block;
+        }
+
+        /* ── 메시지 영역 ── */
+        #chat-messages-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 0px 20px 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+        #chat-messages-container::-webkit-scrollbar { width: 4px; }
+        #chat-messages-container::-webkit-scrollbar-thumb { background: #d0d5e8; border-radius: 2px; }
+
+        .msg-bubble-text { white-space: pre-wrap; word-break: break-word; }
+
+        /* ── AI 응답 마크다운 스타일 ── */
+        .ai-response p { margin-bottom: 0.5em; }
+        .ai-response p:last-child { margin-bottom: 0; }
+        .ai-response ul, .ai-response ol { padding-left: 1.4em; margin: 0.3em 0 0.6em; }
+        .ai-response li { margin-bottom: 0.35em; line-height: 1.6; }
+        .ai-response li:last-child { margin-bottom: 0; }
+        .ai-response code { background: #f0f2f8; padding: 1px 5px; border-radius: 4px; font-size: 15px; font-family: monospace; }
+        .ai-response pre { background: #f0f2f8; padding: 10px; border-radius: 8px; overflow-x: auto; margin: 0.4em 0; }
+        .ai-response pre code { background: none; padding: 0; }
+        .ai-response h1, .ai-response h2, .ai-response h3,
+        .ai-response h4, .ai-response h5, .ai-response h6 {
+            font-size: 1em; font-weight: 700;
+            margin: 1.1em 0 0.3em;
+        }
+        .ai-response h1:first-child, .ai-response h2:first-child,
+        .ai-response h3:first-child { margin-top: 0.2em; }
+        .ai-response strong { font-weight: 700; }
+        .ai-response em { font-style: italic; }
+        .ai-response blockquote { border-left: 3px solid #d0d5e8; padding-left: 10px; color: #6c757d; margin: 0.5em 0; }
+        .ai-response a { color: #3d5aad; text-decoration: underline; }
+        /* 스트리밍 미완성 마지막 블록 */
+        .streaming-tail { white-space: pre-wrap; }
+        .ai-response ol > li { margin-bottom: 0.8em; }
+        .ai-response ol > li:last-child { margin-bottom: 0; }
+
+        /* ── 이미지 썸네일 ── */
+        .msg-thumb img {
+            width: 90px; height: 90px;
+            object-fit: cover; border-radius: 8px;
+            cursor: zoom-in; transition: transform .15s;
+        }
+        .msg-thumb img:hover { transform: scale(1.04); }
+
+        /* ── 로딩 점 ── */
+        @keyframes aiDotPulse {
+            0%, 80%, 100% { opacity: .2; transform: scale(.85); }
+            40%            { opacity: 1;  transform: scale(1.2);  }
+        }
+        .ai-dot {
+            display: inline-block;
+            width: 7px; height: 7px; border-radius: 50%;
+            background: #6c757d;
+            animation: aiDotPulse 1.2s ease-in-out infinite;
+        }
+        .ai-dot:nth-child(2) { animation-delay: .2s; }
+        .ai-dot:nth-child(3) { animation-delay: .4s; }
+
+        /* ── 재시도 버튼 ── */
+        .btn-retry { font-size: 11px; padding: 0; color: #8b95b0; text-decoration: none; }
+        .btn-retry:hover { color: #3d5aad; }
+
+        /* ── 검색 태그 ── */
+        .search-tag {
+            display: inline-flex; align-items: center; gap: 5px;
+            font-size: 10.5px; color: #1565c0;
+            background: #e3f2fd; border-radius: 12px;
+            padding: 2px 10px; margin-bottom: 6px;
+        }
+
+        /* ── 입력 영역 ── */
+        .chat-input-area {
+            flex-shrink: 0;
+            padding: 10px 16px 14px;
+            background: #fff;
+            border-top: 1px solid #e3e6ef;
+        }
+
+        .image-preview-strip { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 8px; }
+
+        .preview-thumb-wrap { position: relative; display: inline-block; }
+        .preview-thumb-wrap img {
+            display: block;
+            max-width: 200px; max-height: 200px;
+            width: auto; height: auto;
+            object-fit: contain; border-radius: 8px;
+            border: 1px solid #dee2f0;
+        }
+        .preview-thumb-del {
+            position: absolute; top: -7px; right: -7px;
+            width: 20px; height: 20px; border-radius: 50%;
+            background: #e63946; border: 2px solid #fff; color: #fff;
+            font-size: 10px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            padding: 0; line-height: 1; z-index: 1;
+        }
+
+        /* ── 이미지 편집 배너 ── */
+        .edit-banner {
+            display: flex; align-items: center; gap: 8px;
+            background: #fff3e0; border-radius: 8px;
+            padding: 5px 10px; margin-bottom: 6px;
+            font-size: 11.5px; color: #e65100;
+        }
+        .edit-banner .edit-thumb {
+            width: 32px; height: 32px;
+            object-fit: cover; border-radius: 4px; flex-shrink: 0;
+        }
+        .edit-banner .btn-cancel-edit {
+            margin-left: auto; background: none; border: none;
+            color: #e65100; font-size: 12px; cursor: pointer;
+            padding: 0;
+        }
+
+        .input-row {
+            display: flex; align-items: flex-end; gap: 6px;
+            background: #f5f7fb; border: 1px solid #dee2f0;
+            border-radius: 12px; padding: 7px 10px;
+            transition: border-color .2s;
+        }
+        .input-row:focus-within { border-color: #3d5aad; }
+        .input-row textarea {
+            flex: 1; background: none; border: none; outline: none;
+            font-family: 'Noto Sans KR', sans-serif;
+            font-size: 13.5px; color: #1a1f36;
+            resize: none; min-height: 24px; max-height: 100px;
+            overflow-y: hidden; line-height: 1.5; padding: 2px 0;
+        }
+        .input-row textarea::placeholder { color: #adb5bd; }
+
+        .btn-icon-sm {
+            width: 30px; height: 30px; border-radius: 8px;
+            border: none; background: none; color: #8b95b0;
+            font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; cursor: pointer; transition: all .15s;
+        }
+        .btn-icon-sm:hover { background: #e8edf8; color: #3d5aad; }
+        .btn-icon-sm.active { color: #3d5aad; background: #e8edf8; }
+
+        .btn-send {
+            width: 32px; height: 32px; border-radius: 9px;
+            border: none; background: #3d5aad; color: #fff;
+            font-size: 13px;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; cursor: pointer;
+            transition: background .15s, transform .15s;
+        }
+        .btn-send:hover { background: #2e4490; transform: scale(1.06); }
+        .btn-send.is-stop { background: #e63946; }
+
+        .input-hint { font-size: 10.5px; color: #adb5bd; text-align: center; margin-top: 5px; }
+
+        /* ── 이미지 확대 모달 ── */
+        #aiImageModal {
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.85); z-index: 99999;
+            align-items: center; justify-content: center;
+            cursor: zoom-out;
+        }
+        #aiImageModal.show { display: flex; }
+        #aiImageModal img {
+            width: auto; height: auto;
+            max-width: min(var(--img-natural-w, 90vw), 96vw);
+            max-height: 94vh;
+            border-radius: 8px; box-shadow: 0 8px 32px rgba(0,0,0,.6); display: block;
+        }
+        #aiImageModal .modal-actions {
+            position: fixed; top: 14px; right: 18px;
+            display: flex; gap: 8px;
+        }
+        #aiImageModal .modal-actions button {
+            width: 32px; height: 32px; border-radius: 50%;
+            border: none; background: rgba(255,255,255,.15); color: #fff;
+            font-size: 14px; cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+        }
+        #aiImageModal .modal-actions button:hover { background: rgba(255,255,255,.3); }
+    </style>
+</head>
+<body>
+
+<div class="chat-wrapper">
+
+    <!-- ── 헤더 ── -->
+    <div class="chat-header">
+        <div class="avatar-wrap">
+            <img src="/tutil/AI/wooriAI.png" alt="WOORI"
+                 onerror="this.style.display='none'; this.parentElement.innerHTML='🤖';">
+        </div>
+        <div class="title-block">
+            <h6>WOORI AI</h6>
+            <small>무엇이든 물어보세요</small>
+        </div>
+        <button class="btn btn-sm btn-outline-danger ms-auto" id="btnReset">
+            <i class="fas fa-trash-alt me-1"></i>초기화
+        </button>
+    </div>
+
+    <!-- ── 메시지 목록 ── -->
+    <div id="chat-messages-container">
+        <div class="text-center my-auto py-5" id="welcome-msg">
+            <p class="text-muted mb-0 fs--1">AI에게 원하는 질문을 하세요.<br>
+                <span style="font-size:11px;color:#adb5bd;">이미지 첨부 후 편집 요청 · 웹 검색 · 이미지 생성 가능</span></p>
+        </div>
+    </div>
+
+    <!-- ── 입력 영역 ── -->
+    <div class="chat-input-area">
+        <!-- 이미지 편집 배너 -->
+        <div class="edit-banner" id="editBanner" style="display:none;">
+            <img class="edit-thumb" id="editBannerThumb" src="" alt="">
+            <span id="editBannerText">이전 이미지를 편집합니다</span>
+            <button class="btn-cancel-edit" id="btnCancelEdit" title="편집 모드 해제">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <!-- 이미지 미리보기 -->
+        <div class="image-preview-strip" id="imagePreviewStrip"></div>
+        <!-- 입력 행 -->
+        <div class="input-row">
+            <textarea id="chatTextarea" placeholder="무엇이든 물어보세요." rows="1"></textarea>
+            <button class="btn-icon-sm" id="btnSearch" title="웹 검색 모드 토글">
+                <i class="fas fa-search"></i>
+            </button>
+            <button class="btn-icon-sm" id="btnAttach" title="이미지 첨부">
+                <i class="fas fa-image"></i>
+            </button>
+            <input type="file" id="fileInput" accept="image/*" multiple style="display:none">
+            <button class="btn-send" id="btnSend" title="전송">
+                <i class="fas fa-paper-plane"></i>
+            </button>
+        </div>
+        <p class="input-hint">Enter 전송 &middot; Shift+Enter 줄바꿈 &middot; 이미지 최대 5장 &middot; 클립보드 붙여넣기 지원</p>
+    </div>
+</div>
+
+<!-- ── 이미지 확대 모달 ── -->
+<div id="aiImageModal">
+    <div class="modal-actions">
+        <button id="btnModalDownload" title="다운로드"><i class="fas fa-download"></i></button>
+        <button id="btnModalEdit"     title="이 이미지 편집하기"><i class="fas fa-edit"></i></button>
+        <button id="aiImageModalClose" title="닫기"><i class="fas fa-times"></i></button>
+    </div>
+    <img id="aiImageModalImg" src="" alt="확대 이미지">
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script th:inline="none">
+    // marked 설정 (v5+ 호환)
+    marked.use({ breaks: true, gfm: true, pedantic: false });
+
+    // mermaid 초기화
+    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+
+    // ============================================================================
+    // 공통 유틸: escapeHtml (일반 텍스트 → HTML 이스케이프, XSS 방지)
+    // ============================================================================
+    function escapeHtml(t) {
+        return String(t)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
+    }
+
+    // ============================================================================
+    // sanitizeMermaid: Mermaid 코드용 XSS 방지
+    // ─ escapeHtml() 대신 사용. Mermaid는 raw 텍스트를 받아야 하므로
+    //   HTML 엔티티 변환 없이, 실제로 위험한 패턴만 제거합니다.
+    // ─ <script>, javascript:, onerror= 등 실행 가능한 페이로드만 걷어냅니다.
+    // ============================================================================
+    function sanitizeMermaid(code) {
+        return code
+            .replace(/<script[\s\S]*?<\/script>/gi, '')
+            // 인라인 이벤트 핸들러 (on* 속성) 제거
+            .replace(/\bon\w+\s*=/gi, '')
+            // javascript: 프로토콜 제거
+            .replace(/javascript\s*:/gi, '')
+            // data: URI 제거 (SVG 인젝션 방지)
+            .replace(/data\s*:/gi, '');
+    }
+
+    // ============================================================================
+    // sanitizeMermaidCode: Mermaid 노드 라벨 안의 소괄호 () 제거
+    // Mermaid 파서는 [] {} 안의 () 를 노드 모양 문법으로 오인해 파싱 에러를 냄.
+    // [] {} () 세 가지 노드 라벨 모두 처리.
+    // ============================================================================
+    function sanitizeMermaidCode(code) {
+        // 노드 라벨 [] 안의 () 제거: [텍스트 (부연)] → [텍스트 부연]
+        code = code.replace(/\[([^\]]*)\]/g, (_, inner) =>
+            '[' + inner.replace(/\(([^)]*)\)/g, '$1') + ']'
+        );
+        // 다이아몬드 노드 {} 안의 () 제거: {updateState(id)} → {updateState id}
+        code = code.replace(/\{([^}]*)\}/g, (_, inner) =>
+            '{' + inner.replace(/\(([^)]*)\)/g, '$1') + '}'
+        );
+        // 스타디움/원형 노드 (텍스트) 안의 중첩 () 제거
+        // 예: ([텍스트 (부연)]) → ([텍스트 부연])
+        code = code.replace(/\((\[?)([^)]*)\)/g, (match, bracket, inner) => {
+            if (bracket) return match; // ([...]) 형태는 건드리지 않음
+            const cleaned = inner.replace(/\(([^)]*)\)/g, '$1');
+            return cleaned !== inner ? '(' + cleaned + ')' : match;
+        });
+        return code;
+    }
+
+    // ============================================================================
+    // Mermaid extension 등록
+    // ─ renderer에서 escapeHtml → sanitizeMermaid 로 교체
+    //   → & > < 등 Mermaid 문법 문자가 엔티티로 깨지지 않음
+    // ============================================================================
+    let _mermaidIdx = 0;
+
+
+    // ============================================================================
+    // 상수 & 세션
+    // ============================================================================
+    const HISTORY_KEY  = 'wooriSimpleChatHistory';
+    const SESSION_KEY  = 'wooriSessionId';
+    const MAX_HISTORY  = 20;
+    const MAX_IMAGES   = 3;
+    const STREAM_URL   = '/ai/chat/stream';
+
+    const SESSION_ID = (() => {
+        let id = sessionStorage.getItem(SESSION_KEY);
+        if (!id) {
+            id = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+            sessionStorage.setItem(SESSION_KEY, id);
+        }
+        return id;
+    })();
+
+    // ============================================================================
+    // 상태
+    // ============================================================================
+    let aiHistory        = [];
+    let isAiRequesting   = false;
+    let aiAbortCtrl      = null;
+    let attachedImages   = [];
+    let attachedThumbs   = [];
+    let lastUserInput    = '';
+    let lastUserImages   = [];
+    let webSearchMode    = false;
+    let editModeImageUrl = null;
+    let renderTimer      = null;
+    let _isRestoring     = false;
+
+    // ============================================================================
+    // 마크다운 렌더링
+    // ============================================================================
+
+    // escHtml: inlineFormat 내부 전용 (짧은 이름 유지)
+    function escHtml(t) {
+        return String(t)
+            .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+            .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    function inlineStreamLine(line) {
+        if (!line) return '';
+        line = line.replace(/^\*{1,3}\s+(#{1,6})\s/, '$1 ');
+        const hm = line.match(/^(#{1,6})\s+(.*)/);
+        if (hm) return `<strong>${inlineFormat(hm[2])}</strong>`;
+        if (/^[-*_]{3,}$/.test(line.trim())) return '<hr style="border:none;border-top:1px solid #e3e6ef;margin:6px 0;">';
+        const ulm = line.match(/^(\s*)[*-]\s+(.*)/);
+        if (ulm) return ulm[1] + '• ' + inlineFormat(ulm[2]);
+        const olm = line.match(/^(\s*)(\d+)\.\s+(.*)/);
+        if (olm) return olm[1] + olm[2] + '. ' + inlineFormat(olm[3]);
+        return inlineFormat(line);
+    }
+
+    function inlineFormat(t) {
+        t = escHtml(t);
+        const codeSpans = [];
+        t = t.replace(/`([^`]+)`/g, (_, inner) => {
+            const idx = codeSpans.length;
+            codeSpans.push(`<code>${inner}</code>`);
+            return `\x00CODE${idx}\x00`;
+        });
+        t = t.replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>');
+        t = t.replace(/\*\*(.+?)\*\*/g,     '<strong>$1</strong>');
+        t = t.replace(/\*(.+?)\*/g,           '<em>$1</em>');
+        t = t.replace(/\x00CODE(\d+)\x00/g, (_, i) => codeSpans[+i]);
+        return t;
+    }
+
+    function renderStreamingText(text) {
+        if (!text) return '';
+        const parts    = text.split(/\n\n/);
+        const doneParts = parts.slice(0, -1);
+        const lastPart  = parts[parts.length - 1];
+        let html = '';
+        if (doneParts.length > 0) {
+            html += renderMarkdown(doneParts.join('\n\n') + '\n\n');
+        }
+        if (lastPart) {
+            const lines   = lastPart.split('\n');
+            const lineHtml = lines.map(line => inlineStreamLine(line)).join('<br>');
+            html += `<span class="streaming-tail">${lineHtml}</span>`;
+        }
+        return html;
+    }
+
+    function renderMarkdown(text) {
+        if (!text) return '';
+        text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+        // mermaid 블록을 먼저 분리 (marked와 완전 격리)
+        const mermaidRe = /```[ \t]*mermaid[ \t]*\r?\n([\s\S]*?)```[ \t]*(?:\r?\n|$)/gi;
+        const parts = [];
+        let lastIdx = 0, m;
+        while ((m = mermaidRe.exec(text)) !== null) {
+            if (m.index > lastIdx)
+                parts.push({ md: true, text: text.slice(lastIdx, m.index) });
+            const id = 'mermaid-' + (++_mermaidIdx);
+            const safeCode = sanitizeMermaid(sanitizeMermaidCode(m[1]));
+            parts.push({ md: false, html:
+                    `<div class="mermaid-wrap" style="margin:10px 0;">` +
+                    `<div class="mermaid" id="${id}" style="background:#f8f9ff;border-radius:8px;padding:12px;">${safeCode}</div></div>` });
+            lastIdx = m.index + m[0].length;
+        }
+        if (lastIdx < text.length) parts.push({ md: true, text: text.slice(lastIdx) });
+        if (!parts.length)         parts.push({ md: true, text });
+
+        return parts.map(p => p.md ? _renderMdPart(p.text) : p.html).join('');
+    }
+
+    // _renderMdPart: mermaid를 제외한 순수 마크다운 처리
+    function _renderMdPart(text) {
+        if (!text.trim()) return '';
+
+        // 코드블록 보호
+        const codeBlocks = [];
+        text = text.replace(/```[\s\S]*?```/g, match => {
+            const k = `\x00CB${codeBlocks.length}\x00`; codeBlocks.push(match); return k;
+        });
+        const inlineCode = [];
+        text = text.replace(/`([^`\n]+)`/g, match => {
+            const k = `\x00IC${inlineCode.length}\x00`; inlineCode.push(match); return k;
+        });
+
+        // 수식 보호
+        const mathBlocks = [];
+        text = text.replace(/\$\$([\s\S]*?)\$\$/g, match => {
+            const k = `%%M${mathBlocks.length}%%`; mathBlocks.push(match); return k;
+        });
+        text = text.replace(/\$([^$\n]+?)\$/g, match => {
+            const k = `%%M${mathBlocks.length}%%`; mathBlocks.push(match); return k;
+        });
+
+        // 잡음 제거
+        text = text.replace(/^(\*{1,3})\s+(#{1,6})\s/gm, '$2 ');
+        text = text.replace(/([^\n])\n(#{1,6}\s)/g, '$1\n\n$2');
+        text = text.replace(/\*\* ([^*\n]+?)\*\*/g, '**$1**');
+        text = text.replace(/\*\*([^*\n]+?) \*\*/g, '**$1**');
+
+        // 코드블록 복원
+        codeBlocks.forEach((b, i) => { text = text.replace(`\x00CB${i}\x00`, b); });
+
+        // 스트리밍 미완성 bold/italic 임시 닫기
+        const lastLine = text.split('\n').pop() || '';
+        let suffix = '';
+        if (((lastLine.match(/\*\*/g) || []).length) % 2 !== 0) suffix += '**';
+        if (((lastLine.replace(/\*\*/g,'').match(/\*/g) || []).length) % 2 !== 0) suffix += '*';
+        const safeText = suffix ? text + suffix : text;
+
+        // [AI_IMAGE] 보호
+        const placeholders = {};
+        let imgIdx = 0;
+        const withPlaceholders = safeText.replace(/\[AI_IMAGE:(.*?)\]/g, (_, url) => {
+            const k = `%%IMG${imgIdx++}%%`;
+            placeholders[k] = buildImageHtml(url.trim()); return k;
+        });
+
+        // bold 뒤에 공백 없이 문자가 붙으면 marked가 파싱 못함 → 공백 삽입
+        const boldFixed = withPlaceholders
+            .replace(/\*\*([^*\n]+?)\*\*([^\s*\n])/g, '**$1** $2');
+
+        if (typeof marked === 'undefined')
+            return '<pre style="white-space:pre-wrap">' + escapeHtml(text) + '</pre>';
+
+        let html = marked.parse(boldFixed);
+
+        // 플레이스홀더 복원
+        Object.entries(placeholders).forEach(([k, v]) => { html = html.replace(k, v); });
+        mathBlocks.forEach((b, i) => { html = html.replace(`%%M${i}%%`, b); });
+        inlineCode.forEach((orig, i) => {
+            html = html.replace(`\x00IC${i}\x00`, `<code>${escapeHtml(orig.slice(1,-1))}</code>`);
+        });
+        return html;
+    }
+
+    function buildImageHtml(url) {
+        const escaped = url.replace(/"/g, '&quot;');
+        return `<div style="margin-top:10px;">
+            <img src="${escaped}" alt="AI 생성 이미지"
+                 class="ai-gen-image"
+                 style="max-width:100%;border-radius:8px;cursor:zoom-in;
+                        box-shadow:0 2px 8px rgba(0,0,0,0.18);display:block;"
+                 onclick="openImageModal(this.src)">
+            <div style="margin-top:6px;display:flex;gap:8px;">
+                <button onclick="enterEditMode('${escaped}')"
+                        style="font-size:11px;padding:3px 10px;border-radius:8px;
+                               border:1px solid #3d5aad;background:#e8edf8;
+                               color:#3d5aad;cursor:pointer;">
+                    <i class="fas fa-edit" style="margin-right:3px;"></i>이 이미지 편집
+                </button>
+                <a href="${escaped}" download
+                   style="font-size:11px;padding:3px 10px;border-radius:8px;
+                          border:1px solid #adb5bd;background:#f5f7fb;
+                          color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                    <i class="fas fa-download"></i> 저장
+                </a>
+            </div>
+        </div>`;
+    }
+
+    // ============================================================================
+    // Mermaid Pan / Zoom
+    // ============================================================================
+    function attachPanZoom(wrapEl) {
+        const svg = wrapEl.querySelector('svg');
+        if (!svg || svg._pzAttached) return;
+        svg._pzAttached = true;
+
+        // 자연 크기 읽기
+        const naturalW = svg.viewBox?.baseVal?.width || svg.getBoundingClientRect().width || 600;
+        const naturalH = svg.viewBox?.baseVal?.height || svg.getBoundingClientRect().height || 400;
+
+        svg.style.display     = 'block';
+        svg.style.width       = naturalW + 'px';   // ← 100% 대신 자연 너비
+        svg.style.height      = naturalH + 'px';   // ← auto 대신 자연 높이
+        svg.style.minWidth    = naturalW + 'px';
+        svg.style.cursor      = 'grab';
+        svg.style.userSelect  = 'none';
+        svg.style.touchAction = 'none';
+        wrapEl.style.overflow  = 'hidden';
+        wrapEl.style.position  = 'relative';
+        wrapEl.style.minHeight = Math.max(naturalH, 300) + 'px'; // ← 추가
+        wrapEl.style.maxHeight = '600px';                         // ← 너무 커지면 스크롤
+
+        const hint = document.createElement('div');
+        hint.textContent = '🖱 휠: 확대/축소  ·  드래그: 이동  ·  더블클릭: 초기화';
+        hint.style.cssText = 'font-size:10px;color:#adb5bd;text-align:right;margin-top:4px;pointer-events:none;';
+        wrapEl.appendChild(hint);
+
+        const wrapW  = wrapEl.getBoundingClientRect().width || 600;
+        const fitScale = Math.min(wrapW / naturalW, 1.0); // 컨테이너보다 크면 축소, 작으면 1:1
+        let scale = fitScale;
+        let tx = 0, ty = 0;
+
+        function applyTransform() {
+            svg.style.transformOrigin = '0 0';
+            svg.style.transform = `translate(${tx}px,${ty}px) scale(${scale})`;
+        }
+
+        wrapEl.addEventListener('wheel', e => {
+            e.preventDefault();
+            const rect  = wrapEl.getBoundingClientRect();
+            const mx    = e.clientX - rect.left;
+            const my    = e.clientY - rect.top;
+            const delta = e.deltaY < 0 ? 1.12 : 1 / 1.12;
+            const ns    = Math.min(Math.max(scale * delta, 0.15), 10);
+            tx = mx - (mx - tx) * (ns / scale);
+            ty = my - (my - ty) * (ns / scale);
+            scale = ns;
+            applyTransform();
+        }, { passive: false });
+
+        svg.addEventListener('mousedown', e => {
+            if (e.button !== 0) return;
+            dragging = true;
+            startX = e.clientX - tx;
+            startY = e.clientY - ty;
+            svg.style.cursor = 'grabbing';
+            e.preventDefault();
+        });
+        window.addEventListener('mousemove', e => {
+            if (!dragging) return;
+            tx = e.clientX - startX;
+            ty = e.clientY - startY;
+            applyTransform();
+        });
+        window.addEventListener('mouseup', () => {
+            if (!dragging) return;
+            dragging = false;
+            svg.style.cursor = 'grab';
+        });
+
+        svg.addEventListener('dblclick', () => {
+            scale = 1; tx = 0; ty = 0;
+            applyTransform();
+        });
+    }
+
+    function renderMermaidIn(container) {
+        const allNodes = container.querySelectorAll('.mermaid');
+        if (!allNodes.length) return;
+
+        const toRender = Array.from(allNodes)
+            .filter(el => !el.getAttribute('data-mermaid-rendered'));
+        if (!toRender.length) return;
+
+        toRender.forEach(el => el.setAttribute('data-mermaid-rendered', '1'));
+
+        mermaid.run({ nodes: toRender })
+            .then(() => {
+                toRender.forEach(el => {
+                    const wrap = el.closest('.mermaid-wrap') || el.parentElement;
+                    if (wrap) attachPanZoom(wrap);
+                });
+            })
+            .catch(e => {
+                toRender.forEach(el => el.removeAttribute('data-mermaid-rendered'));
+                console.warn('[Mermaid] 렌더링 오류 (재시도 가능):', e);
+            });
+    }
+
+    function typesetMath(container) {
+        if (typeof MathJax === 'undefined' || !MathJax.typesetPromise) return;
+        MathJax.typesetPromise([container]).catch(e => console.warn('[MathJax] 오류:', e));
+    }
+
+    // mermaid 렌더링 완료 후 typesetMath 실행 (타이밍 충돌 방지)
+    // 기존 함수 전체를 아래로 교체
+    async function renderMermaidAndMath(container) {
+        // ① mermaid 먼저 완료 대기 (DOM 안정화)
+        const allNodes = Array.from(container.querySelectorAll('.mermaid'))
+            .filter(el => !el.getAttribute('data-mermaid-rendered'));
+
+        if (allNodes.length) {
+            allNodes.forEach(el => el.setAttribute('data-mermaid-rendered', '1'));
+            try {
+                await mermaid.run({ nodes: allNodes });
+                allNodes.forEach(el => {
+                    const wrap = el.closest('.mermaid-wrap') || el.parentElement;
+                    if (wrap) attachPanZoom(wrap);
+                });
+            } catch (e) {
+                allNodes.forEach(el => el.removeAttribute('data-mermaid-rendered'));
+                console.warn('[Mermaid] 렌더링 오류 (재시도 가능):', e);
+            }
+        }
+
+        // ② mermaid SVG가 DOM에 자리잡은 뒤 MathJax 실행
+        typesetMath(container);
+    }
+
+    // ============================================================================
+    // 히스토리
+    // ============================================================================
+    function loadHistory() {
+        try { aiHistory = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]'); }
+        catch { aiHistory = []; }
+        restoreFromHistory();
+    }
+
+    function saveHistory() {
+        try {
+            const toSave = aiHistory.slice(-MAX_HISTORY).map(m => ({
+                role: m.role, content: m.content, thumbs: m.thumbs || []
+            }));
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(toSave));
+        } catch {
+            if (aiHistory.length > 4) { aiHistory = aiHistory.slice(-4); saveHistory(); }
+        }
+    }
+
+    function clearHistory() {
+        aiHistory        = [];
+        attachedImages   = [];
+        attachedThumbs   = [];
+        lastUserInput    = '';
+        lastUserImages   = [];
+        webSearchMode    = false;
+        editModeImageUrl = null;
+        _mermaidIdx      = 0;
+
+        localStorage.removeItem(HISTORY_KEY);
+        document.getElementById('chat-messages-container').innerHTML =
+            `<div class="text-center my-auto py-5" id="welcome-msg">
+            <p class="text-muted mb-0 fs--1">AI에게 원하는 질문을 하세요.<br>
+                <span style="font-size:11px;color:#adb5bd;">이미지 첨부 후 편집 요청 · 웹 검색 · 이미지 생성 가능</span></p>
+        </div>`;
+
+        updateImagePreview();
+
+        const btnSearch = document.getElementById('btnSearch');
+        if (btnSearch) {
+            btnSearch.classList.remove('active');
+            btnSearch.title = '웹 검색 모드 토글';
+        }
+
+        const ta = document.getElementById('chatTextarea');
+        if (ta) ta.placeholder = '무엇이든 물어보세요.';
+
+        cancelEditMode();
+        fetch('/ai/chat/session/' + SESSION_ID, { method: 'DELETE' })
+            .catch(err => console.warn('[clearHistory] 서버 세션 초기화 실패:', err));
+    }
+
+    function restoreFromHistory() {
+        if (!aiHistory.length) return;
+        hideWelcome();
+        _isRestoring = true;        // ← 추가
+        const aiDivs = [];
+        aiHistory.forEach(m => {
+            if (m.role === 'user')
+                appendMessage('user', m.content, m.thumbs || []);
+            else if (m.role === 'assistant') {
+                const div = appendMessage('assistant', m.content, [], null);
+                if (div) aiDivs.push(div);
+            }
+        });
+        _isRestoring = false;       // ← 추가
+        scrollToBottom();
+
+        (async () => {
+            for (const div of aiDivs) {
+                await renderMermaidAndMath(div);
+            }
+        })();
+    }
+
+    // ============================================================================
+    // 편집 모드
+    // ============================================================================
+    function enterEditMode(imgUrl) {
+        editModeImageUrl = imgUrl;
+        const banner = document.getElementById('editBanner');
+        const thumb  = document.getElementById('editBannerThumb');
+        const text   = document.getElementById('editBannerText');
+        thumb.src = imgUrl;
+        text.textContent = '이전 생성 이미지를 편집합니다 — 어떻게 바꿀까요?';
+        banner.style.display = 'flex';
+        document.getElementById('chatTextarea').placeholder = '수정 내용을 입력하세요. (예: 배경을 바다로 바꿔줘)';
+        document.getElementById('chatTextarea').focus();
+    }
+
+    function cancelEditMode() {
+        editModeImageUrl = null;
+        document.getElementById('editBanner').style.display = 'none';
+        document.getElementById('chatTextarea').placeholder = '무엇이든 물어보세요.';
+    }
+
+    // ============================================================================
+    // DOM 유틸
+    // ============================================================================
+    function scrollToBottom() {
+        const el = document.getElementById('chat-messages-container');
+        if (el) el.scrollTop = el.scrollHeight;
+    }
+    function hideWelcome() {
+        const w = document.getElementById('welcome-msg');
+        if (w) w.remove();
+    }
+
+    // ============================================================================
+    // 메시지 렌더링
+    // ============================================================================
+    function appendMessage(role, text, thumbs, searchQuery) {
+        const container = document.getElementById('chat-messages-container');
+        if (!container) return;
+        const msgDiv = document.createElement('div');
+
+        if (role === 'user') {
+            msgDiv.className = 'text-end mt-2';
+
+            if (webSearchMode) {
+                const tag = document.createElement('div');
+                tag.className = 'mb-1 text-end';
+                tag.innerHTML = `<span class="search-tag"><i class="fas fa-search" style="font-size:9px;"></i>웹 검색</span>`;
+                msgDiv.appendChild(tag);
+            }
+
+            if (thumbs && thumbs.length > 0) {
+                const imgWrap = document.createElement('div');
+                imgWrap.className = 'd-flex flex-wrap gap-1 justify-content-end mb-1 msg-thumb';
+                thumbs.forEach(src => {
+                    const img = document.createElement('img');
+                    img.src = src;
+                    img.alt = '첨부이미지';
+                    img.style.cursor = 'zoom-in';
+                    img.addEventListener('click', () => openImageModal(src));
+                    imgWrap.appendChild(img);
+                });
+                msgDiv.appendChild(imgWrap);
+            }
+
+            const bubble = document.createElement('div');
+            bubble.className = 'd-inline-block bg-soft-primary text-1100 rounded-3 border border-primary py-2 px-3 text-break text-start';
+            bubble.style.maxWidth = '85%';
+            bubble.innerHTML = `<p class="mb-0 fw-semi-bold fs--1 msg-bubble-text">${escapeHtml(text).replace(/\n/g,'<br>')}</p>`;
+            msgDiv.appendChild(bubble);
+        } else {
+            let searchBadge = '';
+            if (searchQuery) {
+                searchBadge = `<div class="mb-1">
+            <span class="search-tag"><i class="fas fa-search" style="font-size:9px;"></i>검색: ${escapeHtml(searchQuery)}</span>
+        </div>`;
+            }
+            msgDiv.className = 'text-start mt-2';
+            msgDiv.innerHTML = `
+        <div class="d-flex align-items-start">
+            <div class="avatar avatar-m me-2">
+                <div class="avatar-name rounded-circle">
+                    <img src="/tutil/AI/wooriAI.png" alt="AI"
+                         style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+                         onerror="this.parentElement.textContent='🤖';">
+                </div>
+            </div>
+            <div class="flex-1" style="max-width:85%;">
+                ${searchBadge}
+                <div class="w-100 p-3 border border-200 rounded-3 bg-light text-break">
+                    <div class="mb-0 fw-semi-bold fs--1 ai-response">${renderMarkdown(text)}</div>
+                </div>
+            </div>
+        </div>`;
+            if (!_isRestoring) renderMermaidAndMath(msgDiv);
+        }
+
+        container.appendChild(msgDiv);
+        scrollToBottom();
+        return msgDiv;
+    }
+
+    // ============================================================================
+    // 로딩 버블
+    // ============================================================================
+    function appendLoadingBubble() {
+        const container = document.getElementById('chat-messages-container');
+        if (!container) return null;
+        const id  = 'loading-' + Date.now();
+        const div = document.createElement('div');
+        div.id = id; div.className = 'text-start mt-2';
+        div.innerHTML = `
+        <div class="d-flex align-items-start">
+            <div class="avatar avatar-m me-2">
+                <div class="avatar-name rounded-circle">
+                    <img src="/tutil/AI/wooriAI.png" alt="AI"
+                         style="width:100%;height:100%;object-fit:cover;border-radius:50%;"
+                         onerror="this.parentElement.textContent='🤖';">
+                </div>
+            </div>
+            <div class="flex-1" style="max-width:85%;">
+                <div class="w-100 p-3 border border-200 rounded-3 bg-light text-break" id="${id}-wrap">
+                    <div class="d-flex align-items-center gap-1" style="height:20px;">
+                        <span class="ai-dot"></span><span class="ai-dot"></span><span class="ai-dot"></span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        container.appendChild(div);
+        scrollToBottom();
+        return id;
+    }
+
+    function convertLoadingToStreaming(loadingId, isImageMode) {
+        const wrap = document.getElementById(loadingId + '-wrap');
+        if (!wrap) return null;
+        const contentId = loadingId + '-content';
+        if (isImageMode) {
+            wrap.innerHTML = `
+            <div id="${contentId}" class="fw-semi-bold fs--1 ai-response" style="word-break:break-word;"></div>
+            <div id="${loadingId}-imgstatus" style="display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:#f0f4ff;border-radius:8px;font-size:12px;color:#3d5aad;">
+                <span style="display:inline-flex;gap:3px;">
+                    <span class="ai-dot" style="background:#3d5aad;"></span>
+                    <span class="ai-dot" style="background:#3d5aad;animation-delay:.2s;"></span>
+                    <span class="ai-dot" style="background:#3d5aad;animation-delay:.4s;"></span>
+                </span>
+                <span id="${loadingId}-imgstatus-text">이미지 생성 중...</span>
+            </div>`;
+        } else {
+            wrap.innerHTML = `<div id="${contentId}" class="fw-semi-bold fs--1 ai-response" style="word-break:break-word;"></div>`;
+        }
+        return contentId;
+    }
+
+    function finalizeStreamingBubble(loadingId, fullContent, searchQuery, showRetry) {
+        const wrap = document.getElementById(loadingId + '-wrap');
+        if (!wrap) return;
+        let searchBadge = searchQuery
+            ? `<div class="mb-1"><span class="search-tag"><i class="fas fa-search" style="font-size:9px;"></i>검색: ${escapeHtml(searchQuery)}</span></div>`
+            : '';
+        const retryHtml = showRetry
+            ? `<div class="mt-2"><button class="btn btn-sm btn-link p-0 btn-retry" onclick="retryLastMessage()">
+            <i class="fas fa-redo-alt me-1"></i>다시 생성</button></div>`
+            : '';
+        const parent = wrap.closest('.flex-1');
+        if (parent && searchQuery) {
+            const existing = parent.querySelector('.search-tag');
+            if (!existing) parent.insertAdjacentHTML('afterbegin', searchBadge);
+        }
+        wrap.innerHTML = `
+        <div class="mb-0 fw-semi-bold fs--1 ai-response">${renderMarkdown(fullContent)}</div>
+        ${retryHtml}`;
+        renderMermaidAndMath(wrap);
+    }
+
+    function finalizeStreamingBubbleWithImage(loadingId, commentText, imageUrl, searchQuery) {
+        const wrap = document.getElementById(loadingId + '-wrap');
+        if (!wrap) return;
+
+        const escapedUrl  = imageUrl.replace(/"/g, '&quot;');
+        const commentHtml = commentText
+            ? `<div class="mb-2 fw-semi-bold fs--1 ai-response">${renderMarkdown(commentText)}</div>`
+            : '';
+
+        wrap.innerHTML = `
+        ${commentHtml}
+        <div style="margin-top:6px;">
+            <img src="${escapedUrl}" alt="AI 생성 이미지"
+                 class="ai-gen-image"
+                 style="max-width:100%;border-radius:10px;cursor:zoom-in;
+                        box-shadow:0 2px 12px rgba(0,0,0,0.18);display:block;"
+                 onclick="openImageModal(this.src)">
+            <div style="margin-top:8px;display:flex;gap:8px;">
+                <button onclick="enterEditMode('${escapedUrl}')"
+                        style="font-size:11px;padding:4px 12px;border-radius:8px;
+                               border:1px solid #3d5aad;background:#e8edf8;
+                               color:#3d5aad;cursor:pointer;">
+                    <i class="fas fa-edit" style="margin-right:3px;"></i>이 이미지 편집
+                </button>
+                <a href="${escapedUrl}" download
+                   style="font-size:11px;padding:4px 12px;border-radius:8px;
+                          border:1px solid #adb5bd;background:#f5f7fb;
+                          color:#555;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">
+                    <i class="fas fa-download"></i> 저장
+                </a>
+            </div>
+        </div>
+        <div class="mt-2">
+            <button class="btn btn-sm btn-link p-0 btn-retry" onclick="retryLastMessage()">
+                <i class="fas fa-redo-alt me-1"></i>다시 생성</button>
+        </div>`;
+        renderMermaidAndMath(wrap);
+    }
+
+    function showErrorInBubble(loadingId, message) {
+        const wrap = document.getElementById(loadingId + '-wrap');
+        if (!wrap) return;
+        wrap.innerHTML = `
+        <p class="mb-0 fw-semi-bold fs--1 text-danger">${escapeHtml(message)}</p>
+        <div class="mt-2">
+            <button class="btn btn-sm btn-link p-0 btn-retry text-danger" onclick="retryLastMessage()">
+                <i class="fas fa-redo-alt me-1"></i>다시 시도</button></div>`;
+    }
+
+    // ============================================================================
+    // 메시지 전송
+    // ============================================================================
+    async function sendMessage() {
+        if (isAiRequesting) {
+            if (aiAbortCtrl) aiAbortCtrl.abort();
+            return;
+        }
+
+        const textarea = document.getElementById('chatTextarea');
+        const text     = textarea ? textarea.value.trim() : '';
+
+        if (!text && attachedImages.length === 0 && !editModeImageUrl) return;
+
+        lastUserInput  = text;
+        lastUserImages = [...attachedImages];
+
+        isAiRequesting = true;
+        updateSendBtn(true);
+        aiAbortCtrl = new AbortController();
+        hideWelcome();
+
+        const curImages       = [...attachedImages];
+        const curThumbs       = [...attachedThumbs];
+        const isSearching     = webSearchMode;
+        const isEditing       = !!editModeImageUrl;
+        const capturedEditUrl = editModeImageUrl;
+
+        appendMessage('user', text || (isEditing ? '[이미지 편집 요청]' : '[이미지 첨부]'), curThumbs, null);
+
+        const userEntry = {
+            role: 'user',
+            content: text || (isEditing ? '이미지 편집 요청' : '이미지 첨부'),
+            thumbs: curThumbs
+        };
+        if (curImages.length > 0) userEntry.images = curImages;
+        aiHistory.push(userEntry);
+
+        if (textarea) { textarea.value = ''; textarea.style.height = '24px'; }
+        attachedImages = []; attachedThumbs = [];
+        updateImagePreview();
+        if (isEditing) cancelEditMode();
+
+        const loadingId = appendLoadingBubble();
+        let streamContentId = null;
+        let accumulatedText = '';
+        let receivedSearch  = null;
+
+        const historySlice = aiHistory.slice(-MAX_HISTORY);
+        const lastUserIdx  = historySlice.reduce((acc, m, idx) => m.role === 'user' ? idx : acc, -1);
+        const payload = historySlice.map((m, idx) => {
+            const obj = { role: m.role, content: m.content };
+            if (idx === lastUserIdx && m.images && m.images.length > 0) {
+                obj.images = m.images;
+            }
+            return obj;
+        });
+
+        if (isSearching && payload.length > 0) {
+            const last = payload[payload.length - 1];
+            if (last.role === 'user' && !last.content.match(/검색해줘|찾아줘/)) {
+                last.content = last.content + ' 검색해줘';
+            }
+        }
+
+        const requestBody = { sessionId: SESSION_ID, messages: payload };
+        if (isEditing && capturedEditUrl) {
+            requestBody.editImageUrl = capturedEditUrl;
+        }
+
+        try {
+            const response = await fetch(STREAM_URL, {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify(requestBody),
+                signal:  aiAbortCtrl.signal
+            });
+
+            if (response.status === 429) throw new Error('TOO_MANY_REQUESTS');
+            if (!response.ok)            throw new Error('HTTP_ERROR_' + response.status);
+
+            const reader  = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer    = '';
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+
+                for (const line of lines) {
+                    if (!line.startsWith('data:')) continue;
+                    const raw = line.slice(5).trim();
+                    if (!raw) continue;
+
+                    try {
+                        const data = JSON.parse(raw);
+
+                        if (data.token !== undefined) {
+                            if (streamContentId === null)
+                                streamContentId = convertLoadingToStreaming(loadingId, false);
+                            accumulatedText += data.token;
+
+                            // 🎨/🖌️ 상태 줄이 들어오는 순간 이미지 모드 배너로 전환
+                            const hasImageStatus = accumulatedText
+                                .split('\n')
+                                .some(line => line.startsWith('🎨') || line.startsWith('🖌️'));
+                            if (hasImageStatus) {
+                                const existing = document.getElementById(loadingId + '-imgstatus');
+                                if (!existing) {
+                                    // 상태 배너 동적 추가
+                                    const wrap = document.getElementById(loadingId + '-wrap');
+                                    if (wrap) {
+                                        const banner = document.createElement('div');
+                                        banner.id = loadingId + '-imgstatus';
+                                        banner.style.cssText = 'display:flex;align-items:center;gap:8px;margin-top:8px;padding:8px 12px;background:#f0f4ff;border-radius:8px;font-size:12px;color:#3d5aad;';
+                                        banner.innerHTML = `
+                                            <span style="display:inline-flex;gap:3px;">
+                                                <span class="ai-dot" style="background:#3d5aad;"></span>
+                                                <span class="ai-dot" style="background:#3d5aad;animation-delay:.2s;"></span>
+                                                <span class="ai-dot" style="background:#3d5aad;animation-delay:.4s;"></span>
+                                            </span>
+                                            <span id="${loadingId}-imgstatus-text">이미지 생성 중...</span>`;
+                                        wrap.appendChild(banner);
+                                    }
+                                }
+                                // 상태 배너 텍스트 업데이트
+                                const statusLine = accumulatedText
+                                    .split('\n')
+                                    .find(line => line.startsWith('🎨') || line.startsWith('🖌️')) || '';
+                                const statusTextEl = document.getElementById(loadingId + '-imgstatus-text');
+                                if (statusTextEl && statusLine) statusTextEl.textContent = statusLine.trim();
+                            }
+
+                            // 🎨/🖌️ 줄 제외하고 LLM 멘트만 content 영역에 표시
+                            const displayText = accumulatedText
+                                .split('\n')
+                                .filter(line => !line.startsWith('🎨') && !line.startsWith('🖌️'))
+                                .join('\n')
+                                .trim();
+                            const el = document.getElementById(streamContentId);
+                            if (el) {
+                                el.innerHTML = renderMarkdown(displayText);
+                                scrollToBottom();
+                            }
+                        }
+
+                        if (data.imageGenerating !== undefined) {
+                            // 서버가 명시적으로 이미지 생성 시작 신호를 보낼 때
+                            if (streamContentId === null)
+                                streamContentId = convertLoadingToStreaming(loadingId, true);
+                            const statusText = document.getElementById(loadingId + '-imgstatus-text');
+                            if (statusText) statusText.textContent = data.imageGenerating;
+                        }
+
+                        if (data.fullContent !== undefined) {
+                            clearTimeout(renderTimer);
+                            renderTimer    = null;
+                            receivedSearch = data.searchQuery || null;
+
+                            if (data.imageUrl) {
+                                // 🎨/🖌️ 상태 텍스트 줄 제거 → LLM 멘트만 추출
+                                const llmComment = accumulatedText
+                                    .split('\n')
+                                    .filter(line => !line.startsWith('🎨') && !line.startsWith('🖌️'))
+                                    .join('\n')
+                                    .trim();
+
+                                // 화면 표시: LLM 멘트 우선, 없으면 서버 comment
+                                const displayComment = llmComment || data.comment || '';
+
+                                // 이미지 생성 상태 배너 제거 후 최종 렌더
+                                const imgStatus = document.getElementById(loadingId + '-imgstatus');
+                                if (imgStatus) imgStatus.remove();
+                                finalizeStreamingBubbleWithImage(
+                                    loadingId, displayComment, data.imageUrl, receivedSearch
+                                );
+
+                                // 히스토리: 화면에 표시한 것과 동일하게 저장 (LLM멘트 + 이미지 마커)
+                                const histContent = (displayComment ? displayComment + '\n\n' : '')
+                                    + '[AI_IMAGE:' + data.imageUrl + ']';
+                                aiHistory.push({ role: 'assistant', content: histContent });
+                            } else {
+                                finalizeStreamingBubble(loadingId, accumulatedText, receivedSearch, true);
+                                aiHistory.push({ role: 'assistant', content: data.fullContent });
+                            }
+
+                            scrollToBottom();
+                            if (aiHistory.length > MAX_HISTORY) aiHistory = aiHistory.slice(-MAX_HISTORY);
+                            saveHistory();
+                            break;
+                        }
+
+                        if (data.message && data.fullContent === undefined)
+                            showErrorInBubble(loadingId, data.message);
+
+                    } catch (_) {}
+                }
+            }
+
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                fetch('/ai/chat/cancel', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ sessionId: SESSION_ID })
+                }).catch(() => {});
+
+                if (accumulatedText) {
+                    finalizeStreamingBubble(loadingId, accumulatedText + '\n\n[생성이 중단되었습니다.]', null, false);
+                } else {
+                    const wrap = document.getElementById(loadingId + '-wrap');
+                    if (wrap) wrap.innerHTML =
+                        `<p class="mb-0 fw-semi-bold fs--1 text-secondary">대화가 중지되었습니다.</p>`;
+                }
+            } else {
+                let msg = '오류가 발생했습니다. 잠시 후 다시 시도해 주세요.';
+                if (e.message === 'TOO_MANY_REQUESTS')
+                    msg = '현재 AI 사용량이 초과되었습니다. 잠시 후 다시 이용해 주세요.';
+                else if (e.message.startsWith('HTTP_ERROR_5'))
+                    msg = 'AI 서버가 응답하지 않습니다. Ollama가 실행 중인지 확인해 주세요.';
+                console.error('AI 요청 오류:', e);
+                showErrorInBubble(loadingId, msg);
+            }
+        } finally {
+            isAiRequesting = false;
+            aiAbortCtrl    = null;
+            updateSendBtn(false);
+        }
+    }
+
+    function retryLastMessage() {
+        if (!lastUserInput || isAiRequesting) return;
+        if (aiHistory.length && aiHistory[aiHistory.length - 1].role === 'assistant') aiHistory.pop();
+        document.getElementById('chatTextarea').value = lastUserInput;
+        attachedImages = [...lastUserImages];
+        sendMessage();
+    }
+
+    // ============================================================================
+    // 전송 버튼 상태
+    // ============================================================================
+    function updateSendBtn(requesting) {
+        const btn  = document.getElementById('btnSend');
+        const icon = btn.querySelector('i');
+        if (requesting) {
+            icon.className = 'fas fa-stop';
+            btn.title = '생성 중지';
+            btn.classList.add('is-stop');
+        } else {
+            icon.className = 'fas fa-paper-plane';
+            btn.title = '전송';
+            btn.classList.remove('is-stop');
+        }
+    }
+
+    // ============================================================================
+    // 웹 검색 토글
+    // ============================================================================
+    function toggleWebSearch() {
+        webSearchMode = !webSearchMode;
+        const btn = document.getElementById('btnSearch');
+        const ta  = document.getElementById('chatTextarea');
+        if (webSearchMode) {
+            btn.classList.add('active');
+            btn.title = '웹 검색 모드 켜짐 (클릭하여 끄기)';
+            ta.placeholder = '검색할 내용을 입력하세요.';
+        } else {
+            btn.classList.remove('active');
+            btn.title = '웹 검색 모드 토글';
+            ta.placeholder = '무엇이든 물어보세요.';
+        }
+    }
+
+    // ============================================================================
+    // 이미지 처리
+    // ============================================================================
+    function resizeImage(file, maxDim, quality = 0.85) {
+        return new Promise((res, rej) => {
+            const reader = new FileReader();
+            reader.onload = e => {
+                const img = new Image();
+                img.onload = () => {
+                    let w = img.width, h = img.height;
+                    if (w > h) { if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; } }
+                    else       { if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; } }
+                    const c = document.createElement('canvas');
+                    c.width = w; c.height = h;
+                    c.getContext('2d').drawImage(img, 0, 0, w, h);
+                    res(c.toDataURL('image/jpeg', quality));
+                };
+                img.onerror = rej;
+                img.src = e.target.result;
+            };
+            reader.onerror = rej;
+            reader.readAsDataURL(file);
+        });
+    }
+
+    async function processFiles(files) {
+        const slots = MAX_IMAGES - attachedImages.length;
+        const list  = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, slots);
+        if (Array.from(files).length > slots)
+            alert(`이미지는 최대 ${MAX_IMAGES}장까지만 첨부 가능합니다.`);
+
+        for (const file of list) {
+            try {
+                const send  = await resizeImage(file, 1024, 0.88);
+                const thumb = await resizeImage(file, 300, 0.82);
+                attachedImages.push(send.split(',')[1]);
+                attachedThumbs.push(thumb);
+            } catch (err) { console.error('이미지 처리 오류:', err); }
+        }
+        updateImagePreview();
+    }
+
+    function updateImagePreview() {
+        const strip = document.getElementById('imagePreviewStrip');
+        const ta    = document.getElementById('chatTextarea');
+        if (!strip) return;
+        strip.innerHTML = '';
+
+        attachedThumbs.forEach((src, idx) => {
+            const wrap = document.createElement('div');
+            wrap.className = 'preview-thumb-wrap';
+
+            const img = document.createElement('img');
+            img.src = src;
+            img.alt = '미리보기';
+            img.style.cursor = 'zoom-in';
+            img.addEventListener('click', () => openImageModal(src));
+
+            const del = document.createElement('button');
+            del.className = 'preview-thumb-del';
+            del.innerHTML = '<i class="fas fa-times"></i>';
+            del.addEventListener('click', () => removeImage(idx));
+
+            wrap.appendChild(img);
+            wrap.appendChild(del);
+            strip.appendChild(wrap);
+        });
+
+        if (ta && !editModeImageUrl) {
+            ta.placeholder = attachedImages.length > 0
+                ? `${attachedImages.length}장 첨부됨 — 변형/편집 내용을 입력하거나 바로 전송`
+                : (webSearchMode ? '검색할 내용을 입력하세요.' : '무엇이든 물어보세요.');
+        }
+    }
+
+    function removeImage(idx) {
+        attachedImages.splice(idx, 1);
+        attachedThumbs.splice(idx, 1);
+        updateImagePreview();
+    }
+
+    // ============================================================================
+    // 이미지 모달
+    // ============================================================================
+    let modalCurrentSrc = '';
+
+    function openImageModal(src) {
+        modalCurrentSrc = src;
+        const modalImg = document.getElementById('aiImageModalImg');
+        const modal    = document.getElementById('aiImageModal');
+        modalImg.src = src;
+        modal.classList.add('show');
+        document.body.style.overflow = 'hidden';
+        modalImg.onload = () => {
+            const natural = modalImg.naturalWidth;
+            modalImg.style.setProperty('--img-natural-w', natural ? natural + 'px' : '96vw');
+            modal.style.setProperty('--img-natural-w', natural ? natural + 'px' : '96vw');
+        };
+        if (modalImg.complete && modalImg.naturalWidth) {
+            const natural = modalImg.naturalWidth;
+            modal.style.setProperty('--img-natural-w', natural + 'px');
+        }
+    }
+
+    function closeImageModal() {
+        document.getElementById('aiImageModal').classList.remove('show');
+        document.body.style.overflow = '';
+        modalCurrentSrc = '';
+    }
+
+    // ============================================================================
+    // DOMContentLoaded
+    // ============================================================================
+    document.addEventListener('DOMContentLoaded', function () {
+        loadHistory();
+
+        const textarea  = document.getElementById('chatTextarea');
+        const btnSend   = document.getElementById('btnSend');
+        const btnAttach = document.getElementById('btnAttach');
+        const fileInput = document.getElementById('fileInput');
+        const btnReset  = document.getElementById('btnReset');
+        const btnSearch = document.getElementById('btnSearch');
+        const modal     = document.getElementById('aiImageModal');
+        const msgContainer = document.getElementById('chat-messages-container');
+
+        textarea.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 100) + 'px';
+            this.style.overflowY = this.scrollHeight > 100 ? 'auto' : 'hidden';
+            if (!this.value) this.style.height = '24px';
+        });
+
+        btnSend.addEventListener('click', function () {
+            if (isAiRequesting) {
+                if (aiAbortCtrl) aiAbortCtrl.abort();
+                return;
+            }
+            sendMessage();
+        });
+
+        textarea.addEventListener('keydown', function (e) {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                if (!isAiRequesting) sendMessage();
+            }
+        });
+
+        btnAttach.addEventListener('click', function () {
+            if (attachedImages.length >= MAX_IMAGES) {
+                alert(`이미지는 최대 ${MAX_IMAGES}장까지 첨부할 수 있습니다.`); return;
+            }
+            fileInput.click();
+        });
+        fileInput.addEventListener('change', function (e) {
+            processFiles(e.target.files); fileInput.value = '';
+        });
+
+        btnSearch.addEventListener('click', toggleWebSearch);
+        document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
+
+        textarea.addEventListener('paste', function (e) {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            const files = [];
+            for (const item of items) {
+                if (item.type.startsWith('image/')) { const f = item.getAsFile(); if (f) files.push(f); }
+            }
+            if (files.length > 0) processFiles(files);
+        });
+
+        document.querySelector('.chat-wrapper').addEventListener('dragover', e => e.preventDefault());
+        document.querySelector('.chat-wrapper').addEventListener('drop', e => {
+            e.preventDefault();
+            if (e.dataTransfer.files.length > 0) processFiles(e.dataTransfer.files);
+        });
+
+        btnReset.addEventListener('click', function () {
+            if (confirm('대화 내용을 모두 삭제하시겠습니까?')) clearHistory();
+        });
+
+        modal.addEventListener('click', function (e) { if (e.target === modal) closeImageModal(); });
+        document.getElementById('aiImageModalClose').addEventListener('click', closeImageModal);
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeImageModal(); });
+
+        document.getElementById('btnModalDownload').addEventListener('click', function () {
+            if (!modalCurrentSrc) return;
+            const a = document.createElement('a');
+            a.href = modalCurrentSrc;
+            a.download = 'woori_ai_' + Date.now() + '.png';
+            a.click();
+        });
+
+        document.getElementById('btnModalEdit').addEventListener('click', function () {
+            if (!modalCurrentSrc) return;
+            closeImageModal();
+            enterEditMode(modalCurrentSrc);
+        });
+
+        msgContainer.addEventListener('click', function (e) {
+            const img = e.target.closest('.msg-thumb img');
+            if (img) openImageModal(img.src);
+        });
+
+        window.addEventListener('beforeunload', () => {
+            if (isAiRequesting) {
+                navigator.sendBeacon('/ai/chat/cancel',
+                    JSON.stringify({ sessionId: SESSION_ID }));
+            }
+        });
+    });
+</script>
+</body>
+</html>

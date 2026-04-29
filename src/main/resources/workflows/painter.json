@@ -1,0 +1,272 @@
+{
+  "200": {
+    "inputs": {
+      "unet_name": "Flux2-Klein-9B-True-v2-mxfp8mixed.safetensors",
+      "weight_dtype": "default"
+    },
+    "class_type": "UNETLoader",
+    "_meta": { "title": "UNET 로드 (Klein 9B)" }
+  },
+  "201": {
+    "inputs": {
+      "clip_name": "Qwen3-8B-Uncensor-v2.Q4_K_M.gguf",
+      "type": "flux2",
+      "device": "default"
+    },
+    "class_type": "CLIPLoaderGGUF",
+    "_meta": { "title": "CLIP 로드 (GGUF)" }
+  },
+  "202": {
+    "inputs": {
+      "vae_name": "flux2-vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": { "title": "VAE 로드" }
+  },
+  "203": {
+    "inputs": {
+      "image": "upload.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Image 1 (베이스 or 소스)" }
+  },
+  "204": {
+    "inputs": {
+      "image": "upload.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Image 2 (베이스 or 소스)" }
+  },
+  "205": {
+    "inputs": {
+      "image": ["203", 0]
+    },
+    "class_type": "GetImageSize",
+    "_meta": { "title": "이미지 크기 감지" }
+  },
+  "206": {
+    "inputs": {
+      "value": "Replace the face in image 1 with the face from image 2. Adjust the new face's lighting, angle, scale, and hairline so it blends naturally with image 1. Preserve the background, body, and clothing from image 1 exactly."
+    },
+    "class_type": "PrimitiveStringMultiline",
+    "_meta": { "title": "Prompt (페이스스왑 지시)" }
+  },
+  "207": {
+    "inputs": {
+      "clip":   ["201", 0],
+      "vae":    ["202", 0],
+      "image1": ["203", 0],
+      "image2": ["204", 0],
+      "image3": null,
+      "prompt": ["206", 0],
+      "width":  ["205", 0],
+      "height": ["205", 1]
+    },
+    "class_type": "PainterFluxImageEdit",
+    "_meta": { "title": "PainterFluxImageEdit (1차 편집)" },
+    "widgets_values": ["", "2_image", 1, 1024, 1024]
+  },
+  "208": {
+    "inputs": {
+      "model":        ["200", 0],
+      "positive":     ["207", 0],
+      "negative":     ["207", 1],
+      "latent_image": ["207", 2],
+      "seed": 42,
+      "control_after_generate": "randomize",
+      "steps": 4,
+      "cfg": 1.0,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1.0
+    },
+    "class_type": "KSampler",
+    "_meta": { "title": "KSampler (1차)" }
+  },
+  "209": {
+    "inputs": {
+      "samples": ["208", 0],
+      "vae":     ["202", 0]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAEDecode (1차)" }
+  },
+  "210": {
+    "inputs": {
+      "images": ["209", 0]
+    },
+    "class_type": "PreviewImage",
+    "_meta": { "title": "1차 결과 미리보기" }
+  },
+  "211": {
+    "inputs": {
+      "image": ["209", 0]
+    },
+    "class_type": "GetImageSize",
+    "_meta": { "title": "1차 결과 크기 감지" }
+  },
+  "212": {
+    "inputs": {
+      "image":          ["209", 0],
+      "upscale_method": "lanczos",
+      "width":          ["211", 0],
+      "height":         ["211", 1],
+      "crop":           "center"
+    },
+    "class_type": "ImageScale",
+    "_meta": { "title": "ImageScale (2차 처리용)" }
+  },
+  "213": {
+    "inputs": {
+      "pixels": ["212", 0],
+      "vae":    ["202", 0]
+    },
+    "class_type": "VAEEncode",
+    "_meta": { "title": "VAEEncode (1차→latent)" }
+  },
+  "214": {
+    "inputs": {
+      "width":      ["211", 0],
+      "height":     ["211", 1],
+      "batch_size": 1
+    },
+    "class_type": "EmptyFlux2LatentImage",
+    "_meta": { "title": "EmptyLatent (스위치용)" }
+  },
+  "215": {
+    "inputs": {
+      "on_false":  ["213", 0],
+      "on_true":   ["214", 0],
+      "condition": false
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": { "title": "Switch (인페인팅 on/off)" }
+  },
+  "216": {
+    "inputs": {
+      "clip": ["201", 0],
+      "text": "head_swap: Use the 1차 result image as the base image, preserving its environment, background, camera perspective, framing, exposure, contrast, and lighting. Remove the head from the base image and seamlessly replace it with the head from image 2.\nMatch the original head size, face-to-body ratio, neck thickness, shoulder alignment, and camera distance so proportions remain natural and unchanged.\nAdapt the inserted head to the lighting of the base image by matching light direction, intensity, softness, color temperature, shadows, and highlights.\nPreserve the identity of image 2, including hair texture, eye color, nose structure, facial proportions, and skin details.\nPhotorealistic, high quality, sharp details, 4K."
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "2차 Positive Prompt" }
+  },
+  "217": {
+    "inputs": {
+      "conditioning": ["216", 0]
+    },
+    "class_type": "ConditioningZeroOut",
+    "_meta": { "title": "Negative (Zero Out)" }
+  },
+  "218": {
+    "inputs": {
+      "image":          ["204", 0],
+      "upscale_method": "lanczos",
+      "megapixels":     ["222", 0]
+    },
+    "class_type": "ImageScaleToTotalPixels",
+    "_meta": { "title": "Image2 스케일 (레퍼런스)" }
+  },
+  "219": {
+    "inputs": {
+      "pixels": ["218", 0],
+      "vae":    ["202", 0]
+    },
+    "class_type": "VAEEncode",
+    "_meta": { "title": "Image2 VAEEncode (레퍼런스)" }
+  },
+  "220": {
+    "inputs": {
+      "conditioning": ["216", 0],
+      "latent":       ["219", 0]
+    },
+    "class_type": "ReferenceLatent",
+    "_meta": { "title": "ReferenceLatent (얼굴 소스)" }
+  },
+  "221": {
+    "inputs": {
+      "conditioning": ["220", 0],
+      "guidance": 4.0
+    },
+    "class_type": "FluxGuidance",
+    "_meta": { "title": "FluxGuidance" }
+  },
+  "222": {
+    "inputs": {
+      "value": 2.0
+    },
+    "class_type": "PrimitiveFloat",
+    "_meta": { "title": "Megapixels 설정" }
+  },
+  "223": {
+    "inputs": {
+      "model":        ["200", 0],
+      "positive":     ["221", 0],
+      "negative":     ["217", 0],
+      "latent_image": ["215", 0],
+      "seed": 42,
+      "control_after_generate": "randomize",
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "iterations": 2,
+      "paint_mode": "Image First"
+    },
+    "class_type": "LanPaint_KSampler",
+    "_meta": { "title": "LanPaint KSampler (2차 정밀)" },
+    "widgets_values": [42, "randomize", 20, 1, "euler", "simple", 1, 2, "Image First", "LanPaint KSampler", "🖼️ Image Inpainting"]
+  },
+  "224": {
+    "inputs": {
+      "samples": ["223", 0],
+      "vae":     ["202", 0]
+    },
+    "class_type": "VAEDecode",
+    "_meta": { "title": "VAEDecode (최종)" }
+  },
+  "225": {
+    "inputs": {
+      "image_a": ["212", 0],
+      "image_b": ["224", 0]
+    },
+    "class_type": "Image Comparer (rgthree)",
+    "_meta": { "title": "비교 (원본 vs 결과)" }
+  },
+  "226": {
+    "inputs": {
+      "images":          ["224", 0],
+      "filename_prefix": "FaceSwap_Flux2_Hybrid"
+    },
+    "class_type": "SaveImage",
+    "_meta": { "title": "SaveImage (최종)" }
+  },
+
+  "301": {
+    "inputs": {
+      "text": "",
+      "clip": ["201", 0]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "T2I Positive Prompt" }
+  },
+  "302": {
+    "inputs": {
+      "text": "",
+      "clip": ["201", 0]
+    },
+    "class_type": "CLIPTextEncode",
+    "_meta": { "title": "T2I Negative Prompt (empty)" }
+  },
+  "303": {
+    "inputs": {
+      "width":      1024,
+      "height":     1024,
+      "batch_size": 1
+    },
+    "class_type": "EmptyLatentImage",
+    "_meta": { "title": "T2I Empty Latent" }
+  }
+}

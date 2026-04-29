@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>WOORI AI · Excel</title>
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      height: 100%;
+      font-family: 'Noto Sans KR', sans-serif;
+      background-color: #f5f7fb;
+    }
+
+    /* ── 전체 래퍼 ── */
+    .page-wrapper {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 860px;
+      margin: 0 auto;
+      background: #fff;
+      box-shadow: 0 0 0 1px #e3e6ef;
+    }
+
+    /* ── 헤더 ── */
+    .chat-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 12px 20px;
+      background: #fff;
+      border-bottom: 1px solid #e3e6ef;
+      flex-shrink: 0;
+    }
+    .chat-header .avatar-wrap {
+      width: 38px; height: 38px;
+      border-radius: 50%; overflow: hidden; flex-shrink: 0;
+      background: #e8f5e9;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+    .chat-header .title-block h6 { margin: 0; font-size: 14px; font-weight: 700; color: #1a1f36; }
+    .chat-header .title-block small { font-size: 11px; color: #8b95b0; }
+
+    .btn-nav {
+      margin-left: auto;
+      font-size: 12px;
+      color: #8b95b0;
+      text-decoration: none;
+      display: flex; align-items: center; gap: 4px;
+      padding: 4px 10px;
+      border-radius: 8px;
+      border: 1px solid #e3e6ef;
+      transition: all .15s;
+    }
+    .btn-nav:hover { background: #e8edf8; color: #3d5aad; border-color: #c5cee0; }
+
+    /* ── 콘텐츠 영역 ── */
+    .main-content {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 20px 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .main-content::-webkit-scrollbar { width: 4px; }
+    .main-content::-webkit-scrollbar-thumb { background: #d0d5e8; border-radius: 2px; }
+
+    /* ── 업로드 존 ── */
+    .upload-zone {
+      border: 2px dashed #d0d5e8;
+      border-radius: 14px;
+      padding: 28px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: all .2s;
+      background: #fafbff;
+      position: relative;
+    }
+    .upload-zone:hover, .upload-zone.drag-over {
+      border-color: #3d5aad;
+      background: #f0f3fb;
+    }
+    .upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer;
+    }
+    .upload-zone .upload-icon { font-size: 30px; color: #8b95b0; margin-bottom: 8px; }
+    .upload-zone .upload-text { font-size: 13px; color: #6b7280; }
+    .upload-zone .upload-hint { font-size: 11px; color: #adb5bd; margin-top: 4px; }
+    .upload-zone.has-file { border-color: #43a047; background: #f1f8f2; }
+    .upload-zone.has-file .upload-icon { color: #43a047; }
+
+    /* ── 파일 정보 ── */
+    .file-info-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 14px;
+      background: #e8f5e9;
+      border-radius: 10px;
+      font-size: 12.5px;
+      color: #2e7d32;
+    }
+    .file-info-bar .file-name { font-weight: 600; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-info-bar .btn-clear-file {
+      background: none; border: none; color: #888; font-size: 13px; cursor: pointer; padding: 0;
+    }
+    .file-info-bar .btn-clear-file:hover { color: #e63946; }
+
+    /* ── 로그 패널 ── */
+    .log-panel {
+      background: #1a1f36;
+      border-radius: 12px;
+      padding: 14px 16px;
+      font-size: 12px;
+      color: #a8b2d8;
+      font-family: 'Courier New', monospace;
+      min-height: 80px;
+      max-height: 260px;
+      overflow-y: auto;
+      white-space: pre-wrap;
+      word-break: break-word;
+      display: none;
+    }
+    .log-panel.visible { display: block; }
+    .log-panel::-webkit-scrollbar { width: 4px; }
+    .log-panel::-webkit-scrollbar-thumb { background: #3d5aad55; border-radius: 2px; }
+
+    /* ── 완료 카드 ── */
+    .result-card {
+      display: none;
+      background: linear-gradient(135deg, #e8f5e9 0%, #f1f8f2 100%);
+      border: 1px solid #a5d6a7;
+      border-radius: 12px;
+      padding: 18px 20px;
+      align-items: center;
+      gap: 14px;
+    }
+    .result-card.visible { display: flex; }
+    .result-card .result-icon { font-size: 28px; flex-shrink: 0; }
+    .result-card .result-text h6 { margin: 0 0 4px; font-size: 13.5px; font-weight: 700; color: #1b5e20; }
+    .result-card .result-text small { font-size: 11.5px; color: #4caf50; }
+    .btn-download {
+      margin-left: auto;
+      padding: 8px 18px;
+      background: #2e7d32;
+      color: #fff;
+      border: none;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background .15s, transform .15s;
+      display: flex; align-items: center; gap: 6px;
+      flex-shrink: 0;
+    }
+    .btn-download:hover { background: #1b5e20; transform: scale(1.03); }
+
+    /* ── 입력 영역 ── */
+    .input-area {
+      flex-shrink: 0;
+      padding: 10px 16px 14px;
+      background: #fff;
+      border-top: 1px solid #e3e6ef;
+    }
+
+    .input-row {
+      display: flex;
+      align-items: flex-end;
+      gap: 6px;
+      background: #f5f7fb;
+      border: 1px solid #dee2f0;
+      border-radius: 12px;
+      padding: 7px 10px;
+      transition: border-color .2s;
+    }
+    .input-row:focus-within { border-color: #3d5aad; }
+    .input-row textarea {
+      flex: 1;
+      background: none; border: none; outline: none;
+      font-family: 'Noto Sans KR', sans-serif;
+      font-size: 13.5px; color: #1a1f36;
+      resize: none;
+      min-height: 24px; max-height: 120px;
+      overflow-y: hidden; line-height: 1.5; padding: 2px 0;
+    }
+    .input-row textarea::placeholder { color: #adb5bd; }
+
+    .btn-send {
+      width: 32px; height: 32px;
+      border-radius: 9px; border: none;
+      background: #3d5aad; color: #fff;
+      font-size: 13px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0; cursor: pointer;
+      transition: background .15s, transform .15s;
+    }
+    .btn-send:hover { background: #2e4490; transform: scale(1.06); }
+    .btn-send:disabled { background: #c5cee0; cursor: not-allowed; transform: none; }
+    .btn-send.is-stop { background: #e63946; }
+
+    /* ── 로딩 점 ── */
+    @keyframes aiDotPulse {
+      0%, 80%, 100% { opacity: .2; transform: scale(.85); }
+      40%            { opacity: 1;  transform: scale(1.2); }
+    }
+    .ai-dot {
+      display: inline-block;
+      width: 6px; height: 6px; border-radius: 50%;
+      background: #a8b2d8;
+      animation: aiDotPulse 1.2s ease-in-out infinite;
+    }
+    .ai-dot:nth-child(2) { animation-delay: .2s; }
+    .ai-dot:nth-child(3) { animation-delay: .4s; }
+
+    /* ── 안내 메시지 ── */
+    .guide-box {
+      background: #f0f3fb;
+      border-radius: 12px;
+      padding: 16px 18px;
+      font-size: 12.5px;
+      color: #4a5568;
+      line-height: 1.8;
+    }
+    .guide-box strong { color: #3d5aad; }
+    .guide-box .guide-title {
+      font-size: 13px; font-weight: 700;
+      color: #1a1f36; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tag-example {
+      display: inline-block;
+      background: #e8edf8; color: #3d5aad;
+      border-radius: 6px; padding: 1px 8px;
+      font-size: 11.5px; margin: 2px;
+    }
+  </style>
+</head>
+<body>
+<div class="page-wrapper">
+
+  <!-- 헤더 -->
+  <div class="chat-header">
+    <div class="avatar-wrap">📊</div>
+    <div class="title-block">
+      <h6>WOORI Excel AI</h6>
+      <small>엑셀 파일을 업로드하고 AI에게 작업을 맡겨보세요</small>
+    </div>
+    <a href="/" class="btn-nav">
+      <i class="fa fa-comments"></i> AI 채팅
+    </a>
+  </div>
+
+  <!-- 콘텐츠 -->
+  <div class="main-content" id="mainContent">
+
+    <!-- 안내 -->
+    <div class="guide-box" id="guideBox">
+      <div class="guide-title"><i class="fa fa-circle-info" style="color:#3d5aad"></i> 사용 방법</div>
+      1. <strong>엑셀 파일</strong>을 아래 영역에 드래그하거나 클릭해서 업로드하세요 (.xlsx, .xls)<br>
+      2. 아래 입력창에 <strong>AI에게 원하는 작업</strong>을 입력하세요<br>
+      3. 처리가 완료되면 <strong>수정된 엑셀 파일</strong>을 다운로드할 수 있어요<br><br>
+      <span class="tag-example">빈 D열에 "방문" 입력해줘</span>
+      <span class="tag-example">훈련일자 오름차순 정렬</span>
+      <span class="tag-example">시작시간이 1000인 행만 남겨줘</span>
+      <span class="tag-example">I열 값을 전부 "코드A"로 바꿔줘</span>
+    </div>
+
+    <!-- 업로드 존 -->
+    <div class="upload-zone" id="uploadZone">
+      <input type="file" id="fileInput" accept=".xlsx,.xls" />
+      <div class="upload-icon"><i class="fa fa-file-excel"></i></div>
+      <div class="upload-text">클릭하거나 파일을 여기에 드래그하세요</div>
+      <div class="upload-hint">.xlsx / .xls 파일 지원</div>
+    </div>
+
+    <!-- 파일 선택 후 표시 -->
+    <div class="file-info-bar" id="fileInfoBar" style="display:none">
+      <i class="fa fa-file-excel" style="color:#43a047"></i>
+      <span class="file-name" id="fileNameLabel"></span>
+      <span id="fileSizeLabel" style="color:#888; font-size:11px; flex-shrink:0"></span>
+      <button class="btn-clear-file" id="btnClearFile" title="파일 제거"><i class="fa fa-xmark"></i></button>
+    </div>
+
+    <!-- 처리 로그 -->
+    <div class="log-panel" id="logPanel"></div>
+
+    <!-- 완료 카드 -->
+    <div class="result-card" id="resultCard">
+      <div class="result-icon">✅</div>
+      <div class="result-text">
+        <h6>처리 완료!</h6>
+        <small id="resultMsg"></small>
+      </div>
+      <button class="btn-download" id="btnDownload">
+        <i class="fa fa-download"></i> 다운로드
+      </button>
+    </div>
+
+  </div><!-- /main-content -->
+
+  <!-- 입력 영역 -->
+  <div class="input-area">
+    <div class="input-row">
+            <textarea id="promptInput" rows="1"
+                      placeholder="AI에게 원하는 작업을 입력하세요... (예: D열에 '방문' 값 채워줘)"
+                      oninput="autoResize(this)"></textarea>
+      <button class="btn-send" id="btnSend" title="처리 시작">
+        <i class="fa fa-paper-plane"></i>
+      </button>
+    </div>
+    <div style="font-size:10.5px; color:#adb5bd; margin-top:5px; padding-left:4px;">
+      <i class="fa fa-circle-info"></i> 엑셀 파일을 먼저 업로드한 뒤 작업 내용을 입력하세요
+    </div>
+  </div>
+
+</div><!-- /page-wrapper -->
+
+<script>
+  let selectedFile    = null;
+  let isProcessing    = false;
+  let resultFileName  = null;
+
+  // ✅ AbortController: fetch 요청 취소 + 서버 SSE 연결 종료를 동시에 처리
+  let abortController = null;
+
+  // ── 파일 입력 처리 ──────────────────────────────────────────────────────
+  const fileInput     = document.getElementById('fileInput');
+  const uploadZone    = document.getElementById('uploadZone');
+  const fileInfoBar   = document.getElementById('fileInfoBar');
+  const fileNameLabel = document.getElementById('fileNameLabel');
+  const fileSizeLabel = document.getElementById('fileSizeLabel');
+  const btnClearFile  = document.getElementById('btnClearFile');
+
+  fileInput.addEventListener('change', e => {
+    if (e.target.files[0]) setFile(e.target.files[0]);
+  });
+
+  uploadZone.addEventListener('dragover',  e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0];
+    if (f && (f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) setFile(f);
+    else showToast('⚠️ .xlsx 또는 .xls 파일만 지원합니다.');
+  });
+
+  btnClearFile.addEventListener('click', clearFile);
+
+  function setFile(f) {
+    selectedFile = f;
+    uploadZone.classList.add('has-file');
+    fileInfoBar.style.display = 'flex';
+    fileNameLabel.textContent = f.name;
+    fileSizeLabel.textContent = formatSize(f.size);
+    hideResultCard();
+    clearLog();
+  }
+
+  function clearFile() {
+    selectedFile = null;
+    fileInput.value = '';
+    uploadZone.classList.remove('has-file');
+    fileInfoBar.style.display = 'none';
+    hideResultCard();
+    clearLog();
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / 1024 / 1024).toFixed(1) + ' MB';
+  }
+
+  // ── 전송 버튼 ────────────────────────────────────────────────────────────
+  const btnSend     = document.getElementById('btnSend');
+  const promptInput = document.getElementById('promptInput');
+
+  btnSend.addEventListener('click', handleSend);
+  promptInput.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); }
+  });
+
+  function handleSend() {
+    if (isProcessing) {
+      // ✅ 중단 버튼 클릭 → abort() 호출 → fetch가 AbortError를 던짐
+      //    → SSE 연결이 닫히면 서버 측 emitter.onCompletion/onError 가 발동
+      //    → ExcelAiService.cancel() 이 Ollama disconnect() 를 호출
+      abortCancel('🛑 처리가 중단되었습니다.');
+      return;
+    }
+
+    const prompt = promptInput.value.trim();
+    if (!selectedFile) { showToast('📂 먼저 엑셀 파일을 업로드해주세요.'); return; }
+    if (!prompt)       { showToast('✏️ 처리할 작업 내용을 입력해주세요.'); return; }
+
+    startProcessing(prompt);
+  }
+
+  // ✅ 브라우저 탭 닫기 / 새로고침 → 진행 중인 요청 중단
+  window.addEventListener('beforeunload', () => {
+    if (isProcessing) abortCancel();
+  });
+
+  // ── 취소 공통 처리 ──────────────────────────────────────────────────────
+  function abortCancel(logMsg) {
+    if (abortController) {
+      abortController.abort();   // fetch ReadableStream 읽기 중단 → 서버 SSE 연결 종료 유발
+      abortController = null;
+    }
+    isProcessing = false;
+    setBtnIdle();
+    if (logMsg) appendLog('\n' + logMsg + '\n');
+  }
+
+  // ── 처리 시작 ────────────────────────────────────────────────────────────
+  function startProcessing(prompt) {
+    isProcessing    = true;
+    resultFileName  = null;
+    abortController = new AbortController(); // ✅ 새 컨트롤러 생성
+
+    hideResultCard();
+    clearLog();
+    showLog();
+    setBtnStop();
+
+    const formData = new FormData();
+    formData.append('file',   selectedFile);
+    formData.append('prompt', prompt);
+
+    fetch('/excel/process', {
+      method: 'POST',
+      body:   formData,
+      signal: abortController.signal  // ✅ abort 신호 연결
+    })
+            .then(response => {
+              if (!response.ok) throw new Error('서버 오류 HTTP ' + response.status);
+
+              const reader  = response.body.getReader();
+              const decoder = new TextDecoder();
+              let buffer    = '';
+
+              let currentEvent = '';
+              function pump() {
+                reader.read().then(({ done, value }) => {
+                  if (done) { finishProcessing(); return; }
+
+                  buffer += decoder.decode(value, { stream: true });
+                  const lines = buffer.split('\n');
+                  buffer = lines.pop();
+
+                  for (const line of lines) {
+                    if (line.startsWith('event:')) {
+                      currentEvent = line.slice(6).trim();
+                    } else if (line.startsWith('data:')) {
+                      const data = line.slice(5).trim();
+                      try { handleSseEvent(currentEvent, data); } catch(e) {}
+                    } else if (line === '') {
+                      currentEvent = '';
+                    }
+                  }
+                  pump();
+                }).catch(err => {
+                  if (err.name !== 'AbortError' && isProcessing) {
+                    appendLog('\n❌ 스트림 오류: ' + err.message);
+                    finishProcessing();
+                  }
+                });
+              }
+              pump();
+            })
+            .catch(err => {
+              if (err.name === 'AbortError') return; // 중단은 정상 흐름
+              appendLog('❌ 연결 오류: ' + err.message);
+              finishProcessing();
+            });
+  }
+
+
+  function handleSseEvent(eventName, dataStr) {
+    let parsed;
+    try { parsed = JSON.parse(dataStr); } catch(e) { return; }
+
+    if (eventName === 'token' || parsed.token !== undefined) {
+      appendLog(parsed.token || '');
+
+    } else if (eventName === 'code' && parsed.code) {
+      // AI 생성 코드 블록 표시
+      appendCode(parsed.code);
+
+    } else if (eventName === 'done' || parsed.fileName) {
+      resultFileName = parsed.fileName;
+      appendLog('\n✅ ' + (parsed.message || '완료!') + '\n');
+      showResultCard(parsed.message || '처리가 완료됐어요!');
+      finishProcessing();
+
+    } else if (eventName === 'error' || (parsed.message && !parsed.fileName)) {
+      appendLog('\n❌ 오류: ' + parsed.message + '\n');
+      finishProcessing();
+
+    } else if (eventName === 'cancelled') {
+      appendLog('\n🛑 중단됨\n');
+      finishProcessing();
+    }
+  }
+
+  // 하위 호환용
+  function handleSseData(dataStr) { handleSseEvent('', dataStr); }
+
+
+
+  function finishProcessing() {
+    isProcessing    = false;
+    abortController = null;
+    setBtnIdle();
+  }
+
+  function setBtnStop() {
+    btnSend.className = 'btn-send is-stop';
+    btnSend.innerHTML = '<i class="fa fa-stop"></i>';
+  }
+  function setBtnIdle() {
+    btnSend.className = 'btn-send';
+    btnSend.innerHTML = '<i class="fa fa-paper-plane"></i>';
+  }
+
+  // ── 다운로드 ─────────────────────────────────────────────────────────────
+  document.getElementById('btnDownload').addEventListener('click', () => {
+    if (!resultFileName) return;
+    const a = document.createElement('a');
+    a.href = '/excel/download?fileName=' + encodeURIComponent(resultFileName);
+    a.download = resultFileName;
+    a.click();
+  });
+
+  // ── 로그 유틸 ────────────────────────────────────────────────────────────
+  const logPanel = document.getElementById('logPanel');
+
+  function showLog()  { logPanel.classList.add('visible'); }
+  function clearLog() { logPanel.innerHTML = ''; logPanel.classList.remove('visible'); }
+  function appendLog(text) {
+    const span = document.createElement('span');
+    span.textContent = text;
+    logPanel.appendChild(span);
+    logPanel.scrollTop = logPanel.scrollHeight;
+  }
+  function appendCode(code) {
+    const pre = document.createElement('pre');
+    pre.style.cssText = 'background:#0d1117;color:#e6edf3;border-radius:8px;padding:12px;margin:8px 0;font-size:11px;overflow-x:auto;white-space:pre-wrap;word-break:break-all;border-left:3px solid #3d5aad;';
+    const label = document.createElement('div');
+    label.textContent = '🤖 AI 생성 코드';
+    label.style.cssText = 'font-size:10px;color:#8b949e;margin-bottom:6px;font-family:sans-serif;';
+    pre.appendChild(label);
+    const codeEl = document.createElement('code');
+    codeEl.textContent = code;
+    pre.appendChild(codeEl);
+    logPanel.appendChild(pre);
+    logPanel.scrollTop = logPanel.scrollHeight;
+  }
+
+  // ── 결과 카드 ────────────────────────────────────────────────────────────
+  const resultCard = document.getElementById('resultCard');
+
+  function showResultCard(msg) {
+    resultCard.classList.add('visible');
+    document.getElementById('resultMsg').textContent = msg;
+    resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+  function hideResultCard() { resultCard.classList.remove('visible'); }
+
+  // ── textarea 자동 높이 ───────────────────────────────────────────────────
+  function autoResize(el) {
+    el.style.height = 'auto';
+    el.style.height = Math.min(el.scrollHeight, 120) + 'px';
+    el.style.overflowY = el.scrollHeight > 120 ? 'auto' : 'hidden';
+  }
+
+  // ── 토스트 ───────────────────────────────────────────────────────────────
+  function showToast(msg) {
+    let t = document.getElementById('toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'toast';
+      Object.assign(t.style, {
+        position: 'fixed', bottom: '24px', left: '50%',
+        transform: 'translateX(-50%)',
+        background: '#1a1f36', color: '#fff',
+        padding: '9px 18px', borderRadius: '10px',
+        fontSize: '12.5px', zIndex: 9999,
+        boxShadow: '0 4px 16px rgba(0,0,0,.18)',
+        transition: 'opacity .3s'
+      });
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    t.style.opacity = '1';
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => { t.style.opacity = '0'; }, 2500);
+  }
+</script>
+</body>
+</html>
