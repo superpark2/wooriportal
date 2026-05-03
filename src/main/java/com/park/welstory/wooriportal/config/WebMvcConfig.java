@@ -15,5 +15,9 @@ public class WebMvcConfig implements WebMvcConfigurer {
 
         registry.addResourceHandler("/ai/image/AIgen/**")
                 .addResourceLocations("file:./ai/image/AIgen/");
+
+        // static 리소스 명시적으로 추가
+        registry.addResourceHandler("/**")
+                .addResourceLocations("classpath:/static/");
     }
 }

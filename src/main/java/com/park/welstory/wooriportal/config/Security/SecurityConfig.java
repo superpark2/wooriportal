@@ -33,8 +33,8 @@ public class SecurityConfig {
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
                                 "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
-                                "/pcinfo/require/**", "/location/**", "/log/**", "/db/**",
-                                "/api/sse/**", "/ai/**" // SSE 연결 허용
+                                "/pcinfo/require/**", "/location/**", "/log/**", "/db/**", "/saramin/**",
+                                "/api/sse/**", "/ai/**", "/excel/**" // SSE 연결 허용
 
                         ).permitAll()
 

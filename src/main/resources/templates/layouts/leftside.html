@@ -88,8 +88,18 @@
             <li><a th:classappend="${activeMenu == 'ai' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="ai-submenu"><i class="fas fa-robot"></i> AI 도구</a></li>
         </ul>
         <ul th:classappend="${activeMenu == 'ai' ? 'show' : ''}" class="sidebar-menu submenu" id="ai-submenu">
-            <li><a th:classappend="${activeSubMenu == 'aiChat' ? 'active' : ''}" href="/ai"><i class="fas fa-comment-dots"></i> AI 채팅</a></li>
-            <li><a th:classappend="${activeSubMenu == 'aiExcel' ? 'active' : ''}" href="/excel"><i class="fas fa-file-excel"></i> 엑셀 AI</a></li>
+            <li><a th:classappend="${activeSubMenu == 'aiChat' ? 'active' : ''}" href="/ai" target="_blank" rel="noopener noreferrer"><i class="fas fa-robot"></i> WOORI AI</a></li>
+            <li><a th:classappend="${activeSubMenu == 'aiExcel' ? 'active' : ''}" href="/excel" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-excel"></i> 엑셀 AI</a></li>
+        </ul>
+    </div>
+
+    <!-- 채용정보 크롤링 도구 -->
+    <div class="sidebar-section">
+        <ul class="sidebar-menu">
+            <li><a th:classappend="${activeMenu == 'saramin' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="saramin-submenu"><i class="fas fa-robot"></i> 채용정보</a></li>
+        </ul>
+        <ul th:classappend="${activeMenu == 'saramin' ? 'show' : ''}" class="sidebar-menu submenu" id="saramin-submenu">
+            <li><a th:classappend="${activeSubMenu == 'saramin' ? 'active' : ''}" href="/saramin" target="_blank" rel="noopener noreferrer"><i class="fas fa-robot"></i> 채용정보 검색</a></li>
         </ul>
     </div>
 

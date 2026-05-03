@@ -1,7 +1,7 @@
 {
   "200": {
     "inputs": {
-      "unet_name": "Flux2-Klein-9B-True-v2-mxfp8mixed.safetensors",
+      "unet_name": "flux-2-klein-9b-kv-fp8.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -9,7 +9,7 @@
   },
   "201": {
     "inputs": {
-      "clip_name": "Qwen3-8B-Uncensor-v2.Q4_K_M.gguf",
+      "clip_name": "Qwen3VL-8B-Uncensored-HauhauCS-Aggressive-Q8_0.gguf",
       "type": "flux2",
       "device": "default"
     },

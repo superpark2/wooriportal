@@ -65,5 +65,6 @@ public class AIDTO {
         private List<OllamaRequest.Message> messages;
         private String sessionId;
         private String editImageUrl;
+        private String skin;
     }
 }

@@ -28,7 +28,9 @@ public class ExcelController {
 
     /** 엑셀 AI 처리 전용 페이지 */
     @GetMapping("/excel")
-    public String excelPage() { return "excel"; }
+    public String excelPage() {
+        return "ai/excel";
+    }
 
     /**
      * 엑셀 업로드 + AI 처리 → SSE 스트리밍.

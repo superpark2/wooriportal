@@ -58,6 +58,12 @@ dependencies {
     // 파일 처리
     implementation 'commons-io:commons-io:2.15.1'
 
+    // 크롤링용
+    implementation 'org.jsoup:jsoup:1.17.2'
+
+    //
+    implementation 'org.json:json:20240303'
+
 }
 
 tasks.named('test') {

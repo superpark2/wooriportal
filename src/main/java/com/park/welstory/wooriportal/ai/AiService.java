@@ -105,6 +105,7 @@ public class AiService {
 
     public void streamChat(AIDTO.ChatRequest request, AiHandler.SessionContext ctx) {
         String sessionId = ctx.getSessionId();
+        String skin      = request.getSkin(); // ★ 스킨 추출
 
         String userMessage = extractLastUserMessage(request);
 
@@ -127,7 +128,7 @@ public class AiService {
             sessionStore.removeLastImageFile(sessionId);
         }
 
-        route(userMessage, attachedImages, sessionId, ctx, ctx.getEmitter());
+        route(userMessage, attachedImages, sessionId, skin, ctx, ctx.getEmitter());
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -135,13 +136,14 @@ public class AiService {
     // ══════════════════════════════════════════════════════════════════════════
 
     private void route(String userMessage, List<String> attachedImages,
-                       String sessionId, AiHandler.SessionContext ctx, SseEmitter emitter) {
+                       String sessionId, String skin,
+                       AiHandler.SessionContext ctx, SseEmitter emitter) {
         try {
             if (ctx.isCancelled()) return;
 
             // 웹 검색 분기
             if (isWebSearch(userMessage)) {
-                handleWebSearch(userMessage, sessionId, ctx, emitter);
+                handleWebSearch(userMessage, sessionId, skin, ctx, emitter);
                 return;
             }
 
@@ -160,7 +162,7 @@ public class AiService {
                     + " 세션이미지=" + sessionImages.size() + "장"
                     + " → handleChat (LLM 자율 판단)");
 
-            handleChat(userMessage, availableImages, !attachedImages.isEmpty(), sessionId, ctx, emitter);
+            handleChat(userMessage, availableImages, !attachedImages.isEmpty(), sessionId, skin, ctx, emitter);
 
         } catch (Exception e) {
             System.err.println("[Router] 예외: " + e.getMessage());
@@ -180,7 +182,8 @@ public class AiService {
 
     private void handleChat(String userMessage, List<String> availableImages,
                             boolean isUserAttached,
-                            String sessionId, AiHandler.SessionContext ctx, SseEmitter emitter) {
+                            String sessionId, String skin,
+                            AiHandler.SessionContext ctx, SseEmitter emitter) {
         String imageHint = "";
         if (availableImages != null && !availableImages.isEmpty()) {
             imageHint = isUserAttached
@@ -188,14 +191,14 @@ public class AiService {
                     : " [이전에 생성한 이미지 " + availableImages.size() + "장 있음 — 유저가 직접 첨부한 게 아님]";
         }
         addToMemory(sessionId, "user", userMessage + imageHint, null);
-        streamOllama(sessionId, null, availableImages, ctx, emitter);
+        streamOllama(sessionId, null, userMessage, availableImages, skin, ctx, emitter);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
     //  [2] 웹 검색
     // ══════════════════════════════════════════════════════════════════════════
 
-    private void handleWebSearch(String userMessage, String sessionId,
+    private void handleWebSearch(String userMessage, String sessionId, String skin,
                                  AiHandler.SessionContext ctx, SseEmitter emitter) {
         try {
             if (ctx.isCancelled()) return;
@@ -219,7 +222,7 @@ public class AiService {
 
             sendToken(emitter, "\n");
             addToMemory(sessionId, "user", userMessage, null);
-            streamOllama(sessionId, contextPrompt, List.of(), ctx, emitter);
+            streamOllama(sessionId, contextPrompt, userMessage, List.of(), skin, ctx, emitter);
         } catch (Exception e) {
             System.err.println("[AiService] 웹 검색 오류: " + e.getMessage());
             sendError(emitter, "검색 중 오류가 발생했습니다.");
@@ -310,9 +313,10 @@ public class AiService {
     // ══════════════════════════════════════════════════════════════════════════
 
     private void streamOllama(String sessionId, String overrideLastUser,
-                              List<String> availableImages,
+                              String originMsg,
+                              List<String> availableImages, String skin,
                               AiHandler.SessionContext ctx, SseEmitter emitter) {
-        List<AIDTO.OllamaRequest.Message> messages = buildMessages(sessionId, overrideLastUser);
+        List<AIDTO.OllamaRequest.Message> messages = buildMessages(sessionId, overrideLastUser, skin);
         AIDTO.OllamaRequest req = new AIDTO.OllamaRequest();
         req.setModel(chatModel);
         req.setMessages(messages);
@@ -483,10 +487,9 @@ public class AiService {
 
                 // ★ AiImgService에 위임 (originMsg = 유저 원문 → LoRA 키워드 탐지에 사용)
                 aiImgService.generate(prompt, imagesForGen, imageOrder,
-                        overrideLastUser, sessionId, ctx, emitter);
+                        originMsg, sessionId, ctx, emitter);
 
                 // generate() 완료 후 메모리에 기록
-                // (generate 내부에서 emitter.complete()가 호출되므로 여기는 메모리 기록만)
                 String memMsg  = finalContent.isBlank()
                         ? (imagesForGen.isEmpty() ? "이미지 생성 요청" : "이미지 편집 요청")
                         : finalContent;
@@ -527,7 +530,7 @@ public class AiService {
         while (deque.size() > MAX_MEMORY_TURNS * 2) deque.pollFirst();
     }
 
-    private List<AIDTO.OllamaRequest.Message> buildMessages(String sessionId, String overrideLastUser) {
+    private List<AIDTO.OllamaRequest.Message> buildMessages(String sessionId, String overrideLastUser, String skin) {
         List<AIDTO.OllamaRequest.Message> messages = new ArrayList<>();
         Deque<AIDTO.OllamaRequest.Message> deque = sessionMemory.get(sessionId);
         if (deque != null) messages.addAll(deque);
@@ -542,22 +545,46 @@ public class AiService {
             }
         }
 
-        // 시스템 프롬프트를 마지막 user 메시지 바로 앞에 주입
-        int insertIdx = messages.size();
+        // ① 시스템 프롬프트 → 맨 앞에 삽입 (정석)
+        messages.add(0, systemMessage(skin));
+
+        // ② 마지막 user 메시지 바로 앞에 리마인더 주입
+        int lastUserIdx = -1;
         for (int i = messages.size() - 1; i >= 0; i--) {
             if ("user".equals(messages.get(i).getRole())) {
-                insertIdx = i;
+                lastUserIdx = i;
                 break;
             }
         }
-        messages.add(insertIdx, systemMessage());
+        if (lastUserIdx > 0) {
+            messages.add(lastUserIdx, reminderMessage());
+        }
+
         return messages;
     }
 
-    private AIDTO.OllamaRequest.Message systemMessage() {
+    private AIDTO.OllamaRequest.Message reminderMessage() {
         AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
         msg.setRole("system");
-        msg.setContent(SYSTEM_PROMPT + "\n현재 시간: "
+        msg.setContent(
+                "시스템 프롬프트의 모든 규칙을 준수하라.\n" +
+                        "특히 이미지 규칙: 사용자가 이미지 생성 또는 편집을 요청하는 의도가 감지되면, " +
+                        "반드시 응답 마지막 줄에 IMAGE_ACTION 태그를 출력해야 한다. " +
+                        "태그 없이 텍스트 응답만 하는 것은 절대 금지다."
+        );
+        return msg;
+    }
+
+    private AIDTO.OllamaRequest.Message systemMessage(String skin) {
+        String personality = switch (skin == null ? "" : skin) {
+            case "ruru"      -> " 반드시 반말로 대답해. 약간 삐딱하고 우울한 말투. 존댓말 절대 금지. 한줄에 17글자만 들어가니 보기좋게.";
+            case "silicagel" -> " 반드시 몽환적이고 감각적인 말투로 대답해. 한줄에 17글자만 들어가니 보기좋게.";
+            case "maltese"   -> " 반드시 짧고 철학적으로 반말로 대답해. 한줄에 17글자만 들어가니 보기좋게.";
+            default          -> " 친근하고 가벼운 존칭. 감정적 언변 가능. 한줄에 17글자만 들어가니 보기좋게.";
+        };
+        AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
+        msg.setRole("system");
+        msg.setContent(SYSTEM_PROMPT + personality + "\n현재 시간: "
                 + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
         return msg;
     }

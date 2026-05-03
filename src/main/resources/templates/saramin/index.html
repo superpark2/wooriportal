@@ -1,0 +1,813 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>사람인 채용 크롤러</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <style>
+    :root{--bg:#0a0a0f;--sf:#111118;--sf2:#16161f;--bd:#1e1e2e;--bd2:#2a2a3e;--ac:#ff5c35;--ac2:#e84d2a;--bl:#3b82f6;--bl2:#60a5fa;--gn:#22c55e;--tx:#e8e8f0;--tx2:#8888a8;--tx3:#4a4a6a;--sh:rgba(0,0,0,.45);--mono:'JetBrains Mono',monospace;--sans:'Noto Sans KR',sans-serif}
+    html.light{--bg:#f0f0f6;--sf:#ffffff;--sf2:#e8e8f2;--bd:#d8d8e8;--bd2:#c0c0d8;--ac:#ff5c35;--ac2:#e84d2a;--bl:#2563eb;--bl2:#1d4ed8;--gn:#16a34a;--tx:#111122;--tx2:#555570;--tx3:#9090b0;--sh:rgba(0,0,0,.1)}
+    *{margin:0;padding:0;box-sizing:border-box}
+    body{background:var(--bg);color:var(--tx);font-family:var(--sans);min-height:100vh;overflow-x:hidden;transition:background .25s,color .25s}
+    /* 헤더 */
+    .hdr{position:relative;z-index:10;padding:16px 28px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:12px;background:var(--sf);transition:background .25s,border-color .25s}
+    .logo{width:36px;height:36px;background:var(--ac);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:900;color:#fff;font-family:var(--mono);flex-shrink:0}
+    .hdr-title{font-size:16px;font-weight:700;letter-spacing:-.4px}
+    .hdr-sub{font-size:10px;color:var(--tx2);font-family:var(--mono);margin-top:1px}
+    .hdr-r{margin-left:auto;display:flex;align-items:center;gap:8px}
+    .live{background:rgba(255,92,53,.12);border:1px solid rgba(255,92,53,.3);color:var(--ac);font-size:10px;font-family:var(--mono);padding:3px 8px;border-radius:5px;letter-spacing:.5px}
+    .theme-btn{width:30px;height:30px;border:1px solid var(--bd2);background:var(--sf2);border-radius:7px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:13px;transition:all .2s;color:var(--tx2)}
+    .theme-btn:hover{border-color:var(--ac);color:var(--ac)}
+    /* 레이아웃 */
+    .layout{display:grid;grid-template-columns:360px 1fr;height:calc(100vh - 69px);position:relative;z-index:1}
+    /* 사이드바 */
+    .side{border-right:1px solid var(--bd);overflow-y:auto;background:var(--sf);scrollbar-width:thin;scrollbar-color:var(--bd2) transparent;transition:background .25s,border-color .25s}
+    .side::-webkit-scrollbar{width:3px}
+    .side::-webkit-scrollbar-thumb{background:var(--bd2);border-radius:2px}
+    /* 섹션 */
+    .sec{border-bottom:1px solid var(--bd);transition:border-color .25s}
+    .sec-hdr{padding:11px 16px;display:flex;align-items:center;gap:7px;cursor:pointer;user-select:none;transition:background .15s}
+    .sec-hdr:hover{background:rgba(128,128,128,.05)}
+    .sec-lbl{font-size:10px;font-weight:700;letter-spacing:1.2px;color:var(--tx2);text-transform:uppercase;flex:1}
+    .sec-ic{font-size:10px;color:var(--tx3);transition:transform .2s}
+    .sec.open .sec-ic{transform:rotate(180deg)}
+    .sec-body{padding:0 16px 13px;display:none}
+    .sec.open .sec-body{display:block}
+    /* 필터 */
+    .fg{margin-bottom:10px}
+    .fg-lbl{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-bottom:6px;letter-spacing:.4px}
+    .cg{display:flex;flex-wrap:wrap;gap:4px}
+    .chip{display:inline-flex;align-items:center;gap:4px;padding:4px 9px;border-radius:5px;border:1px solid var(--bd2);background:var(--sf2);font-size:11px;color:var(--tx2);cursor:pointer;transition:all .15s;user-select:none}
+    .chip:hover{border-color:var(--ac);color:var(--tx)}
+    .chip input{display:none}
+    .chip.on{background:rgba(255,92,53,.12);border-color:var(--ac);color:var(--ac);font-weight:600}
+    .sw{position:relative}
+    select{width:100%;background:var(--sf2);border:1px solid var(--bd2);border-radius:7px;color:var(--tx);padding:7px 28px 7px 10px;font-size:12px;font-family:var(--sans);outline:none;cursor:pointer;appearance:none;transition:border-color .15s,background .25s,color .25s}
+    select:focus{border-color:var(--ac)}
+    .sa{position:absolute;right:8px;top:50%;transform:translateY(-50%);color:var(--tx3);pointer-events:none;font-size:9px}
+    /* 지역 칩 (다중선택) */
+    .loc-chips{display:flex;flex-wrap:wrap;gap:4px}
+    .loc-chip{padding:3px 8px;border-radius:5px;border:1px solid var(--bd2);background:transparent;font-size:11px;color:var(--tx3);cursor:pointer;transition:all .12s;user-select:none}
+    .loc-chip:hover{border-color:var(--bl);color:var(--bl2)}
+    .loc-chip.on{background:rgba(59,130,246,.15);border-color:var(--bl);color:var(--bl2);font-weight:600}
+    /* 직무 트리 */
+    .job-tree{max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--bd2) transparent}
+    .jcat{margin-bottom:2px}
+    .jcat-row{display:flex;align-items:center;border-radius:6px;overflow:hidden}
+    .jcat-ck{display:flex;align-items:center;justify-content:center;width:30px;height:30px;cursor:pointer;flex-shrink:0;transition:background .15s;border-radius:6px}
+    .jcat-ck:hover{background:rgba(255,92,53,.1)}
+    .jcat-ck input{display:none}
+    .ck-box{width:13px;height:13px;border:1.5px solid var(--bd2);border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;transition:all .15s;background:var(--sf2)}
+    .jcat-ck input:checked+.ck-box{background:var(--ac);border-color:var(--ac);color:#fff}
+    .jcat-ck.partial .ck-box{background:rgba(255,92,53,.25);border-color:var(--ac)}
+    .jcat-hdr{flex:1;display:flex;align-items:center;gap:5px;padding:4px 7px;cursor:pointer;font-size:11px;font-weight:600;color:var(--tx2);transition:all .15s;border-radius:0 6px 6px 0}
+    .jcat-hdr:hover{background:rgba(128,128,128,.07);color:var(--tx)}
+    .jcat-tog{font-size:8px;color:var(--tx3);transition:transform .15s}
+    .jcat.open .jcat-tog{transform:rotate(90deg)}
+    .jcat-cnt{margin-left:auto;background:var(--ac);color:#fff;font-size:9px;font-weight:700;min-width:15px;height:15px;border-radius:8px;display:none;align-items:center;justify-content:center;font-family:var(--mono);padding:0 3px}
+    .jcat-cnt.show{display:flex}
+    .jkws{display:none;padding:3px 0 3px 30px}
+    .jcat.open .jkws{display:block}
+    .kw-grid{display:flex;flex-wrap:wrap;gap:3px}
+    .kw{padding:2px 7px;border-radius:4px;border:1px solid var(--bd2);background:transparent;font-size:10px;color:var(--tx3);cursor:pointer;transition:all .12s;user-select:none}
+    .kw:hover{border-color:var(--bl);color:var(--bl2)}
+    .kw.on{background:rgba(59,130,246,.15);border-color:var(--bl);color:var(--bl2);font-weight:600}
+    /* 선택카운트 뱃지 */
+    .cnt{display:none;background:var(--ac);color:#fff;font-size:9px;font-weight:700;width:16px;height:16px;border-radius:50%;align-items:center;justify-content:center;font-family:var(--mono)}
+    .cnt.show{display:flex}
+    /* URL 미리보기 */
+    .url-box{margin:12px 16px;background:var(--sf2);border:1px solid var(--bd2);border-radius:7px;padding:10px;transition:background .25s,border-color .25s}
+    .url-lbl{font-size:9px;color:var(--tx3);font-family:var(--mono);letter-spacing:1px;margin-bottom:4px}
+    .url-txt{font-family:var(--mono);font-size:10px;color:var(--bl2);word-break:break-all;line-height:1.6;max-height:64px;overflow-y:auto}
+    /* 검색 버튼 */
+    .srch-btn{margin:0 16px 16px;width:calc(100% - 32px);background:var(--ac);color:#fff;border:none;border-radius:9px;padding:12px;font-size:13px;font-weight:700;font-family:var(--sans);cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px;letter-spacing:-.3px;position:relative;overflow:hidden}
+    .srch-btn::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,.12) 0%,transparent 60%)}
+    .srch-btn:hover{background:var(--ac2);transform:translateY(-1px);box-shadow:0 8px 24px rgba(255,92,53,.35)}
+    .srch-btn:active{transform:translateY(0)}
+    .srch-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+    /* 메인 */
+    .main{overflow-y:auto;display:flex;flex-direction:column;background:var(--bg);transition:background .25s}
+    .empty{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:var(--tx3)}
+    .empty-ic{font-size:48px;opacity:.35}
+    .empty-ttl{font-size:16px;font-weight:700;color:var(--tx2)}
+    .empty-sub{font-size:12px;color:var(--tx3);text-align:center;line-height:1.7}
+    /* 결과 헤더 */
+    .res-hdr{padding:16px 24px 13px;border-bottom:1px solid var(--bd);display:flex;align-items:center;gap:9px;flex-wrap:wrap;background:var(--sf);transition:background .25s,border-color .25s}
+    .res-n{font-size:21px;font-weight:900;color:var(--ac)}
+    .res-lbl{font-size:12px;color:var(--tx2)}
+    .res-link{margin-left:auto;background:transparent;border:1px solid var(--bd2);color:var(--tx2);font-size:10px;font-family:var(--mono);padding:5px 10px;border-radius:5px;cursor:pointer;transition:all .15s;text-decoration:none;display:inline-flex;align-items:center;gap:4px}
+    .res-link:hover{border-color:var(--bl);color:var(--bl2)}
+    /* 그리드 */
+    .grid{padding:16px 24px;display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:12px}
+    /* 카드 */
+    .card{background:var(--sf);border:1px solid var(--bd);border-radius:11px;padding:16px;transition:all .2s;position:relative;overflow:hidden;cursor:pointer;text-decoration:none;color:inherit;display:block}
+    .card::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,var(--ac),var(--bl));opacity:0;transition:opacity .2s}
+    .card:hover{border-color:var(--bd2);transform:translateY(-2px);box-shadow:0 10px 28px var(--sh)}
+    .card:hover::before{opacity:1}
+    .c-badge{display:inline-block;font-size:9px;font-weight:600;padding:2px 6px;border-radius:3px;background:rgba(255,92,53,.1);color:var(--ac);border:1px solid rgba(255,92,53,.2);margin-bottom:8px;font-family:var(--mono);letter-spacing:.4px}
+    .c-co{font-size:11px;color:var(--tx2);margin-bottom:4px;display:flex;align-items:center;gap:5px}
+    .c-co::before{content:'';width:5px;height:5px;border-radius:50%;background:var(--gn);flex-shrink:0}
+    .c-ttl{font-size:13px;font-weight:700;line-height:1.45;color:var(--tx);margin-bottom:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+    .c-tags{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:11px}
+    .c-tag{font-size:10px;padding:2px 7px;border-radius:3px;background:var(--sf2);color:var(--tx2);border:1px solid var(--bd2)}
+    .c-tag.gn{color:var(--gn)}
+    .c-ft{display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--bd)}
+    .c-dl{font-size:10px;color:var(--tx3);font-family:var(--mono)}
+    .c-arr{width:24px;height:24px;border-radius:6px;background:var(--sf2);display:flex;align-items:center;justify-content:center;font-size:11px;color:var(--tx3);transition:all .15s}
+    .card:hover .c-arr{background:var(--ac);color:#fff}
+    /* 로딩 */
+    .ld{display:none;position:fixed;inset:0;background:rgba(10,10,15,.8);backdrop-filter:blur(4px);z-index:100;flex-direction:column;align-items:center;justify-content:center;gap:16px}
+    .ld.on{display:flex}
+    .spin{width:42px;height:42px;border:3px solid var(--bd2);border-top-color:var(--ac);border-radius:50%;animation:sp .7s linear infinite}
+    @keyframes sp{to{transform:rotate(360deg)}}
+    .ld-txt{font-family:var(--mono);font-size:12px;color:var(--tx2)}
+    /* 에러 */
+    .err-box{margin:16px 24px;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:9px;padding:14px 16px;display:flex;align-items:flex-start;gap:10px}
+    .err-ic{font-size:16px;color:#ef4444;flex-shrink:0}
+    .err-msg{font-size:12px;color:#fca5a5;line-height:1.55}
+    .xl-btn{display:none;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;border:1px solid rgba(34,197,94,.4);background:rgba(34,197,94,.1);color:var(--gn);font-size:11px;font-weight:700;font-family:var(--mono);cursor:pointer;transition:all .2s;letter-spacing:.3px}
+    .xl-btn:hover{background:rgba(34,197,94,.22);border-color:var(--gn);transform:translateY(-1px);box-shadow:0 4px 14px rgba(34,197,94,.25)}
+    .xl-btn.show{display:flex}
+    .xl-btn:active{transform:translateY(0)}
+    .stop-btn{display:none;align-items:center;gap:5px;padding:5px 12px;border-radius:7px;border:1px solid rgba(239,68,68,.4);background:rgba(239,68,68,.1);color:#ef4444;font-size:11px;font-weight:700;font-family:var(--mono);cursor:pointer;transition:all .2s}
+    .stop-btn:hover{background:rgba(239,68,68,.22);border-color:#ef4444}
+    .stop-btn.show{display:flex}
+    .xl-progress{display:none;font-size:10px;color:var(--tx3);font-family:var(--mono);align-items:center;gap:6px}
+    .xl-progress.show{display:flex}
+    .xl-bar{width:80px;height:5px;background:var(--bd2);border-radius:3px;overflow:hidden}
+    .xl-bar-fill{height:100%;background:var(--gn);border-radius:3px;transition:width .3s;width:0%}
+    .pgn{display:flex;align-items:center;justify-content:center;gap:5px;padding:20px 24px 28px;flex-wrap:wrap}
+    .pgn-btn{min-width:34px;height:34px;padding:0 8px;border-radius:7px;border:1px solid var(--bd2);background:var(--sf2);color:var(--tx2);font-size:12px;font-family:var(--mono);cursor:pointer;transition:all .15s;display:flex;align-items:center;justify-content:center}
+    .pgn-btn:hover:not(:disabled){border-color:var(--ac);color:var(--ac)}
+    .pgn-btn.on{background:var(--ac);border-color:var(--ac);color:#fff;font-weight:700}
+    .pgn-btn:disabled{opacity:.35;cursor:not-allowed}
+    .pgn-ellipsis{color:var(--tx3);font-size:12px;padding:0 4px}
+    .pgn-info{font-size:10px;color:var(--tx3);font-family:var(--mono);margin-left:8px}
+  </style>
+</head>
+<body>
+<header class="hdr">
+  <div class="logo">S</div>
+  <div>
+    <div class="hdr-title">사람인 채용 크롤러</div>
+    <div class="hdr-sub">saramin.co.kr · job crawler v1.2</div>
+  </div>
+  <div class="hdr-r">
+    <div class="xl-progress" id="xlProgress">
+      <div class="xl-bar"><div class="xl-bar-fill" id="xlBarFill"></div></div>
+      <span id="xlProgressTxt">0/0p</span>
+    </div>
+    <button class="stop-btn" id="stopBtn" onclick="cancelExport()">
+      <span>⏹</span><span>중단</span>
+    </button>
+    <button class="xl-btn" id="xlBtn" onclick="exportExcel()">
+      <span>📊</span><span>EXCEL 저장</span>
+    </button>
+    <span class="live">LIVE</span>
+    <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 전환">☀️</button>
+  </div>
+</header>
+
+<div class="layout">
+  <aside class="side">
+
+    <!-- 지역 -->
+    <div class="sec open" id="s-loc">
+      <div class="sec-hdr" onclick="tog('s-loc')">
+        <span class="sec-lbl">📍 근무 지역</span>
+        <span class="cnt" id="c-loc"></span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="fg">
+          <div class="sw">
+            <select id="regSel" onchange="onRegion()">
+              <option value="">전국</option>
+              <option value="101000">서울</option>
+              <option value="102000">경기</option>
+              <option value="108000">인천</option>
+              <option value="106000">부산</option>
+              <option value="104000">대구</option>
+              <option value="103000">광주</option>
+              <option value="105000">대전</option>
+              <option value="107000">울산</option>
+              <option value="118000">세종</option>
+              <option value="109000">강원</option>
+              <option value="110000">충북</option>
+              <option value="111000">충남</option>
+              <option value="112000">전북</option>
+              <option value="113000">전남</option>
+              <option value="114000">경북</option>
+              <option value="115000">경남</option>
+              <option value="116000">제주</option>
+            </select>
+            <span class="sa">▾</span>
+          </div>
+        </div>
+        <div class="fg" id="subWrap" style="display:none">
+          <div class="fg-lbl">// 세부 지역 (복수 선택 가능 · 안 하면 전체)</div>
+          <div class="loc-chips" id="subChips"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 채용형태 -->
+    <div class="sec open" id="s-jt">
+      <div class="sec-hdr" onclick="tog('s-jt')">
+        <span class="sec-lbl">💼 채용 형태</span>
+        <span class="cnt" id="c-jt"></span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="cg">
+          <label class="chip"><input type="checkbox" name="jt" value="1"  onchange="ckChg(this,'c-jt','jt')"><span>정규직</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="2"  onchange="ckChg(this,'c-jt','jt')"><span>계약직</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="4"  onchange="ckChg(this,'c-jt','jt')"><span>인턴직</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="5"  onchange="ckChg(this,'c-jt','jt')"><span>아르바이트</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="9"  onchange="ckChg(this,'c-jt','jt')"><span>프리랜서</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="6"  onchange="ckChg(this,'c-jt','jt')"><span>파견직</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="3"  onchange="ckChg(this,'c-jt','jt')"><span>병역특례</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="10" onchange="ckChg(this,'c-jt','jt')"><span>계약(전환가능)</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="11" onchange="ckChg(this,'c-jt','jt')"><span>인턴(전환가능)</span></label>
+          <label class="chip"><input type="checkbox" name="jt" value="17" onchange="ckChg(this,'c-jt','jt')"><span>무기계약직</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 기업규모 -->
+    <div class="sec" id="s-co">
+      <div class="sec-hdr" onclick="tog('s-co')">
+        <span class="sec-lbl">🏢 기업 규모</span>
+        <span class="cnt" id="c-co"></span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="cg">
+          <label class="chip"><input type="checkbox" name="ct" value="scale001" onchange="ckChg(this,'c-co','ct')"><span>대기업</span></label>
+          <label class="chip"><input type="checkbox" name="ct" value="scale002" onchange="ckChg(this,'c-co','ct')"><span>중견기업</span></label>
+          <label class="chip"><input type="checkbox" name="ct" value="scale003" onchange="ckChg(this,'c-co','ct')"><span>중소기업</span></label>
+          <label class="chip"><input type="checkbox" name="ct" value="scale004" onchange="ckChg(this,'c-co','ct')"><span>공공기관</span></label>
+          <label class="chip"><input type="checkbox" name="ct" value="scale005" onchange="ckChg(this,'c-co','ct')"><span>외국계</span></label>
+          <label class="chip"><input type="checkbox" name="ct" value="scale006" onchange="ckChg(this,'c-co','ct')"><span>상장기업</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 학력 -->
+    <div class="sec" id="s-edu">
+      <div class="sec-hdr" onclick="tog('s-edu')">
+        <span class="sec-lbl">🎓 학력</span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="sw">
+          <select id="eduSel" onchange="updUrl()">
+            <option value="">무관</option>
+            <option value="1">고졸</option>
+            <option value="2">대학(2·3년)졸</option>
+            <option value="3">대학교(4년)졸</option>
+            <option value="4">석사졸</option>
+            <option value="5">박사졸</option>
+            <option value="7">대학(2·3년)졸 이상</option>
+            <option value="8">대학교(4년)졸 이상</option>
+            <option value="9">석사졸 이상</option>
+          </select>
+          <span class="sa">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 연봉 -->
+    <div class="sec" id="s-sal">
+      <div class="sec-hdr" onclick="tog('s-sal')">
+        <span class="sec-lbl">💰 연봉</span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="sw">
+          <select id="salSel" onchange="updUrl()">
+            <option value="">무관</option>
+            <option value="9">2,600만원 이상</option>
+            <option value="10">2,800만원 이상</option>
+            <option value="11">3,000만원 이상</option>
+            <option value="12">3,200만원 이상</option>
+            <option value="13">3,400만원 이상</option>
+            <option value="14">3,600만원 이상</option>
+            <option value="15">3,800만원 이상</option>
+            <option value="16">4,000만원 이상</option>
+            <option value="17">5,000만원 이상</option>
+            <option value="18">6,000만원 이상</option>
+            <option value="19">7,000만원 이상</option>
+            <option value="22">1억원 이상</option>
+          </select>
+          <span class="sa">▾</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 정렬 -->
+    <div class="sec" id="s-sort">
+      <div class="sec-hdr" onclick="tog('s-sort')">
+        <span class="sec-lbl">↕ 정렬</span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="cg">
+          <label class="chip on"><input type="radio" name="srt" value="RL" onchange="rdChg(this)" checked><span>추천순</span></label>
+          <label class="chip"><input type="radio" name="srt" value="DA" onchange="rdChg(this)"><span>등록일순</span></label>
+          <label class="chip"><input type="radio" name="srt" value="DD" onchange="rdChg(this)"><span>마감임박</span></label>
+          <label class="chip"><input type="radio" name="srt" value="RC" onchange="rdChg(this)"><span>조회수순</span></label>
+          <label class="chip"><input type="radio" name="srt" value="AC" onchange="rdChg(this)"><span>지원자순</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 직무 -->
+    <div class="sec open" id="s-job">
+      <div class="sec-hdr" onclick="tog('s-job')">
+        <span class="sec-lbl">🔧 직무 / 직업</span>
+        <span class="cnt" id="c-job"></span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="job-tree" id="jobTree"></div>
+      </div>
+    </div>
+
+    <!-- 가져올 개수 -->
+    <div class="sec" id="s-pg">
+      <div class="sec-hdr" onclick="tog('s-pg')">
+        <span class="sec-lbl">📄 가져올 개수</span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="cg">
+          <label class="chip on"><input type="radio" name="pgc" value="25"  onchange="rdChg(this)" checked><span>25개</span></label>
+          <label class="chip"><input type="radio" name="pgc" value="50"  onchange="rdChg(this)"><span>50개</span></label>
+          <label class="chip"><input type="radio" name="pgc" value="100" onchange="rdChg(this)"><span>100개</span></label>
+        </div>
+      </div>
+    </div>
+
+    <div class="url-box">
+      <div class="url-txt" id="urlTxt">조건을 선택하면 자동 생성됩니다...</div>
+    </div>
+
+    <button class="srch-btn" id="srchBtn" onclick="currentPage=1;doSearch()">
+      <span>⚡</span><span>크롤링 시작</span>
+    </button>
+
+  </aside>
+
+  <main class="main" id="mainArea">
+    <div class="empty" id="emptyState">
+      <div class="empty-ic">🕷️</div>
+      <div class="empty-ttl">조건을 선택하고 크롤링하세요</div>
+      <div class="empty-sub">왼쪽 필터 설정 후 크롤링 버튼을 누르면<br>사람인 채용공고를 수집합니다</div>
+    </div>
+    <div id="resArea" style="display:none">
+      <div class="res-hdr">
+        <span class="res-n" id="resN">0</span>
+        <span class="res-lbl">건의 채용공고</span>
+        <span id="resPageInfo" style="font-size:11px;color:var(--tx3);font-family:var(--mono)"></span>
+        <a id="resLink" href="#" target="_blank" class="res-link">↗ 사람인에서 보기</a>
+      </div>
+      <div class="grid" id="resGrid"></div>
+      <div class="pgn" id="pgn" style="display:none"></div>
+    </div>
+    <div id="errArea" style="display:none">
+      <div class="err-box">
+        <span class="err-ic">⚠️</span>
+        <div class="err-msg" id="errMsg"></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div class="ld" id="ld">
+  <div class="spin"></div>
+  <div class="ld-txt">크롤링 중...</div>
+</div>
+
+<script>
+  /* ── 지역 데이터 (정확한 코드) ─────────────────────────────────── */
+  const REGIONS = {
+    '101000':{n:'서울',s:[{c:'101010',n:'강남구'},{c:'101020',n:'강동구'},{c:'101030',n:'강북구'},{c:'101040',n:'강서구'},{c:'101050',n:'관악구'},{c:'101060',n:'광진구'},{c:'101070',n:'구로구'},{c:'101080',n:'금천구'},{c:'101090',n:'노원구'},{c:'101100',n:'도봉구'},{c:'101110',n:'동대문구'},{c:'101120',n:'동작구'},{c:'101130',n:'마포구'},{c:'101140',n:'서대문구'},{c:'101150',n:'서초구'},{c:'101160',n:'성동구'},{c:'101170',n:'성북구'},{c:'101180',n:'송파구'},{c:'101190',n:'양천구'},{c:'101200',n:'영등포구'},{c:'101210',n:'용산구'},{c:'101220',n:'은평구'},{c:'101230',n:'종로구'},{c:'101240',n:'중구'},{c:'101250',n:'중랑구'}]},
+    '102000':{n:'경기',s:[{c:'102020',n:'고양시'},{c:'102060',n:'과천시'},{c:'102070',n:'광명시'},{c:'102080',n:'광주시'},{c:'102090',n:'구리시'},{c:'102100',n:'군포시'},{c:'102110',n:'김포시'},{c:'102120',n:'남양주시'},{c:'102140',n:'부천시'},{c:'102180',n:'성남시'},{c:'102190',n:'성남 분당구'},{c:'102220',n:'수원시'},{c:'102270',n:'시흥시'},{c:'102280',n:'안산시'},{c:'102320',n:'안양시'},{c:'102400',n:'용인시'},{c:'102440',n:'의왕시'},{c:'102450',n:'의정부시'},{c:'102470',n:'파주시'},{c:'102480',n:'평택시'},{c:'102500',n:'하남시'},{c:'102510',n:'화성시'}]},
+    '108000':{n:'인천',s:[{c:'108010',n:'강화군'},{c:'108020',n:'계양구'},{c:'108030',n:'미추홀구'},{c:'108040',n:'남동구'},{c:'108050',n:'동구'},{c:'108060',n:'부평구'},{c:'108070',n:'서구'},{c:'108080',n:'연수구'},{c:'108090',n:'옹진군'},{c:'108100',n:'중구'}]},
+    '106000':{n:'부산',s:[{c:'106010',n:'강서구'},{c:'106020',n:'금정구'},{c:'106030',n:'기장군'},{c:'106040',n:'남구'},{c:'106050',n:'동구'},{c:'106060',n:'동래구'},{c:'106070',n:'부산진구'},{c:'106080',n:'북구'},{c:'106090',n:'사상구'},{c:'106100',n:'사하구'},{c:'106110',n:'서구'},{c:'106120',n:'수영구'},{c:'106130',n:'연제구'},{c:'106140',n:'영도구'},{c:'106150',n:'중구'},{c:'106160',n:'해운대구'}]},
+    '104000':{n:'대구',s:[{c:'104010',n:'남구'},{c:'104020',n:'달서구'},{c:'104030',n:'달성군'},{c:'104040',n:'동구'},{c:'104050',n:'북구'},{c:'104060',n:'서구'},{c:'104070',n:'수성구'},{c:'104080',n:'중구'}]},
+    '103000':{n:'광주',s:[{c:'103010',n:'광산구'},{c:'103020',n:'남구'},{c:'103030',n:'동구'},{c:'103040',n:'북구'},{c:'103050',n:'서구'}]},
+    '105000':{n:'대전',s:[{c:'105010',n:'대덕구'},{c:'105020',n:'동구'},{c:'105030',n:'서구'},{c:'105040',n:'유성구'},{c:'105050',n:'중구'}]},
+    '107000':{n:'울산',s:[{c:'107010',n:'남구'},{c:'107020',n:'동구'},{c:'107030',n:'북구'},{c:'107040',n:'울주군'},{c:'107050',n:'중구'}]},
+    '109000':{n:'강원',s:[{c:'109010',n:'강릉시'},{c:'109030',n:'동해시'},{c:'109050',n:'속초시'},{c:'109090',n:'원주시'},{c:'109130',n:'춘천시'}]},
+    '110000':{n:'충북',s:[{c:'110010',n:'청주시'},{c:'110020',n:'충주시'},{c:'110030',n:'제천시'}]},
+    '111000':{n:'충남',s:[{c:'111010',n:'천안시'},{c:'111020',n:'아산시'},{c:'111030',n:'논산시'},{c:'111040',n:'공주시'}]},
+    '112000':{n:'전북',s:[{c:'112010',n:'전주시'},{c:'112020',n:'익산시'},{c:'112030',n:'군산시'},{c:'112040',n:'정읍시'}]},
+    '113000':{n:'전남',s:[{c:'113010',n:'여수시'},{c:'113020',n:'순천시'},{c:'113030',n:'목포시'}]},
+    '114000':{n:'경북',s:[{c:'114010',n:'포항시'},{c:'114020',n:'구미시'},{c:'114030',n:'경주시'}]},
+    '115000':{n:'경남',s:[{c:'115010',n:'창원시'},{c:'115020',n:'김해시'},{c:'115030',n:'진주시'},{c:'115040',n:'양산시'}]},
+    '116000':{n:'제주',s:[{c:'116010',n:'제주시'},{c:'116020',n:'서귀포시'}]},
+  };
+
+  /* ── 직무 데이터 (실제 코드) ─────────────────────────────────── */
+  const JOBS=[
+    {n:'IT개발·데이터',c:'2',kw:[{k:'게임개발',c:'80'},{k:'기술지원',c:'81'},{k:'데이터분석가',c:'82'},{k:'데이터엔지니어',c:'83'},{k:'백엔드서버',c:'84'},{k:'보안컨설팅',c:'85'},{k:'앱개발',c:'86'},{k:'웹개발',c:'87'},{k:'퍼블리셔',c:'91'},{k:'프론트엔드',c:'92'},{k:'DBA',c:'95'},{k:'QA테스터',c:'99'},{k:'SI개발',c:'101'},{k:'AI(인공지능)',c:'181'},{k:'DevOps',c:'146'},{k:'클라우드',c:'136'},{k:'빅데이터',c:'116'},{k:'머신러닝',c:'109'},{k:'딥러닝',c:'108'},{k:'블록체인',c:'115'},{k:'IoT',c:'156'},{k:'임베디드',c:'128'},{k:'풀스택',c:'2232'},{k:'Python',c:'272'},{k:'Java',c:'235'},{k:'React',c:'277'},{k:'Spring',c:'291'},{k:'AWS',c:'201'},{k:'Kubernetes',c:'244'},{k:'Docker',c:'214'}]},
+    {n:'회계·세무·재무',c:'3',kw:[{k:'회계',c:'321'},{k:'세무',c:'322'},{k:'재무',c:'323'},{k:'경리',c:'324'},{k:'관세',c:'325'},{k:'감사',c:'326'}]},
+    {n:'총무·법무·사무',c:'4',kw:[{k:'총무',c:'400'},{k:'법무',c:'401'},{k:'비서',c:'402'},{k:'행정사무',c:'403'},{k:'컴플라이언스',c:'404'}]},
+    {n:'인사·노무·HRD',c:'5',kw:[{k:'인사',c:'500'},{k:'채용',c:'501'},{k:'노무',c:'502'},{k:'HRD',c:'503'},{k:'조직문화',c:'504'}]},
+    {n:'의료·복지',c:'6',kw:[{k:'간호사',c:'600'},{k:'의사',c:'601'},{k:'물리치료사',c:'602'},{k:'사회복지사',c:'603'},{k:'요양보호사',c:'604'}]},
+    {n:'운전·운송·배송',c:'7',kw:[{k:'배송기사',c:'700'},{k:'택배',c:'701'},{k:'버스기사',c:'702'},{k:'지게차',c:'703'},{k:'물류기사',c:'704'}]},
+    {n:'영업·판매·무역',c:'8',kw:[{k:'영업',c:'800'},{k:'기술영업',c:'801'},{k:'해외영업',c:'802'},{k:'판매',c:'803'},{k:'무역',c:'804'},{k:'B2B',c:'805'}]},
+    {n:'연구·R&D',c:'9',kw:[{k:'연구원',c:'900'},{k:'임상연구',c:'901'},{k:'CRA',c:'902'},{k:'반도체연구',c:'903'}]},
+    {n:'서비스',c:'10',kw:[{k:'매장매니저',c:'871'},{k:'바리스타',c:'875'},{k:'셰프',c:'880'},{k:'고객상담',c:'1977'},{k:'CS',c:'1977'}]},
+    {n:'생산·품질',c:'11',kw:[{k:'생산관리',c:'1000'},{k:'품질관리',c:'1001'},{k:'공정관리',c:'1002'},{k:'제조',c:'1003'}]},
+    {n:'마케팅·홍보',c:'14',kw:[{k:'마케팅',c:'1400'},{k:'디지털마케팅',c:'1401'},{k:'SNS마케팅',c:'1402'},{k:'브랜드',c:'1403'},{k:'홍보',c:'1404'}]},
+    {n:'디자인',c:'15',kw:[{k:'UI/UX',c:'1500'},{k:'그래픽디자인',c:'1501'},{k:'영상디자인',c:'1502'},{k:'패션디자인',c:'1503'}]},
+    {n:'기획·전략',c:'16',kw:[{k:'경영기획',c:'1600'},{k:'전략기획',c:'1601'},{k:'사업기획',c:'1602'},{k:'PM',c:'1603'},{k:'신사업',c:'1604'}]},
+    {n:'금융·보험',c:'17',kw:[{k:'보험설계사',c:'1700'},{k:'애널리스트',c:'1701'},{k:'펀드매니저',c:'1702'},{k:'텔러',c:'1703'}]},
+    {n:'교육',c:'19',kw:[{k:'교사',c:'1900'},{k:'강사',c:'1901'},{k:'유아교육',c:'1902'},{k:'온라인교육',c:'1903'}]},
+    {n:'고객상담·TM',c:'21',kw:[{k:'상담원',c:'1972'},{k:'인바운드',c:'1975'},{k:'아웃바운드',c:'1973'},{k:'CS매니저',c:'1977'},{k:'콜센터',c:'1997'}]},
+    {n:'건설·건축',c:'22',kw:[{k:'건축설계',c:'2200'},{k:'시공관리',c:'2201'},{k:'감리',c:'2202'},{k:'인테리어',c:'2203'}]},
+  ];
+
+  /* ── 상태 ─────────────────────────────────────────────────────── */
+  let locMcd='', locCds=new Set();
+  const catSel=new Set(), kwSel=new Map();  // catCode, catCode→Set<kwCode>
+  let currentPage=1, lastReq=null;
+  let allPostings=[];   // 엑셀 내보내기용 전체 누적 데이터
+
+  /* ── 테마 ─────────────────────────────────────────────────────── */
+  function initTheme(){const t=localStorage.getItem('srm-theme')||'light';applyTheme(t)}
+  function toggleTheme(){const c=document.documentElement.classList.contains('light')?'light':'dark';const n=c==='dark'?'light':'dark';applyTheme(n);localStorage.setItem('srm-theme',n)}
+  function applyTheme(t){const h=document.documentElement,b=document.getElementById('themeBtn');if(t==='light'){h.classList.add('light');b.textContent='🌙';b.title='다크 모드로 전환'}else{h.classList.remove('light');b.textContent='☀️';b.title='라이트 모드로 전환'}}
+
+  /* ── 섹션 토글 ────────────────────────────────────────────────── */
+  function tog(id){document.getElementById(id).classList.toggle('open')}
+
+  /* ── 카운트 뱃지 ──────────────────────────────────────────────── */
+  function setCnt(id,n){const e=document.getElementById(id);if(!e)return;e.textContent=n;e.classList.toggle('show',n>0)}
+
+  /* ── 체크박스 ─────────────────────────────────────────────────── */
+  function ckChg(inp,cntId,name){
+    inp.closest('.chip').classList.toggle('on',inp.checked);
+    setCnt(cntId,document.querySelectorAll(`[name="${name}"]:checked`).length);
+    updUrl();
+  }
+  function rdChg(inp){
+    document.querySelectorAll(`[name="${inp.name}"]`).forEach(i=>i.closest('.chip').classList.remove('on'));
+    inp.closest('.chip').classList.add('on');
+    updUrl();
+  }
+
+  /* ── 지역 ─────────────────────────────────────────────────────── */
+  function onRegion(){
+    const v=document.getElementById('regSel').value;
+    locMcd=v; locCds.clear();
+    const wrap=document.getElementById('subWrap'), chips=document.getElementById('subChips');
+    if(v&&REGIONS[v]){
+      chips.innerHTML=REGIONS[v].s.map(s=>`<span class="loc-chip" data-c="${s.c}" onclick="togLoc(this,'${s.c}')">${s.n}</span>`).join('');
+      wrap.style.display='block';
+    } else {
+      wrap.style.display='none'; chips.innerHTML='';
+    }
+    setCnt('c-loc',v?1:0);
+    updUrl();
+  }
+  function togLoc(el,code){
+    if(locCds.has(code)){locCds.delete(code);el.classList.remove('on')}
+    else{locCds.add(code);el.classList.add('on')}
+    updUrl();
+  }
+
+  /* ── 직무 트리 ────────────────────────────────────────────────── */
+  function buildTree(){
+    document.getElementById('jobTree').innerHTML=JOBS.map(j=>`
+    <div class="jcat" id="jc-${j.c}">
+      <div class="jcat-row">
+        <label class="jcat-ck" title="${j.n} 전체 선택">
+          <input type="checkbox" id="jck-${j.c}" onchange="catAll('${j.c}',this.checked)">
+          <div class="ck-box">✓</div>
+        </label>
+        <div class="jcat-hdr" onclick="togCat('${j.c}')">
+          <span class="jcat-tog">▶</span>
+          <span>${j.n}</span>
+          <span class="jcat-cnt" id="jcnt-${j.c}">0</span>
+        </div>
+      </div>
+      <div class="jkws">
+        <div class="kw-grid">${j.kw.map(k=>`<span class="kw" data-cat="${j.c}" data-kc="${k.c}" onclick="togKw('${j.c}','${k.c}',this)">${k.k}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+  }
+  function togCat(c){document.getElementById('jc-'+c).classList.toggle('open')}
+
+  function catAll(catCode,checked){
+    const lbl=document.querySelector(`#jc-${catCode} .jcat-ck`);
+    if(checked){
+      catSel.add(catCode);
+      document.querySelectorAll(`[data-cat="${catCode}"]`).forEach(e=>e.classList.add('on'));
+      lbl.classList.remove('partial');
+    } else {
+      catSel.delete(catCode);
+      kwSel.delete(catCode);
+      document.querySelectorAll(`[data-cat="${catCode}"]`).forEach(e=>e.classList.remove('on'));
+      lbl.classList.remove('partial');
+    }
+    syncCat(catCode); updJobCnt(); updUrl();
+  }
+  function togKw(catCode,kwCode,el){
+    el.classList.toggle('on');
+    if(!kwSel.has(catCode))kwSel.set(catCode,new Set());
+    const s=kwSel.get(catCode);
+    el.classList.contains('on')?s.add(kwCode):s.delete(kwCode);
+    if(s.size===0)kwSel.delete(catCode);
+    // 대분류 체크 해제 (개별 키워드 선택 시)
+    if(catSel.has(catCode)&&!el.classList.contains('on')){catSel.delete(catCode);document.getElementById('jck-'+catCode).checked=false;}
+    syncCat(catCode); updJobCnt(); updUrl();
+  }
+  function syncCat(c){
+    const job=JOBS.find(j=>j.c===c);
+    const kwSet=kwSel.get(c), selN=kwSet?kwSet.size:0;
+    const ck=document.getElementById('jck-'+c);
+    const lbl=ck.closest('.jcat-ck');
+    const cnt=document.getElementById('jcnt-'+c);
+    if(catSel.has(c)){ck.checked=true;lbl.classList.remove('partial');cnt.textContent='전체';cnt.classList.add('show')}
+    else if(selN>0){ck.checked=false;lbl.classList.add('partial');cnt.textContent=selN;cnt.classList.add('show')}
+    else{ck.checked=false;lbl.classList.remove('partial');cnt.classList.remove('show')}
+  }
+  function updJobCnt(){
+    const n=catSel.size+kwSel.size;
+    setCnt('c-job',n>0?n:0);
+  }
+
+  /* ── URL 빌드 ─────────────────────────────────────────────────── */
+  function buildReq(){
+    // 대분류 전체 선택(catSel) → jobMcls (cat_mcls)
+    // 세부 키워드 선택(kwSel) → jobCode (cat_kewd)
+    const jobMcls=[];
+    const jobCodes=[];
+    catSel.forEach(c=>jobMcls.push(c));
+    kwSel.forEach((s,cat)=>{if(!catSel.has(cat))s.forEach(kc=>jobCodes.push(kc))});
+
+    // 지역: 세부 선택 있으면 loc_cd, 없으면 loc_mcd
+    const useLocCd=locCds.size>0;
+
+    return {
+      locMcd: useLocCd?'':locMcd,
+      locCd:  useLocCd?[...locCds].join(','):'',
+      jobType:[...document.querySelectorAll('[name="jt"]:checked')].map(i=>i.value),
+      companyType:[...document.querySelectorAll('[name="ct"]:checked')].map(i=>i.value),
+      salMin:document.getElementById('salSel').value,
+      eduMax:document.getElementById('eduSel').value,
+      sort:document.querySelector('[name="srt"]:checked')?.value||'RL',
+      type:'domestic',
+      page:currentPage,
+      pageCount:parseInt(document.querySelector('[name="pgc"]:checked')?.value||'25'),
+      jobMcls:jobMcls,   // 대분류 → cat_mcls
+      jobCode:jobCodes,  // 세부코드 → cat_kewd
+    };
+  }
+
+  function mkUrl(r){
+    const b='https://www.saramin.co.kr/zf_user/jobs/list/domestic?';
+    const p=[];
+    if(r.locCd)                          p.push('loc_cd='+r.locCd);
+    else if(r.locMcd)                    p.push('loc_mcd='+r.locMcd);
+    if(r.jobMcls&&r.jobMcls.length)     p.push('cat_mcls='+r.jobMcls.join('%2C'));
+    if(r.jobCode&&r.jobCode.length)     p.push('cat_kewd='+r.jobCode.join('%2C'));
+    if(r.jobType.length)                 p.push('job_type='+r.jobType.join('%2C'));
+    if(r.companyType.length)             p.push('company_type='+r.companyType.join(','));
+    if(r.salMin)                         p.push('sal_min='+r.salMin);
+    if(r.eduMax)                         p.push('edu_max='+r.eduMax);
+    p.push('panel_type=&search_optional_item=n&search_done=y&panel_count=y&preview=y');
+    p.push('page='+r.page+'&page_count='+r.pageCount);
+    return b+p.join('&');
+  }
+
+  function updUrl(){
+    document.getElementById('urlTxt').textContent=mkUrl(buildReq());
+  }
+
+  /* ── 검색 ─────────────────────────────────────────────────────── */
+  async function doSearch(page){
+    if(page !== undefined) currentPage = page;
+    else { currentPage = 1; allPostings = []; }  // 새 검색이면 누적 초기화
+    const btn=document.getElementById('srchBtn'),ld=document.getElementById('ld');
+    btn.disabled=true; ld.classList.add('on');
+    document.getElementById('resArea').style.display='none';
+    document.getElementById('emptyState').style.display='none';
+    document.getElementById('errArea').style.display='none';
+    const req=buildReq();
+    lastReq=req;
+    try{
+      const res=await fetch('/saramin/api/search',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(req)});
+      const d=await res.json();
+      d.success?render(d):showErr(d.errorMessage,d.crawledUrl);
+    }catch(e){showErr('요청 실패: '+e.message,'')}
+    finally{btn.disabled=false;ld.classList.remove('on')}
+  }
+
+  function render(d){
+    document.getElementById('resN').textContent=d.totalCount;
+    document.getElementById('resLink').href=d.crawledUrl;
+    const cp=d.currentPage||1, tp=d.totalPages||1;
+    document.getElementById('resPageInfo').textContent=`${cp} / ${tp} 페이지`;
+    document.getElementById('resArea').style.display='block';
+
+    // 이번 페이지 데이터 누적 (페이지 이동할 때마다 쌓임)
+    if(d.postings&&d.postings.length>0){
+      // 중복 방지: link 기준으로 이미 있는 것 제외
+      const existLinks=new Set(allPostings.map(p=>p.link));
+      d.postings.forEach(p=>{ if(!existLinks.has(p.link)) allPostings.push(p); });
+      document.getElementById('xlBtn').classList.add('show');
+    }
+    const g=document.getElementById('resGrid');
+    if(!d.postings||d.postings.length===0){
+      g.innerHTML=`<div style="grid-column:1/-1;text-align:center;padding:56px;color:var(--tx3)">
+      <div style="font-size:38px;margin-bottom:11px">🔍</div>
+      <div style="font-size:14px;color:var(--tx2);font-weight:600">검색 결과 0건 — HTML 파싱 실패로 추정</div>
+      <div style="font-size:11px;margin-top:8px;line-height:1.8">
+        ① 서버 로그에서 <code style="background:var(--sf2);padding:1px 5px;border-radius:3px">li.class=</code> 또는 <code style="background:var(--sf2);padding:1px 5px;border-radius:3px">div.class=</code> 확인<br>
+        ② <a href="/api/debug-html" target="_blank" style="color:var(--bl2)">🔗 /api/debug-html</a> 열어서 실제 HTML 구조 확인<br>
+        ③ <a href="${d.crawledUrl}" target="_blank" style="color:var(--bl2)">↗ 사람인 직접 열기</a>
+      </div>
+    </div>`;
+      renderPgn(cp, tp);
+      return;
+    }
+    g.innerHTML=d.postings.map(p=>`
+    <a class="card" href="${x(p.link||'#')}" target="_blank" rel="noopener">
+      <div class="c-badge">${x(p.badge)||'채용중'}</div>
+      <div class="c-co">${x(p.company||'회사명 비공개')}</div>
+      <div class="c-ttl">${x(p.title||'제목 없음')}</div>
+      <div class="c-tags">
+        ${p.location?`<span class="c-tag">📍 ${x(p.location)}</span>`:''}
+        ${p.experience?`<span class="c-tag">💼 ${x(p.experience)}</span>`:''}
+        ${p.education?`<span class="c-tag">🎓 ${x(p.education)}</span>`:''}
+        ${p.employmentType?`<span class="c-tag">${x(p.employmentType)}</span>`:''}
+        ${p.salary?`<span class="c-tag gn">💰 ${x(p.salary)}</span>`:''}
+      </div>
+      <div class="c-ft">
+        <span class="c-dl">${x(p.deadline||'상시채용')}</span>
+        <div class="c-arr">→</div>
+      </div>
+    </a>`).join('');
+    renderPgn(cp, tp);
+    // 결과 상단으로 스크롤
+    document.getElementById('mainArea').scrollTo({top:0, behavior:'smooth'});
+  }
+
+  function renderPgn(cp, tp){
+    const pgn=document.getElementById('pgn');
+    if(tp<=1){pgn.style.display='none';return;}
+    pgn.style.display='flex';
+
+    // 표시할 페이지 번호 계산 (현재 기준 앞뒤 2개)
+    const pages=[];
+    const delta=2;
+    let lo=Math.max(1,cp-delta), hi=Math.min(tp,cp+delta);
+    // 앞쪽 항상 2개 확보
+    if(cp-delta<=2){lo=1;hi=Math.min(tp,5);}
+    if(cp+delta>=tp-1){lo=Math.max(1,tp-4);hi=tp;}
+
+    let html='';
+    // 이전 버튼
+    html+=`<button class="pgn-btn" onclick="doSearch(${cp-1})" ${cp===1?'disabled':''}>‹</button>`;
+    // 첫 페이지
+    if(lo>1){
+      html+=`<button class="pgn-btn${cp===1?' on':''}" onclick="doSearch(1)">1</button>`;
+      if(lo>2) html+=`<span class="pgn-ellipsis">…</span>`;
+    }
+    // 중간 페이지들
+    for(let i=lo;i<=hi;i++){
+      html+=`<button class="pgn-btn${i===cp?' on':''}" onclick="doSearch(${i})">${i}</button>`;
+    }
+    // 마지막 페이지
+    if(hi<tp){
+      if(hi<tp-1) html+=`<span class="pgn-ellipsis">…</span>`;
+      html+=`<button class="pgn-btn${cp===tp?' on':''}" onclick="doSearch(${tp})">${tp}</button>`;
+    }
+    // 다음 버튼
+    html+=`<button class="pgn-btn" onclick="doSearch(${cp+1})" ${cp===tp?'disabled':''}>›</button>`;
+    html+=`<span class="pgn-info">${cp}/${tp}p</span>`;
+    pgn.innerHTML=html;
+  }
+
+  let currentJobId = null;
+  let currentEventSource = null;
+
+  async function exportExcel(){
+    if(!lastReq){alert('먼저 검색을 실행해주세요.');return;}
+
+    // UI 상태 전환
+    document.getElementById('xlBtn').classList.remove('show');
+    document.getElementById('stopBtn').classList.add('show');
+    document.getElementById('xlProgress').classList.add('show');
+    document.getElementById('xlBarFill').style.width='0%';
+    document.getElementById('xlProgressTxt').textContent='시작 중...';
+
+    try{
+      // 1) 수집 작업 시작 → jobId 발급
+      const startRes = await fetch('/saramin/api/search-all',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({...lastReq, page:1})
+      });
+      const {jobId} = await startRes.json();
+      currentJobId = jobId;
+
+      // 2) SSE 연결로 진행률 수신
+      await new Promise((resolve, reject) => {
+        const es = new EventSource(`/saramin/api/search-all/progress/${jobId}`);
+        currentEventSource = es;
+
+        es.addEventListener('progress', e => {
+          const {currentPage, totalPages, collectedCount} = JSON.parse(e.data);
+          const pct = totalPages > 0 ? Math.round(currentPage/totalPages*100) : 0;
+          document.getElementById('xlBarFill').style.width = pct+'%';
+          document.getElementById('xlProgressTxt').textContent =
+                  `${currentPage}/${totalPages}p · ${collectedCount}건`;
+        });
+
+        es.addEventListener('done', e => {
+          es.close();
+          const d = JSON.parse(e.data);
+          if(!d.postings||d.postings.length===0){
+            reject(new Error('수집된 공고가 없습니다.'));
+            return;
+          }
+          generateExcel(d.postings);
+          resolve();
+        });
+
+        es.addEventListener('cancelled', () => { es.close(); resolve(); });
+        es.addEventListener('error', e => {
+          es.close();
+          reject(new Error(e.data || 'SSE 오류'));
+        });
+        es.onerror = () => { es.close(); reject(new Error('연결 오류')); };
+      });
+
+    }catch(e){
+      if(e.message !== 'cancelled') alert('엑셀 내보내기 실패: '+e.message);
+    }finally{
+      currentJobId = null;
+      currentEventSource = null;
+      document.getElementById('stopBtn').classList.remove('show');
+      document.getElementById('xlProgress').classList.remove('show');
+      document.getElementById('xlBtn').classList.add('show');
+    }
+  }
+
+  function cancelExport(){
+    if(!currentJobId) return;
+    // 서버에 취소 신호
+    fetch(`/saramin/api/search-all/${currentJobId}`, {method:'DELETE'});
+    if(currentEventSource) currentEventSource.close();
+  }
+
+  function generateExcel(postings){
+    const rows=postings.map((p,i)=>({
+      '번호': i+1,
+      '회사명': p.company||'',
+      '공고제목': p.title||'',
+      '지역': p.location||'',
+      '경력': p.experience||'',
+      '학력': p.education||'',
+      '고용형태': p.employmentType||'',
+      '연봉/급여': p.salary||'',
+      '마감일': p.deadline||'',
+      '뱃지': p.badge||'',
+      '공고링크': p.link||'',
+    }));
+    const ws=XLSX.utils.json_to_sheet(rows);
+    ws['!cols']=[{wch:6},{wch:22},{wch:45},{wch:14},{wch:12},{wch:16},{wch:14},{wch:16},{wch:14},{wch:10},{wch:60}];
+    const range=XLSX.utils.decode_range(ws['!ref']);
+    for(let c=range.s.c;c<=range.e.c;c++){
+      const addr=XLSX.utils.encode_cell({r:0,c});
+      if(!ws[addr])continue;
+      ws[addr].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'FF5C35'}},alignment:{horizontal:'center'}};
+    }
+    const wb=XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb,ws,'채용공고');
+    const now=new Date();
+    const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    XLSX.writeFile(wb,`사람인_채용공고_${ts}.xlsx`);
+  }
+
+  function showErr(msg,url){
+    document.getElementById('errMsg').innerHTML=`<strong>크롤링 실패</strong><br>${msg}${url?`<br><br><a href="${url}" target="_blank" style="color:var(--bl2)">↗ 직접 열어보기</a>`:''}`;
+    document.getElementById('errArea').style.display='block';
+  }
+
+  function x(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+
+  /* ── 초기화 ───────────────────────────────────────────────────── */
+  initTheme(); buildTree(); updUrl();
+</script>
+</body>
+</html>
