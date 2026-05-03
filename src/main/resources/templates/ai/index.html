@@ -564,7 +564,13 @@
             placeholders[k] = buildImageHtml(url.trim()); return k;
         });
 
-        const boldFixed = withPlaceholders;
+        // ** 안에 따옴표가 들어간 경우 바깥으로 빼기 (렌더링 오류 방지)
+        // 예: **'단어'** → '**단어**'  /  **"단어"** → "**단어**"
+        const boldFixed = withPlaceholders
+            .replace(/\*\*'([^'\n*]+?)'\*\*/g, "'**$1**'")
+            .replace(/\*\*"([^"\n*]+?)"\*\*/g, '"**$1**"')
+            .replace(/\*\*\u2018([^\u2019\n*]+?)\u2019\*\*/g, '\u2018**$1**\u2019')
+            .replace(/\*\*\u201c([^\u201d\n*]+?)\u201d\*\*/g, '\u201c**$1**\u201d');
 
         if (typeof marked === 'undefined')
             return '<pre style="white-space:pre-wrap">' + escapeHtml(text) + '</pre>';

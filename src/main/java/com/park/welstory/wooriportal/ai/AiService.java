@@ -105,7 +105,7 @@ public class AiService {
 
     public void streamChat(AIDTO.ChatRequest request, AiHandler.SessionContext ctx) {
         String sessionId = ctx.getSessionId();
-        String skin      = request.getSkin(); // ★ 스킨 추출
+        String skin      = request.getSkin();
 
         String userMessage = extractLastUserMessage(request);
 
@@ -335,6 +335,7 @@ public class AiService {
             // ── 실시간 태그 필터링 상태 ──────────────────────────────────────
             boolean       inThink  = false;
             boolean       inAction = false;
+            boolean       inResult = false;  // [IMAGE_RESULT: ...] 필터
             StringBuilder tagAccum = new StringBuilder();
             StringBuilder completedActionTag = new StringBuilder();
             int           actionBraceDepth = 0;
@@ -342,6 +343,7 @@ public class AiService {
             final String ACTION_OPEN      = "[IMAGE_ACTION:";
             final String ACTION_OPEN_NOBR = "IMAGE_ACTION:";
             boolean      actionHadBracket = false;
+            final String RESULT_OPEN      = "[IMAGE_RESULT:";
 
             try (BufferedReader reader = new BufferedReader(
                     new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
@@ -360,7 +362,7 @@ public class AiService {
                         if (!rawToken.isEmpty()) {
                             StringBuilder toSend = new StringBuilder();
                             for (char c : rawToken.toCharArray()) {
-                                if (!inThink && !inAction) {
+                                if (!inThink && !inAction && !inResult) {
                                     tagAccum.append(c);
                                     String ta = tagAccum.toString();
 
@@ -380,6 +382,13 @@ public class AiService {
                                             tagAccum.setLength(0);
                                         }
                                     }
+                                    // [IMAGE_RESULT: 감지 → 닫는 ] 까지 삼키기
+                                    else if (ta.endsWith(RESULT_OPEN) || RESULT_OPEN.startsWith(ta)) {
+                                        if (ta.equals(RESULT_OPEN)) {
+                                            inResult = true;
+                                            tagAccum.setLength(0);
+                                        }
+                                    }
                                     // <think> 감지
                                     else if (ta.equals("<think>")) {
                                         inThink = true;
@@ -391,6 +400,12 @@ public class AiService {
                                         tagAccum.setLength(0);
                                     }
 
+                                } else if (inResult) {
+                                    // 닫는 ] 나올 때까지 버리기
+                                    if (c == ']') {
+                                        inResult = false;
+                                        tagAccum.setLength(0);
+                                    }
                                 } else if (inAction) {
                                     tagAccum.append(c);
                                     if      (c == '{') actionBraceDepth++;
@@ -421,7 +436,7 @@ public class AiService {
                         }
 
                         if (isDone) {
-                            if (tagAccum.length() > 0 && !inThink && !inAction) {
+                            if (tagAccum.length() > 0 && !inThink && !inAction && !inResult) {
                                 String leftover = tagAccum.toString();
                                 full.append(leftover);
                                 sendToken(emitter, leftover);
@@ -459,6 +474,8 @@ public class AiService {
             }
 
             String finalContent = extractAfterThink(visibleText);
+            // 안전망: 스트리밍 필터를 통과한 [IMAGE_RESULT: ...] 잔재 제거
+            finalContent = finalContent.replaceAll("(?s)\\[IMAGE_RESULT:[^]]*]", "").trim();
 
             // ── IMAGE_ACTION 발동 → AiImgService 위임 ────────────────────────
             if (imageAction != null) {
@@ -489,13 +506,16 @@ public class AiService {
                 aiImgService.generate(prompt, imagesForGen, imageOrder,
                         originMsg, sessionId, ctx, emitter);
 
-                // generate() 완료 후 메모리에 기록
-                String memMsg  = finalContent.isBlank()
-                        ? (imagesForGen.isEmpty() ? "이미지 생성 요청" : "이미지 편집 요청")
-                        : finalContent;
-                String comment = imagesForGen.isEmpty() ? "이미지를 생성했어요!" : "이미지 편집이 완료됐어요!";
-                addToMemory(sessionId, "user",      memMsg,  null);
-                addToMemory(sessionId, "assistant", comment, null);
+                String imgResultHint = "IMAGE_EDIT".equals(intent)
+                        ? " [IMAGE_RESULT: 이미지 편집 완료. 현재 세션에 편집된 최신 이미지가 존재함. 추가 편집 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력할 것.]"
+                        : " [IMAGE_RESULT: 이미지 생성 완료. 현재 세션에 생성된 최신 이미지가 존재함. 편집 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력할 것.]";
+
+                if (finalContent.isBlank()) {
+                    addToMemory(sessionId, "assistant", imgResultHint.trim(), null);
+                } else {
+                    replaceLastAssistantMemory(sessionId, finalContent + imgResultHint);
+                }
+
                 return;
             }
 
@@ -528,6 +548,24 @@ public class AiService {
         if (images != null && !images.isEmpty()) msg.setImages(images);
         deque.addLast(msg);
         while (deque.size() > MAX_MEMORY_TURNS * 2) deque.pollFirst();
+    }
+
+    private void replaceLastAssistantMemory(String sessionId, String newContent) {
+        Deque<AIDTO.OllamaRequest.Message> deque = sessionMemory.get(sessionId);
+        if (deque == null || deque.isEmpty()) {
+            addToMemory(sessionId, "assistant", newContent, null);
+            return;
+        }
+        List<AIDTO.OllamaRequest.Message> list = new ArrayList<>(deque);
+        for (int i = list.size() - 1; i >= 0; i--) {
+            if ("assistant".equals(list.get(i).getRole())) {
+                list.get(i).setContent(newContent);
+                deque.clear();
+                deque.addAll(list);
+                return;
+            }
+        }
+        addToMemory(sessionId, "assistant", newContent, null);
     }
 
     private List<AIDTO.OllamaRequest.Message> buildMessages(String sessionId, String overrideLastUser, String skin) {
@@ -568,9 +606,16 @@ public class AiService {
         msg.setRole("system");
         msg.setContent(
                 "시스템 프롬프트의 모든 규칙을 준수하라.\n" +
-                        "특히 이미지 규칙: 사용자가 이미지 생성 또는 편집을 요청하는 의도가 감지되면, " +
+                        "특히 이미지 규칙:\n" +
+                        "1. 사용자가 이미지 생성 또는 편집을 요청하는 의도가 감지되면, " +
                         "반드시 응답 마지막 줄에 IMAGE_ACTION 태그를 출력해야 한다. " +
-                        "태그 없이 텍스트 응답만 하는 것은 절대 금지다."
+                        "태그 없이 텍스트 응답만 하는 것은 절대 금지다.\n" +
+                        "2. 이전 대화에 '[IMAGE_RESULT:' 로 시작하는 기록이 있으면, " +
+                        "세션에 편집 가능한 이미지가 반드시 존재한다는 뜻이다. " +
+                        "이 상태에서 사용자가 수정·변경·편집·다시 등을 요청하면 " +
+                        "IMAGE_ACTION(intent=IMAGE_EDIT)을 즉시 출력하라. " +
+                        "'이미지가 없다', '이미지를 먼저 생성해달라'는 식의 응답은 절대 금지다.\n" +
+                        "3. IMAGE_ACTION 태그는 응답 본문 마지막에 딱 한 번만 출력한다."
         );
         return msg;
     }

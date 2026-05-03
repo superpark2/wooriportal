@@ -29,18 +29,24 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
+                        // 1. 정적 리소스 및 공통 UI 요소 (모두 허용)
                         .requestMatchers(
-                                "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**", "/tutil/**",
-                                "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
-                                "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
-                                "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",
-                                "/pcinfo/require/**", "/location/**", "/log/**", "/db/**", "/saramin/**",
-                                "/api/sse/**", "/ai/**", "/excel/**" // SSE 연결 허용
-
+                                "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**",
+                                "/loading/**", "/mol/**", "/weather/**", "/tutil/**"
                         ).permitAll()
 
-                        .requestMatchers("/bg/**", "/file/**", "/font/**", "/js/**", "/loading/**",
-                                "/mol/**", "/style/**", "/weather/**").permitAll()
+                        // 2. 인증/인가 없이 접근 가능한 공통 페이지 및 파일 저장소
+                        .requestMatchers("/login", "/signup", "/filestorage/**").permitAll()
+
+                        // 3. 서비스 관련 API 및 기능 경로 (모두 허용)
+                        .requestMatchers(
+                                "/pcinfo/**",             // view, require 등 하위 경로 포함
+                                "/facility/pcinfo/**",    // pclist, add, delete 등 하위 경로 포함
+                                "/location/**", "/log/**", "/db/**", "/saramin/**",
+                                "/api/sse/**", "/ai/**", "/excel/**"
+                        ).permitAll()
+
+                        // 4. 그 외 모든 요청은 권한(user 또는 admin)이 있어야 접근 가능
                         .anyRequest().hasAnyAuthority("user", "admin")
                 )
                 .formLogin(form -> form
