@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.config.security;
+package com.park.welstory.wooriportal.config.Security;
 
 import com.park.welstory.wooriportal.member.MemberEntity;
 import lombok.RequiredArgsConstructor;

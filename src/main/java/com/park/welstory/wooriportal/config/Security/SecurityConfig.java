@@ -1,6 +1,7 @@
-package com.park.welstory.wooriportal.config.security;
+package com.park.welstory.wooriportal.config.Security;
 
 import lombok.RequiredArgsConstructor;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -29,7 +30,7 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(
-                                "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**",
+                                "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**", "/tutil/**",
                                 "/loading/**", "/mol/**", "/weather/**", "/filestorage/**", "/login",
                                 "/signup", "/pcinfo/view/**", "/facility/pcinfo/pclist", "/facility/pcinfo/add",
                                 "/facility/pcinfo/verify-password", "/facility/pcinfo/delete",

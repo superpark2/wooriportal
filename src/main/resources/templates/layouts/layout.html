@@ -644,8 +644,15 @@
                         updateCurrentResponse('요청이 중지되었습니다.', true);
                     }
                 } else {
-                    updateCurrentResponse('⚠️ ' + String(e).replace(/</g, '&lt;'), true);
-                    popupHistory.pop();
+                    // 유저 메시지는 history에 유지하고 실패한 assistant 응답만 기록
+                    // popupHistory.pop() 제거: 유저 요청을 지우면 다음 턴에 LLM 맥락이 깨져 환각 발생
+                    popupHistory.push({ role: 'assistant', content: '[이미지 생성 실패]' });
+                    savePopupHistory();
+                    const retryBtn = `<button onclick="document.getElementById('popupSendBtn').click()" `
+                        + `style="margin-top:6px;font-size:11px;padding:3px 10px;border-radius:6px;`
+                        + `border:1px solid #e74c3c;background:#fff0f0;color:#e74c3c;cursor:pointer;">`
+                        + `<i class="fas fa-redo-alt" style="margin-right:3px;"></i>다시 시도</button>`;
+                    updateCurrentResponse('⚠️ 이미지 생성에 실패했어요. 다시 요청해 주세요.<br>' + retryBtn, true);
                 }
             } finally {
                 isAiRequesting = false;

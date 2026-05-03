@@ -1,6 +1,6 @@
 package com.park.welstory.wooriportal.board;
 
-import com.park.welstory.wooriportal.config.security.CustomUserDetails;
+import com.park.welstory.wooriportal.config.Security.CustomUserDetails;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
