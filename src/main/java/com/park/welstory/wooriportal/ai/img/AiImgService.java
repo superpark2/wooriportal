@@ -242,7 +242,9 @@ public class AiImgService {
             }
 
             // ── 제출 ─────────────────────────────────────────────────────────
-            clearComfyQueue();
+            // [수정] clearComfyQueue() 제거 — 전체 큐를 날리면 다른 세션 작업까지
+            //        삭제되어 동시 요청 시 일부 사용자의 이미지가 생성되지 않는 버그 수정.
+            //        ComfyUI는 큐를 순서대로 처리하므로 별도 초기화 불필요.
             if (ctx.isCancelled()) return;
 
             String promptId = submitComfyPrompt(wf);
@@ -250,10 +252,16 @@ public class AiImgService {
 
             ctx.setComfyPromptId(promptId);
             String imageFileName = pollComfyResult(promptId, 300, ctx);
+
+            // [수정] 취소된 경우 본인 작업만 큐에서 제거
+            if (ctx.isCancelled()) {
+                cancelComfyPrompt(promptId);
+                return;
+            }
+
             deleteComfyHistory(promptId);
 
             if (imageFileName == null) {
-                if (ctx.isCancelled()) return;
                 finishWithError(emitter, "이미지 생성 시간이 초과됐어요.");
                 return;
             }
@@ -316,17 +324,23 @@ public class AiImgService {
     //  ComfyUI 통신
     // ══════════════════════════════════════════════════════════════════════════
 
-    private void clearComfyQueue() {
+    /**
+     * [수정] 본인 작업만 큐에서 취소.
+     * clearComfyQueue() 대신 이 메서드를 사용해 다른 세션 작업에 영향 없이 취소한다.
+     */
+    private void cancelComfyPrompt(String promptId) {
+        if (promptId == null) return;
         try {
             ObjectNode body = mapper.createObjectNode();
-            body.put("clear", true);
+            body.set("delete", mapper.createArrayNode().add(promptId));
             HttpURLConnection conn = openJsonPost(COMFY_URL + "/queue");
             conn.setConnectTimeout(5_000);
             conn.setReadTimeout(5_000);
             try (OutputStream os = conn.getOutputStream()) { os.write(mapper.writeValueAsBytes(body)); }
             conn.getResponseCode();
+            System.out.println("[AiImgService] cancelComfyPrompt: " + promptId);
         } catch (Exception e) {
-            System.err.println("[AiImgService] clearComfyQueue 실패: " + e.getMessage());
+            System.err.println("[AiImgService] cancelComfyPrompt 실패: " + e.getMessage());
         }
     }
 
@@ -539,10 +553,12 @@ public class AiImgService {
     }
 
     private void finishWithError(SseEmitter emitter, String errMsg) {
-        sendToken(emitter, errMsg);
         try {
-            emitter.send(SseEmitter.event().name("done")
-                    .data("{\"fullContent\":" + mapper.writeValueAsString(errMsg) + "}"));
+            // error 이벤트로 전송 → layout.html / index.html 양쪽에서 ⚠️ 메시지로 표시됨.
+            // 기존 done(imageUrl 없음) 방식은 layout.html에서 "[IMAGE TAG WILL BE INSERTED HERE]"
+            // 같은 LLM 멘트가 그대로 노출되는 버그를 유발하므로 사용하지 않는다.
+            emitter.send(SseEmitter.event().name("error")
+                    .data("{\"message\":" + mapper.writeValueAsString(errMsg) + "}"));
             emitter.complete();
         } catch (Exception ignored) {}
     }

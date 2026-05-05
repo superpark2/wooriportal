@@ -564,7 +564,7 @@
             // ── 전송용: 마지막 메시지에만 페이지 내용 첨부 ────────────────────────
             const pageContent = (document.getElementById('content')?.innerText || '').trim();
             const pageContext = pageContent
-                ? `[현재 페이지 내용]\n${pageContent}\n\n[질문]\n${lastUserPrompt}`
+                ? `[현재화면]\n${pageContent}\n[현재화면 종료]\n\n[질문]\n${lastUserPrompt}`
                 : lastUserPrompt;
             const sendMessages = [
                 ...popupHistory.slice(0, -1),
@@ -580,6 +580,7 @@
             updateCurrentResponse('응답을 불러오는 중...', true);
 
             let accumulated = '';
+            isImageGenerating = false;  // 이전 요청 상태가 남아있을 수 있으므로 매 요청마다 리셋
 
             try {
                 const response = await fetch('/ai/chat/stream', {

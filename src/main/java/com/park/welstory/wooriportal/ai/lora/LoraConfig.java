@@ -16,165 +16,74 @@ public enum LoraConfig {
     //  우선순위 높음 → 낮음 순으로 선언
     // ──────────────────────────────────────────────────────────────────────────
 
-    NIJI(
-            "Niji2Klein4B.safetensors",
-            "ArsNijiStyle,",
+    Sitcom(
+            "90sSitcomKlein9b.safetensors",
+            "90s Sitcom",
             1.0,
-            "니지스타일", "니지풍"
+            "90년대 시트콤", "옛날 시트콤", "고전 시트콤"
     ),
 
-    CRIME_THRILLER(
-            "2000sCrimeThrillerKlein4B.safetensors",
+    Ethereal_Gothic_Elegance(
+            "EtherialGothicEleganceKlein9b.safetensors",
+            "Ethereal Gothic Elegance",
+            1.0,
+            "우아한 고딕", "에센셜 고딕"
+    ),
+
+    ArsNijiStyle(
+            "Niji2Klein9b.safetensors",
+            "ArsNijiStyle",
+            1.0,
+            "ArsNiji", "니지 스타일", "니지풍"
+    ),
+
+    Crime_Thriller_Movie(
+            "2000sCrimeThrillerKlein9b.safetensors",
             "ArsMovieStill, movie still from a gritty, high-contrast 2000s crime thriller movie",
-            0.9,
-            "2000년대 범죄영화", "옛날 범죄영화", "고전 범죄영화"
-    ),
-
-    FOLK_HORROR(
-            "FolkHorrorKlein4B.safetensors",
-            "ArsMovieStill, Movie still from a 2010s folklore horror film",
             1.0,
-            "포크호러"
+            "옛날 범죄영화", "엣날 스릴러", "고전 범죄영화", "고전 스릴러", "2000년대 범죄영화", "2000년대 스릴러"
     ),
 
-    NOIR(
-            "50sNoirKlein4B.safetensors",
+    Noir_Movie_Still(
+            "50sNoirKlein9b.safetensors",
             "50s Noir Movie Still",
             1.0,
-            "느와르"
+            "옛날 느와르", "고전 느와르", "50년대 느와르"
     ),
 
-    DISNEY(
-            "DisneyMidCenturyKlein4B_000005000.safetensors",
-            "Disney Mid-Century Animation",
-            0.9,
-            "2d디즈니", "디즈니2d", "옛날 디즈니", "디즈니 만화", "디즈니 카툰"
-    ),
-
-    INDIE_90S(
-            "90sIndieiKlein4B_000003500.safetensors",
-            "ArsMovieStill, movie still from a 1990s indie movie",
+    Baroque_Apocalypse(
+            "BaroqueApocalypseKlein9b.safetensors",
+            "Baroque Apocalypse",
             1.0,
-            "90년대 영화", "인디영화", "90s 영화"
+            "바로크 아포칼립스", "고딕 아포칼립스", "다크판타지"
     ),
 
-    Pixel_art(
-            "Pixel_art_people_S.Klein4B_epoch_10.safetensors",
-            "pixel art",
+    Sci_Fi_Movie(
+            "2020sSciFiKlein9b.safetensors",
+            "ArsMovieStill, Movie still from a 2020s Sci-Fi movie",
             1.0,
-            "픽셀화", "픽셀아트", "도트화"
-    ),
-
-    Aesthetic(
-            "klein4b_masterpieces_v3.1.safetensors",
-            "masterpiece, very aesthetic",
-            1.0,
-            "루미나베일"
-    ),
-
-    Midjourney(
-            "RebelMidjourney (KLEIN 4B).safetensors",
-            "",
-            1.0,
-            "미드저니"
-    ),
-
-    ComicStyle(
-            "klein_slider_comic.safetensors",
-            "NewMecha style illustration. Highly detailed digital illustration in a semi-realistic anime style.",
-            1.0,
-            "코믹", "코믹북", "미국만화", "미국 만화"
-    ),
-
-    FANTASY_80S(
-            "80sFantasyKlein4b2000H1000.safetensors",
-            "ArsMovieStill, 80s Fantasy Movie Still",
-            1.0,
-            "80년대 판타지", "옛날 판타지 영화"
-    ),
-
-    ETHEREAL_GOTHIC(
-            "EtherialGothicKlein4BF.safetensors",
-            "ArsMJStyle, Etherial Gothic",
-            1.0,
-            "에테르 고딕", "몽환적인 고딕"
-    ),
-
-    DARK_GHIBLI(
-            "DarkGhibliKlein4BF_000005000.safetensors",
-            "Studio Ghibli Dark Fairytale",
-            1.0,
-            "다크 지브리", "잔혹동화", "다크 페어리"
-    ),
-
-    SCIFI_70S(
-            "70sSciFiKlein4B.safetensors",
-            "ArsMovieStill, movie still from a 1970s technicolor Sci-Fi movie",
-            1.0,
-            "70년대 공상과학", "70년대 SF", "테크니컬러"
-    ),
-
-    TECHNICOLOR_30S(
-            "30sTechnocoloriKlein4B.safetensors",
-            "ArsMovieStill, movie still from a 1930s technicolor movie",
-            0.9,
-            "30년대 영화", "옛날 컬러영화"
-    ),
-
-    PANAVISION_50S(
-            "50sPanavisionKlein4B.safetensors",
-            "ArsMovieStill, Movie Still From Colored 1950s Super Panavision 70 Movie",
-            0.9,
-            "50년대 영화", "파나비전"
+            "2020년 SF영화", "현대 SF영화", "요즘 SF영화"
     ),
 
     PSYCHEDELIC_60S(
-            "60sPsyKlein4B.safetensors",
-            "ArsMovieStill, movie still from a 60s psychedelic movie",
+            "60sPsyKlein9b.safetensors",
+            "Colored pencil hyperdetailed realism",
             0.9,
-            "60년대 사이케델릭", "히피풍"
+            "60년대 사이케델릭", "히피풍", "옛날 컬러영화", "60년대 스타일", "60년대풍"
     ),
 
-    DND_DARKEST(
-            "DarkestDnD2Klein4B.safetensors",
-            "dnddarkestfantasy",
+    Hyperdetailed_Colored_Pencil(
+            "HyperDetailedPencilperKlein9b_000002000H1000.safetensors",
+            "Colored pencil hyperdetailed realism",
             1.0,
-            "던전앤드래곤", "다크 판타지", "DND"
+            "디테일 색연필", "사실주의 색연필", "고퀄리티 색연필", "고퀄 색연필"
     ),
 
-    SCIFI_2020S(
-            "2020sSciFiKlein4B.safetensors",
-            "ArsMovieStill, Movie still from a 2020s Sci-Fi movie",
+    FANTASY_80S(
+            "80sFantasyKlein9b_000002000H1000.safetensors",
+            "ArsMovieStill, 80s Fantasy Movie Still",
             1.0,
-            "최신 SF영화", "현대적인 SF", "현대 SF영화"
-    ),
-
-    GOTHIC_ELEGANCE(
-            "EtherialGothicEleganceKlein4B.safetensors",
-            "Ethereal Gothic Elegance",
-            1.0,
-            "고딕 엘레강스", "우아한 고딕"
-    ),
-
-    HYPER_ILLUST(
-            "HyperdetailedIllustrationKlein4B.safetensors",
-            "ArsMJStyle, HyperDetailed Illustration,",
-            1.0,
-            "극사실주의 일러스트", "디테일 일러스트", "하이퍼 일러스트"
-    ),
-
-    ASIAN_MIX(
-            "hina_flux2Klein4b_asianMix_v2.7-lora.safetensors",
-            "asian woman",
-            1.0,
-            "아시아 믹스", "동양인", "동양 여자", "아시아 여자"
-    ),
-
-    GAMEBOOK(
-            "Gamebook-illustration-v4-(Flux2).safetensors",
-            "CYOA, a black and white, monochrome illustration in the style of old fantasy gamebooks and vintage fantasy role-playing games.",
-            1.0,
-            "게임북", "빈티지 RPG", "삽화", "흑백 삽화"
+            "80년대 판타지", "옛날 판타지 영화"
     );
 
     // ──────────────────────────────────────────────────────────────────────────

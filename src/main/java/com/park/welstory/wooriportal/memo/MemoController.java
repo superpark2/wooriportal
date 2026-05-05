@@ -1,7 +1,7 @@
 package com.park.welstory.wooriportal.memo;
 
 import com.park.welstory.wooriportal.board.BoardTitleService;
-import com.park.welstory.wooriportal.config.Security.CustomUserDetails;
+import com.park.welstory.wooriportal.config.security.CustomUserDetails;
 import com.park.welstory.wooriportal.member.MemberService;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;

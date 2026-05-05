@@ -321,7 +321,7 @@ public class AiService {
         req.setModel(chatModel);
         req.setMessages(messages);
         req.setStream(true);
-        req.setOptions(new AIDTO.OllamaRequest.Options(2048, 4096));
+        req.setOptions(new AIDTO.OllamaRequest.Options(2048, 8192));
 
         StringBuilder full = new StringBuilder();
         try {
@@ -458,8 +458,9 @@ public class AiService {
                 rawFull = rawFull + ACTION_OPEN + tagAccum.toString();
             }
 
+            // 콜론 뒤 공백 허용, 닫는 ] 없어도 매칭, JSON 이 줄바꿈을 포함해도 허용
             Pattern actionPat = Pattern.compile(
-                    "\\[?IMAGE_ACTION:(\\{.*?\\})\\]?", Pattern.DOTALL);
+                    "\\[?IMAGE_ACTION:\\s*(\\{.*?\\})\\]?", Pattern.DOTALL);
             Matcher actionMat = actionPat.matcher(rawFull);
 
             JsonNode imageAction = null;
@@ -486,8 +487,19 @@ public class AiService {
                 System.out.println("[AiService] IMAGE_ACTION 감지: intent=" + intent
                         + " prompt=" + prompt + " imageOrder=" + imageOrder);
 
-                if (!finalContent.isBlank()) {
-                    addToMemory(sessionId, "assistant", finalContent, null);
+                // IMAGE_ACTION 태그를 finalContent와 함께 메모리에 저장한다.
+                // LLM이 컨텍스트 안에서 올바른 [IMAGE_ACTION:{...}] 포맷 예시를 확인할 수 있어
+                // 다음 턴에 image_edit(...)·IMAGE_EDIT(...) 등 엉뚱한 포맷으로 hallucinate하는 문제를 방지한다.
+                // IMAGE_RESULT(생성 결과 URL)는 포함하지 않는다 — 과거에 해당 패턴을 저장했다가
+                // LLM이 IMAGE_ACTION 없이 IMAGE_RESULT만 모방 출력하는 버그가 있었음.
+                try {
+                    String actionHint = "[IMAGE_ACTION:{\"intent\":\"" + intent
+                            + "\",\"prompt\":" + mapper.writeValueAsString(prompt)
+                            + ",\"imageOrder\":[],\"imageSize\":null}]";
+                    String memContent = (finalContent.isBlank() ? "" : finalContent + "\n") + actionHint;
+                    addToMemory(sessionId, "assistant", memContent, null);
+                } catch (Exception e) {
+                    if (!finalContent.isBlank()) addToMemory(sessionId, "assistant", finalContent, null);
                 }
 
                 List<String> imagesForGen;
@@ -503,18 +515,10 @@ public class AiService {
                 }
 
                 // ★ AiImgService에 위임 (originMsg = 유저 원문 → LoRA 키워드 탐지에 사용)
+                // generate() 완료 후 sessionStore에 새 이미지가 저장되고,
+                // 다음 턴 buildMessages()에서 imageStatusMessage()로 자동 감지된다.
                 aiImgService.generate(prompt, imagesForGen, imageOrder,
                         originMsg, sessionId, ctx, emitter);
-
-                String imgResultHint = "IMAGE_EDIT".equals(intent)
-                        ? " [IMAGE_RESULT: 이미지 편집 완료. 현재 세션에 편집된 최신 이미지가 존재함. 추가 편집 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력할 것.]"
-                        : " [IMAGE_RESULT: 이미지 생성 완료. 현재 세션에 생성된 최신 이미지가 존재함. 편집 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력할 것.]";
-
-                if (finalContent.isBlank()) {
-                    addToMemory(sessionId, "assistant", imgResultHint.trim(), null);
-                } else {
-                    replaceLastAssistantMemory(sessionId, finalContent + imgResultHint);
-                }
 
                 return;
             }
@@ -572,50 +576,78 @@ public class AiService {
         List<AIDTO.OllamaRequest.Message> messages = new ArrayList<>();
         Deque<AIDTO.OllamaRequest.Message> deque = sessionMemory.get(sessionId);
         if (deque != null) messages.addAll(deque);
-        messages.forEach(m -> { if (m.getImages() != null && m.getImages().isEmpty()) m.setImages(null); });
+
+        // [FIX] images가 빈 리스트인 경우 null 처리 — 단, 원본 deque 객체를 직접 변경하지 않도록 새 인스턴스로 교체
+        messages.replaceAll(m -> {
+            if (m.getImages() != null && m.getImages().isEmpty()) {
+                AIDTO.OllamaRequest.Message copy = new AIDTO.OllamaRequest.Message();
+                copy.setRole(m.getRole());
+                copy.setContent(m.getContent());
+                copy.setImages(null);
+                return copy;
+            }
+            return m;
+        });
 
         if (overrideLastUser != null) {
             for (int i = messages.size() - 1; i >= 0; i--) {
                 if ("user".equals(messages.get(i).getRole())) {
-                    messages.get(i).setContent(overrideLastUser);
+                    // [FIX] 원본 deque 객체를 직접 변경(setContent)하면 sessionMemory가 영구 오염됨.
+                    //       (웹 검색 시 유저 원본 메시지가 검색 컨텍스트 텍스트로 덮어써지는 버그)
+                    //       새 Message 객체를 생성해 교체한다.
+                    AIDTO.OllamaRequest.Message original = messages.get(i);
+                    AIDTO.OllamaRequest.Message replaced = new AIDTO.OllamaRequest.Message();
+                    replaced.setRole(original.getRole());
+                    replaced.setContent(overrideLastUser);
+                    if (original.getImages() != null) replaced.setImages(original.getImages());
+                    messages.set(i, replaced);
                     break;
                 }
             }
         }
 
-        // ① 시스템 프롬프트 → 맨 앞에 삽입 (정석)
-        messages.add(0, systemMessage(skin));
+        // ── 메시지 순서: 히스토리 → 시스템 → 유저 ──────────────────────────
+        // Gemma는 마지막에 가까운 system을 더 강하게 따르므로
+        // 시스템 프롬프트를 현재 user 메시지 바로 앞에 조립한다.
+        // 히스토리가 아무리 길어져도 system·user는 구조적으로 항상 보장된다.
+        // 토큰 추정·트리밍 불필요 — 히스토리는 MAX_MEMORY_TURNS로만 제한한다.
 
-        // ② 마지막 user 메시지 바로 앞에 리마인더 주입
-        int lastUserIdx = -1;
+        // ① 현재 user 메시지를 히스토리에서 분리 (맨 마지막에 다시 붙임)
+        AIDTO.OllamaRequest.Message lastUserMsg = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             if ("user".equals(messages.get(i).getRole())) {
-                lastUserIdx = i;
+                lastUserMsg = messages.remove(i);
                 break;
             }
         }
-        if (lastUserIdx > 0) {
-            messages.add(lastUserIdx, reminderMessage());
+
+        // ② 이미지 상태 system 메시지 (세션 이미지 있을 때만)
+        // [FIX] assistant 메모리에 남기면 LLM이 IMAGE_RESULT 패턴을 모방 출력하는 버그가 생긴다.
+        //       매 턴 신선하게 system으로 주입한다.
+        List<String> sessionImgs = sessionStore.getAllImages(sessionId);
+        if (!sessionImgs.isEmpty()) {
+            messages.add(imageStatusMessage(sessionImgs.size()));
+        }
+
+        // ③ 시스템 프롬프트 주입 (reminder 포함)
+        messages.add(systemMessage(skin));
+
+        // ④ 현재 user 메시지를 맨 끝에 복원
+        if (lastUserMsg != null) {
+            messages.add(lastUserMsg);
         }
 
         return messages;
     }
 
-    private AIDTO.OllamaRequest.Message reminderMessage() {
+
+    private AIDTO.OllamaRequest.Message imageStatusMessage(int count) {
         AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
         msg.setRole("system");
         msg.setContent(
-                "시스템 프롬프트의 모든 규칙을 준수하라.\n" +
-                        "특히 이미지 규칙:\n" +
-                        "1. 사용자가 이미지 생성 또는 편집을 요청하는 의도가 감지되면, " +
-                        "반드시 응답 마지막 줄에 IMAGE_ACTION 태그를 출력해야 한다. " +
-                        "태그 없이 텍스트 응답만 하는 것은 절대 금지다.\n" +
-                        "2. 이전 대화에 '[IMAGE_RESULT:' 로 시작하는 기록이 있으면, " +
-                        "세션에 편집 가능한 이미지가 반드시 존재한다는 뜻이다. " +
-                        "이 상태에서 사용자가 수정·변경·편집·다시 등을 요청하면 " +
-                        "IMAGE_ACTION(intent=IMAGE_EDIT)을 즉시 출력하라. " +
-                        "'이미지가 없다', '이미지를 먼저 생성해달라'는 식의 응답은 절대 금지다.\n" +
-                        "3. IMAGE_ACTION 태그는 응답 본문 마지막에 딱 한 번만 출력한다."
+                "[IMAGE_STATUS: 현재 세션에 이미지 " + count + "장이 존재함. " +
+                        "사용자가 이 이미지를 수정·변경·편집·다시 등을 요청하면 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력하라. " +
+                        "새 이미지를 그려달라는 요청이면 IMAGE_ACTION(intent=IMAGE_GEN)을 출력하라.]"
         );
         return msg;
     }
@@ -625,12 +657,23 @@ public class AiService {
             case "ruru"      -> " 반드시 반말로 대답해. 약간 삐딱하고 우울한 말투. 존댓말 절대 금지. 한줄에 17글자만 들어가니 보기좋게.";
             case "silicagel" -> " 반드시 몽환적이고 감각적인 말투로 대답해. 한줄에 17글자만 들어가니 보기좋게.";
             case "maltese"   -> " 반드시 짧고 철학적으로 반말로 대답해. 한줄에 17글자만 들어가니 보기좋게.";
-            default          -> " 친근하고 가벼운 존칭. 감정적 언변 가능. 한줄에 17글자만 들어가니 보기좋게.";
+            default          -> " 친근하고 가벼운 존칭. 감정적 언변 가능. 한줄에 17글자만 들어가니 보기좋게. [현재화면]은 대화 맥락 참고용이다. 이미지 작업은 사용자 첨부파일, 사진을 우선시 한다.";
         };
+        // reminder를 별도 메시지로 분리하지 않고 통합한다.
+        // buildMessages() 순서: 히스토리 → (imageStatus) → systemMessage → user
+        // Gemma는 마지막 system을 강하게 따르므로 이 위치가 최적이다.
+        String reminder =
+                "\n\n[규칙 리마인더]\n" +
+                        "위 모든 규칙을 준수하라.\n" +
+                        "이미지 규칙:\n" +
+                        "1. 이미지 생성·편집 의도가 감지되면 응답 마지막 줄에 반드시 IMAGE_ACTION 태그를 출력하라. 태그 없이 마무리하는 것은 절대 금지다.\n" +
+                        "2. [IMAGE_STATUS:] 메시지가 있으면 세션에 이미지가 존재한다. 수정·편집·다시 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력하라.\n" +
+                        "3. IMAGE_ACTION 태그는 응답 마지막에 딱 한 번만 출력한다.";
         AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
         msg.setRole("system");
-        msg.setContent(SYSTEM_PROMPT + personality + "\n현재 시간: "
-                + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+        msg.setContent(SYSTEM_PROMPT + personality
+                + "\n현재 시간: " + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"))
+                + reminder);
         return msg;
     }
 
@@ -649,9 +692,15 @@ public class AiService {
 
     private String extractLastUserMessage(AIDTO.ChatRequest request) {
         if (request.getMessages() == null) return "";
-        for (int i = request.getMessages().size() - 1; i >= 0; i--)
-            if ("user".equals(request.getMessages().get(i).getRole()))
-                return request.getMessages().get(i).getContent().trim();
+        for (int i = request.getMessages().size() - 1; i >= 0; i--) {
+            if ("user".equals(request.getMessages().get(i).getRole())) {
+                String content = request.getMessages().get(i).getContent().trim();
+                // [현재화면] 태그가 있으면 [질문] 이후만 추출
+                int idx = content.indexOf("[질문]\n");
+                if (idx != -1) return content.substring(idx + "[질문]\n".length()).trim();
+                return content;
+            }
+        }
         return "";
     }
 
