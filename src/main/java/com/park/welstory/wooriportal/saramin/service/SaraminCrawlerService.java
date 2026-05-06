@@ -53,13 +53,11 @@ public class SaraminCrawlerService {
         StringBuilder sb = new StringBuilder(BASE_URL + "?");
         boolean first = true;
 
-        // 위치: loc_cd (구 단위) 또는 loc_mcd (시/도 단위)
         String locCd  = req.getLocCd();
         String locMcd = req.getLocMcd();
         if (locCd != null && !locCd.isBlank())         first = ap(sb, "loc_cd",  locCd,  first);
         else if (locMcd != null && !locMcd.isBlank())  first = ap(sb, "loc_mcd", locMcd, first);
 
-        // 키워드 검색
         String searchWord = req.getSearchWord();
         if (searchWord != null && !searchWord.isBlank()) {
             String encoded = URLEncoder.encode(searchWord, StandardCharsets.UTF_8);
@@ -67,35 +65,17 @@ public class SaraminCrawlerService {
             first = ap(sb, "searchword", encoded, first);
         }
 
-        // 직종 대분류 (cat_mcls)
         first = apList(sb, "cat_mcls",     req.getJobMcls(),     first, "%2C");
-
-        // 직종 세부 (cat_kewd)
         first = apList(sb, "cat_kewd",     req.getJobCode(),     first, "%2C");
-
-        // 고용형태 (job_type)
         first = apList(sb, "job_type",     req.getJobType(),     first, "%2C");
-
-        // 기업형태 (company_type)
         first = apList(sb, "company_type", req.getCompanyType(), first, ",");
-
-        // 경력 구분 (exp_cd)
         first = apList(sb, "exp_cd",       req.getExpCd(),       first, "%2C");
-
-        // 경력 년수
         first = ap(sb, "exp_min", req.getExpMin(), first);
         first = ap(sb, "exp_max", req.getExpMax(), first);
-
-        // 학력 상한
         first = ap(sb, "edu_max", req.getEduMax(), first);
-
-        // 급여
         first = ap(sb, "sal_min", req.getSalMin(), first);
-
-        // 정렬
         first = ap(sb, "sort", req.getSort() != null ? req.getSort() : "RL", first);
 
-        // 고정 파라미터
         sb.append("&panel_type=");
         sb.append("&search_optional_item=").append(searchWord != null && !searchWord.isBlank() ? "y" : "n");
         sb.append("&search_done=y");
@@ -103,8 +83,6 @@ public class SaraminCrawlerService {
         sb.append("&preview=y");
         sb.append("&page=").append(req.getPage() <= 0 ? 1 : req.getPage());
         sb.append("&page_count=").append(req.getPageCount() <= 0 ? 25 : req.getPageCount());
-
-        // AJAX 요청 식별 파라미터 (이 값이 있어야 서버가 JSON으로 응답)
         sb.append("&isAjaxRequest=1");
         sb.append("&is_param=1");
         sb.append("&isSectionHome=0");
@@ -161,7 +139,6 @@ public class SaraminCrawlerService {
 
     // ── 크롤링 (단일 페이지) ────────────────────────────────────────────────────
     public SearchResultDto crawl(SearchRequestDto req) {
-        // page 기본값 보정
         if (req.getPage() <= 0) req.setPage(1);
         if (req.getPageCount() <= 0) req.setPageCount(25);
 
@@ -199,7 +176,6 @@ public class SaraminCrawlerService {
 
             List<JobPostingDto> postings = parse(listBody);
 
-            // 페이지 메타 계산
             int pageCount  = req.getPageCount();
             int totalPages = (int) Math.ceil((double) totalCount / pageCount);
 
@@ -227,8 +203,6 @@ public class SaraminCrawlerService {
 
     /**
      * 전체 페이지 자동 순회 크롤링
-     * jobId: 취소 제어용 ID (null이면 취소 불가)
-     * maxPages: 최대 수집 페이지 수 (0 이하면 전체)
      */
     public SearchResultDto crawlAll(SearchRequestDto req, int maxPages, String jobId) {
         req.setPage(1);
@@ -250,7 +224,6 @@ public class SaraminCrawlerService {
         }
 
         for (int page = 1; ; page++) {
-            // 취소 확인
             if (jobId != null && cancelledJobs.contains(jobId)) {
                 log.info("jobId={} 취소됨 ({}페이지에서 중단)", jobId, page);
                 cleanupJob(jobId);
@@ -296,7 +269,6 @@ public class SaraminCrawlerService {
 
                 if (page >= totalPages) break;
 
-                // 딜레이 100ms (서버 부하 방지 최소한)
                 Thread.sleep(100);
 
             } catch (InterruptedException ie) {
@@ -304,7 +276,6 @@ public class SaraminCrawlerService {
                 break;
             } catch (Exception e) {
                 log.error("페이지 {} 크롤링 실패: {}", page, e.getMessage());
-                // 실패해도 다음 페이지 시도
                 try { Thread.sleep(300); } catch (InterruptedException ie) { Thread.currentThread().interrupt(); break; }
             }
         }
@@ -384,12 +355,11 @@ public class SaraminCrawlerService {
                 allPostings.addAll(pagePostings);
                 log.info("페이지 {}/{}: {}건 (누적 {}건)", page, totalPages, pagePostings.size(), allPostings.size());
 
-                // 진행률 콜백
                 if (callback != null) callback.onPage(page, totalPages, allPostings.size());
 
                 if (page >= totalPages) break;
 
-                Thread.sleep(100); // 최소 딜레이
+                Thread.sleep(100);
 
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
@@ -441,8 +411,9 @@ public class SaraminCrawlerService {
         return result;
     }
 
-    // ── [수정] extract: 지역/경력/학력/고용형태 파싱 오류 수정 ──────────────────
+    // ── extract ─────────────────────────────────────────────────────────────────
     private JobPostingDto extract(Element el) {
+        log.info("=== 카드 HTML ===\n{}", el.outerHtml().substring(0, Math.min(1500, el.outerHtml().length())));
 
         // ── 제목 + 링크 ─────────────────────────────────────────────────────────
         Element tEl = el.selectFirst(".job_tit a");
@@ -462,46 +433,36 @@ public class SaraminCrawlerService {
         if (cEl == null) cEl = el.selectFirst(".corp_name a");
         String company = cEl != null ? cEl.text().trim() : "";
 
-        // ── 조건 (지역/경력/학력/고용형태) ──────────────────────────────────────
-        // [수정] .job_condition 의 직계 span(> span)만 선택해
-        //        .job_sector(키워드 태그), .recruit_btn(스크랩 버튼) 등의 오염을 차단.
-        // [수정] 각 span 내 .screen_out 숨김 텍스트를 clone 후 제거하고 텍스트 추출.
+        // ── 조건: 실제 HTML 구조 기준 ────────────────────────────────────────────
+        // div.col.recruit_info > ul > li > p.work_place  (지역)
+        //                              > p.career        (경력 · 고용형태 혼합)
+        //                              > p.education     (학력)
         String location   = "";
         String experience = "";
         String education  = "";
         String employType = "";
 
-        Elements condSpans = el.select(".job_condition > span");
-        int idx = 0;
-        for (Element span : condSpans) {
-            // clone 하여 원본 DOM 을 건드리지 않고 screen_out 제거
-            Element clone = span.clone();
-            clone.select(".screen_out").remove();
-            String txt = clone.text().trim();
-            if (txt.isBlank()) continue;
+        Element workPlaceEl = el.selectFirst(".col.recruit_info p.work_place");
+        Element careerEl    = el.selectFirst(".col.recruit_info p.career");
+        Element educationEl = el.selectFirst(".col.recruit_info p.education");
 
-            switch (idx++) {
-                case 0 -> location   = txt;
-                case 1 -> experience = txt;
-                case 2 -> education  = txt;
-                case 3 -> { employType = txt; }
-                default -> { /* 추가 span 무시 */ }
+        if (workPlaceEl != null) location  = workPlaceEl.text().trim();
+        if (educationEl != null) education = educationEl.text().trim();
+
+        // career 필드: "경력 5년↑ · 정규직" 또는 "신입 · 경력 · 정규직 외" 형태
+        // 마지막 ·(가운뎃점) 기준으로 뒤가 고용형태, 앞이 경력
+        if (careerEl != null) {
+            String careerText = careerEl.text().trim();
+            int lastDot = careerText.lastIndexOf('·');
+            if (lastDot >= 0) {
+                experience = careerText.substring(0, lastDot).trim();
+                employType = careerText.substring(lastDot + 1).trim();
+            } else {
+                experience = careerText;
             }
         }
 
-        // job_condition 이 없는 레이아웃 대비 fallback
-        if (location.isBlank() && experience.isBlank()) {
-            Elements fallback = el.select(".col.notification_info > span").stream()
-                    .filter(s -> !s.hasClass("screen_out") && !s.text().isBlank())
-                    .collect(java.util.stream.Collectors.toCollection(Elements::new));
-            if (fallback.size() > 0) location   = fallback.get(0).text().trim();
-            if (fallback.size() > 1) experience = fallback.get(1).text().trim();
-            if (fallback.size() > 2) education  = fallback.get(2).text().trim();
-            if (fallback.size() > 3) employType = fallback.get(3).text().trim();
-        }
-
         // ── 마감일 ──────────────────────────────────────────────────────────────
-        // [수정] .support_detail 안의 .date 우선 → recruit_btn(스크랩버튼) 영역 제외
         Element dEl = el.selectFirst(".support_detail .date");
         if (dEl == null) dEl = el.selectFirst(".col.support_info .date");
         if (dEl == null) dEl = el.selectFirst(".job_date .date");
@@ -514,14 +475,20 @@ public class SaraminCrawlerService {
         String salary = sEl != null ? sEl.text().trim() : "";
 
         // ── 뱃지 ────────────────────────────────────────────────────────────────
-        // [수정] .badge_area / .area_badge 순으로 탐색, screen_out 제외
-        Element bEl = el.selectFirst(".badge_area span:not(.screen_out)");
+        Element bEl = el.selectFirst(".job_badge span:not(.blind)");
+        if (bEl == null) bEl = el.selectFirst(".badge_area span:not(.screen_out)");
         if (bEl == null) bEl = el.selectFirst(".area_badge span:not(.screen_out)");
         if (bEl == null) bEl = el.selectFirst("[class*='badge'] span:not(.screen_out)");
-        String badge = bEl != null ? bEl.text().trim() : "";
+        String badge = "";
+        if (bEl != null) {
+            // SVG 태그 제거 후 텍스트만 추출
+            Element bClone = bEl.clone();
+            bClone.select("svg").remove();
+            badge = bClone.text().trim();
+        }
 
-        log.debug("extract → 회사:{} | 지역:{} | 경력:{} | 학력:{} | 고용:{} | 마감:{}",
-                company, location, experience, education, employType, deadline);
+        log.debug("extract → 회사:{} | 지역:{} | 경력:{} | 학력:{} | 고용:{} | 마감:{} | 뱃지:{}",
+                company, location, experience, education, employType, deadline, badge);
 
         return JobPostingDto.builder()
                 .title(title).company(company).location(location)

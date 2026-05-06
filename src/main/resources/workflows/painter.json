@@ -217,7 +217,7 @@
     },
     "class_type": "LanPaint_KSampler",
     "_meta": { "title": "LanPaint KSampler (2차 정밀)" },
-    "widgets_values": [42, "randomize", 20, 1, "euler", "simple", 1, 2, "Image First", "LanPaint KSampler", "🖼️ Image Inpainting"]
+
   },
   "224": {
     "inputs": {

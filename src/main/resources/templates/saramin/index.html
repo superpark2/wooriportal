@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>사람인 채용 크롤러</title>
+  <title>채용 정보 시스템</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700;900&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -152,8 +152,8 @@
 <header class="hdr">
   <div class="logo">S</div>
   <div>
-    <div class="hdr-title">사람인 채용 크롤러</div>
-    <div class="hdr-sub">saramin.co.kr · job crawler v1.2</div>
+    <div class="hdr-title">채용 정보 시스템</div>
+    <div class="hdr-sub">우리인재개발원</div>
   </div>
   <div class="hdr-r">
     <div class="xl-progress" id="xlProgress">
@@ -208,7 +208,7 @@
           </div>
         </div>
         <div class="fg" id="subWrap" style="display:none">
-          <div class="fg-lbl">// 세부 지역 (복수 선택 가능 · 안 하면 전체)</div>
+          <div class="fg-lbl">미체크시 지역 전체</div>
           <div class="loc-chips" id="subChips"></div>
         </div>
       </div>
@@ -771,32 +771,48 @@
   }
 
   function generateExcel(postings){
-    const rows=postings.map((p,i)=>({
-      '번호': i+1,
-      '회사명': p.company||'',
-      '공고제목': p.title||'',
-      '지역': p.location||'',
-      '경력': p.experience||'',
-      '학력': p.education||'',
-      '고용형태': p.employmentType||'',
-      '연봉/급여': p.salary||'',
-      '마감일': p.deadline||'',
-      '뱃지': p.badge||'',
-      '공고링크': p.link||'',
+    // 디버깅: 첫 번째 공고 필드명 확인 (콘솔에서 확인 후 삭제 가능)
+    if(postings.length > 0) console.log('공고 필드 확인:', Object.keys(postings[0]), postings[0]);
+
+    const rows = postings.map((p, i) => ({
+      '번호': i + 1,
+      '회사명': p.company || p.companyName || p.corp_name || '',
+      '공고제목': p.title || p.jobTitle || p.subject || '',
+      '지역': p.location || p.loc || p.area || p.workPlace || '',
+      '경력': p.experience || p.career || p.exp || p.experienceLevel || '',
+      '학력': p.education || p.edu || p.educationLevel || '',
+      '고용형태': p.employmentType || p.jobType || p.type || '',
+      '연봉/급여': p.salary || p.pay || p.wage || '',
+      '마감일': p.deadline || p.closeDate || p.expiredDate || '',
+      '뱃지': p.badge || '',
+      '공고링크': p.link || p.url || p.href || '',
     }));
-    const ws=XLSX.utils.json_to_sheet(rows);
-    ws['!cols']=[{wch:6},{wch:22},{wch:45},{wch:14},{wch:12},{wch:16},{wch:14},{wch:16},{wch:14},{wch:10},{wch:60}];
-    const range=XLSX.utils.decode_range(ws['!ref']);
-    for(let c=range.s.c;c<=range.e.c;c++){
-      const addr=XLSX.utils.encode_cell({r:0,c});
-      if(!ws[addr])continue;
-      ws[addr].s={font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'FF5C35'}},alignment:{horizontal:'center'}};
+
+    const ws = XLSX.utils.json_to_sheet(rows);
+    ws['!cols'] = [{wch:6},{wch:22},{wch:45},{wch:14},{wch:12},{wch:16},{wch:14},{wch:16},{wch:14},{wch:10},{wch:60}];
+
+    // 헤더 스타일
+    const range = XLSX.utils.decode_range(ws['!ref']);
+    for(let c = range.s.c; c <= range.e.c; c++){
+      const addr = XLSX.utils.encode_cell({r:0, c});
+      if(!ws[addr]) continue;
+      ws[addr].s = {font:{bold:true,color:{rgb:'FFFFFF'}},fill:{fgColor:{rgb:'FF5C35'}},alignment:{horizontal:'center'}};
     }
-    const wb=XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb,ws,'채용공고');
-    const now=new Date();
-    const ts=`${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
-    XLSX.writeFile(wb,`사람인_채용공고_${ts}.xlsx`);
+
+    // 공고링크 열 하이퍼링크 처리 (K열 = index 10)
+    for(let r = 1; r <= range.e.r; r++){
+      const addr = XLSX.utils.encode_cell({r, c:10}); // K열
+      if(!ws[addr] || !ws[addr].v) continue;
+      const url = ws[addr].v;
+      ws[addr].l = { Target: url, Tooltip: '공고 바로가기' };
+      ws[addr].s = { font: { color: { rgb: '2563EB' }, underline: true } };
+    }
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '채용공고');
+    const now = new Date();
+    const ts = `${now.getFullYear()}${String(now.getMonth()+1).padStart(2,'0')}${String(now.getDate()).padStart(2,'0')}_${String(now.getHours()).padStart(2,'0')}${String(now.getMinutes()).padStart(2,'0')}`;
+    XLSX.writeFile(wb, `사람인_채용공고_${ts}.xlsx`);
   }
 
   function showErr(msg,url){
