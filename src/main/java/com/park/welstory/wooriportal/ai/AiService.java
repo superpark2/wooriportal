@@ -157,7 +157,20 @@ public class AiService {
                 return;
             }
 
-            List<String> sessionImages   = sessionStore.getAllImages(sessionId);
+            List<String> sessionImages = sessionStore.getAllImages(sessionId);
+
+            // ── [버그 수정] allImages 비었는데 lastImageFile은 있는 경우 ──────────
+            // b64 캐싱 실패 후 putLastImageFile만 호출된 불일치 상태.
+            // resolveSessionImage()로 b64를 재로드해 sessionAllImages 복구.
+            if (!isNewlyAttached && sessionImages.isEmpty()) {
+                String resolved = aiImgService.resolveSessionImage(sessionId);
+                if (resolved != null) {
+                    sessionStore.putAllImages(sessionId, List.of(resolved));
+                    sessionImages = List.of(resolved);
+                    System.out.println("[AI Router] sid=" + sessionId + " sessionAllImages 복구 완료 (resolveSessionImage)");
+                }
+            }
+
             List<String> availableImages = isNewlyAttached ? attachedImages : sessionImages;
 
             System.out.println("[AI Router] sid=" + sessionId
@@ -474,16 +487,21 @@ public class AiService {
             if (imageAction != null) {
                 String intent            = imageAction.path("intent").asText("IMAGE_GEN");
                 String prompt            = imageAction.path("prompt").asText("");
+                String stage2Prompt      = imageAction.path("stage2Prompt").isNull()
+                        ? null : imageAction.path("stage2Prompt").asText(null);
                 List<Integer> imageOrder = parseImageOrder(imageAction);
 
                 System.out.println("[AiService] IMAGE_ACTION 감지: intent=" + intent
-                        + " prompt=" + prompt + " imageOrder=" + imageOrder
+                        + " prompt=" + prompt
+                        + " stage2Prompt=" + stage2Prompt
+                        + " imageOrder=" + imageOrder
                         + " isUserAttached=" + isUserAttached);
 
                 // IMAGE_ACTION 태그를 finalContent와 함께 메모리에 저장
                 try {
                     String actionHint = "[IMAGE_ACTION:{\"intent\":\"" + intent
                             + "\",\"prompt\":" + mapper.writeValueAsString(prompt)
+                            + ",\"stage2Prompt\":" + (stage2Prompt == null ? "null" : mapper.writeValueAsString(stage2Prompt))
                             + ",\"imageOrder\":[],\"imageSize\":null}]";
                     String memContent = (finalContent.isBlank() ? "" : finalContent + "\n") + actionHint;
                     addToMemory(sessionId, "assistant", memContent, null);
@@ -531,9 +549,12 @@ public class AiService {
                                 System.out.println("[AiService] 합성 요청이나 세션 이미지 없음 → 신규 이미지만 사용");
                             }
                         } else {
-                            // 단독 편집: 이전 생성 이미지 불필요 → 세션에서 제거
-                            sessionStore.removeLastImageB64(sessionId);
-                            sessionStore.removeLastImageFile(sessionId);
+                            // 단독 편집: 이전 생성 이미지 불필요 → 생성 이미지 상태 원자적 초기화
+                            // allImages는 streamChat()에서 신규 첨부로 이미 교체됐으므로 건드리지 않는다.
+                            // 기존: removeLastImageB64 + removeLastImageFile 개별 호출
+                            //       → allImages 잔류로 다음 턴에 이전 이미지 섞임 버그 발생
+                            // 수정: clearGeneratedImages() 단일 호출로 원자적 처리
+                            sessionStore.clearGeneratedImages(sessionId);
                             imagesForGen = new ArrayList<>(availableImages);
                             System.out.println("[AiService] 단독 편집 모드: 신규 이미지 " + availableImages.size() + "장만 사용");
                         }
@@ -544,7 +565,7 @@ public class AiService {
                     }
                 }
 
-                aiImgService.generate(prompt, imagesForGen, imageOrder,
+                aiImgService.generate(prompt, stage2Prompt, imagesForGen, imageOrder,
                         originMsg, sessionId, ctx, emitter);
                 return;
             }
@@ -668,9 +689,19 @@ public class AiService {
             }
         } else if (hasPrevGenImage) {
             // 신규 첨부 있음 + 이전 생성 이미지도 존재 → 합성 판단 가능하도록 알림
+            // sessionCount는 1 고정: lastImageB64/File 기준으로 생성 이미지는 항상 1장.
+            // allImages는 이미 신규 첨부로 교체됐으므로 여기서 참조하면 오히려 틀림.
             messages.add(imageStatusMessage(1, true));
+        } else {
+            // ── [버그 수정] 신규 첨부만 있고 이전 생성 이미지 없음 ───────────────
+            // 기존: IMAGE_STATUS 미주입 → LLM이 "세션 이미지 없음"으로 판단 → IMAGE_GEN 오발
+            // 수정: 첨부 이미지 존재를 명시해 IMAGE_EDIT 판단 근거 제공
+            List<String> sessionImgs = sessionStore.getAllImages(sessionId);
+            // streamChat()에서 putAllImages(attached) 이미 호출됐으므로 attached 이미지가 담겨있음
+            if (!sessionImgs.isEmpty()) {
+                messages.add(imageStatusMessageAttachedOnly(sessionImgs.size()));
+            }
         }
-        // else: 신규 첨부만 있고 세션 이미지 없음 → IMAGE_STATUS 주입 안 함
 
         // ② 시스템 프롬프트 주입
         messages.add(systemMessage(skin));
@@ -717,6 +748,27 @@ public class AiService {
         }
 
         msg.setContent(content);
+        return msg;
+    }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  [추가] imageStatusMessageAttachedOnly() — 신규 첨부만 있고 이전 생성 없음
+    //
+    //  imageStatusMessage(hasNewAttach=false) 와 구분:
+    //    false → 세션 이미지(이전 생성 결과)가 있을 때
+    //    AttachedOnly → 방금 유저가 첨부한 이미지만 있을 때
+    //  규칙을 분리함으로써 LLM이 imageOrder=[1,2] 오발 없이 단독 편집 판단 가능.
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private AIDTO.OllamaRequest.Message imageStatusMessageAttachedOnly(int attachedCount) {
+        AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
+        msg.setRole("system");
+        msg.setContent(
+                "[IMAGE_STATUS: 유저가 새 이미지 " + attachedCount + "장을 첨부함. 이전 생성 세션 이미지 없음.]\n\n" +
+                        "imageOrder 결정 규칙:\n" +
+                        "1. 첨부 이미지 편집·수정 요청 → imageOrder=[1], intent=IMAGE_EDIT\n" +
+                        "2. 완전 새 이미지 생성 요청 → intent=IMAGE_GEN"
+        );
         return msg;
     }
 

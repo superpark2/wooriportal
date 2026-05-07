@@ -32,12 +32,13 @@ import java.util.*;
  * │  AiService(채팅)와 완전히 분리되어 있으며,                              │
  * │  세션 이미지 상태는 AiSessionStore를 통해 공유한다.                    │
  * │                                                                      │
+ * │  워크플로우: painter.json (v2 고정)                                   │
  * │  ┌─────────────────────────────────────────────────────────────┐    │
  * │  │  진입점: generate(...)                                       │    │
- * │  │    ├─ T2I  (images 0장) → painter 워크플로우 T2I 모드         │    │
- * │  │    ├─ I2I  (images 1장) → 1_image 편집 모드                  │    │
- * │  │    ├─ 2img (images 2장) → 2_image 합성/편집 모드              │    │
- * │  │    └─ 3img (images 3장) → 3_image 합성/편집 모드              │    │
+ * │  │    ├─ T2I  (images 0장) → 301/302/303 경로                  │    │
+ * │  │    ├─ I2I  (images 1장) → 1_image 편집, LanPaint 비활성화   │    │
+ * │  │    ├─ 2img (images 2장) → 2_image 합성/편집 모드             │    │
+ * │  │    └─ 3img (images 3장) → 3_image 합성/편집 모드             │    │
  * │  └─────────────────────────────────────────────────────────────┘    │
  * └──────────────────────────────────────────────────────────────────────┘
  */
@@ -52,10 +53,16 @@ public class AiImgService {
     private String COMFY_URL;
 
     private final String COMFY_IMAGE_DIR = System.getProperty("user.dir") + "/ai/image/AIgen";
-    private final ObjectMapper         mapper      = new ObjectMapper();
+    private final ObjectMapper         mapper       = new ObjectMapper();
     private final LoraWorkflowInjector loraInjector = new LoraWorkflowInjector(mapper);
 
     private static final String WF_PAINTER = "workflows/painter.json";
+
+    // ── painter.json v2 고정 노드 ID ─────────────────────────────────────
+    private static final String   PROMPT_NODE      = "206";
+    private static final String   PAINTER_NODE     = "207";
+    private static final String   KSAMPLER_NODE    = "208";
+    private static final String[] LOAD_IMAGE_NODES = {"203", "204"};
 
     @PostConstruct
     public void init() {
@@ -75,6 +82,7 @@ public class AiImgService {
      * 이미지 생성·편집 처리.
      *
      * @param prompt       영어 변환된 프롬프트 (LLM이 분석한 결과)
+     * @param stage2Prompt LanPaint 2차 스테이지 프롬프트 (2장 이상 편집 시)
      * @param images       사용할 이미지 Base64 목록 (0~3장)
      * @param imageOrder   이미지 슬롯 순서 (0-based, LLM이 지정)
      * @param originalMsg  채팅 메모리용 원본 메시지
@@ -82,17 +90,17 @@ public class AiImgService {
      * @param ctx          SSE 세션 컨텍스트
      * @param emitter      SSE 에미터
      */
-    public void generate(String prompt, List<String> images, List<Integer> imageOrder,
+    public void generate(String prompt, String stage2Prompt, List<String> images, List<Integer> imageOrder,
                          String originalMsg, String sessionId,
                          AiHandler.SessionContext ctx, SseEmitter emitter) {
-        handlePainterGen(prompt, images, imageOrder, originalMsg, sessionId, ctx, emitter);
+        handlePainterGen(prompt, stage2Prompt, images, imageOrder, originalMsg, sessionId, ctx, emitter);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
-    //  PainterFluxImageEdit 워크플로우
+    //  painter.json v2 워크플로우 처리
     // ══════════════════════════════════════════════════════════════════════════
 
-    private void handlePainterGen(String prompt, List<String> images, List<Integer> imageOrder,
+    private void handlePainterGen(String prompt, String stage2Prompt, List<String> images, List<Integer> imageOrder,
                                   String originalMsg, String sessionId,
                                   AiHandler.SessionContext ctx, SseEmitter emitter) {
         try {
@@ -123,23 +131,12 @@ public class AiImgService {
             ObjectNode wf = loadWorkflow(WF_PAINTER);
             if (wf == null) { finishWithError(emitter, "워크플로우를 불러올 수 없어요."); return; }
 
-            // ── painter.json 버전 감지 ───────────────────────────────────────
-            // 최상위에 "207" 키(PainterFluxImageEdit)가 있으면 신규 포맷(v2)
-            boolean isPainterV2 = !wf.path("207").isMissingNode();
-
-            String promptNodeId   = isPainterV2 ? "206" : "145";
-            String painterNodeId  = isPainterV2 ? "207" : "116";
-            String kSamplerNodeId = isPainterV2 ? "208" : "117";
-            String[] loadImageNodes = isPainterV2
-                    ? new String[]{"203", "204"}
-                    : new String[]{"76", "81", "118"};
-
             // ── 프롬프트 주입 ────────────────────────────────────────────────
             if (finalPrompt != null && !finalPrompt.isBlank())
-                ((ObjectNode) wf.path(promptNodeId).path("inputs")).put("value", finalPrompt);
+                ((ObjectNode) wf.path(PROMPT_NODE).path("inputs")).put("value", finalPrompt);
 
             // ── PainterFluxImageEdit 노드 설정 ──────────────────────────────
-            ObjectNode painterInputs = (ObjectNode) wf.path(painterNodeId).path("inputs");
+            ObjectNode painterInputs = (ObjectNode) wf.path(PAINTER_NODE).path("inputs");
             String modeValue = switch (imageCount) {
                 case 2  -> "2_image";
                 case 3  -> "3_image";
@@ -149,84 +146,77 @@ public class AiImgService {
             painterInputs.put("batch_size", 1);
 
             // ── LoadImage 노드에 업로드 파일명 주입 ──────────────────────────
+            String[] imageInputKeys = {"image1", "image2", "image3"};
             for (int i = 0; i < uploadedNames.size(); i++) {
-                ObjectNode li = (ObjectNode) wf.path(loadImageNodes[i]).path("inputs");
+                ObjectNode li = (ObjectNode) wf.path(LOAD_IMAGE_NODES[i]).path("inputs");
                 if (!li.isMissingNode()) li.put("image", uploadedNames.get(i));
             }
-            String[] imageInputKeys = {"image1", "image2", "image3"};
-            for (int i = uploadedNames.size(); i < loadImageNodes.length; i++) {
-                wf.remove(loadImageNodes[i]);
+            for (int i = uploadedNames.size(); i < LOAD_IMAGE_NODES.length; i++) {
+                wf.remove(LOAD_IMAGE_NODES[i]);
                 painterInputs.remove(imageInputKeys[i]);
             }
 
             // ── T2I 모드 (이미지 0장) ────────────────────────────────────────
             if (imageCount == 0) {
-                if (isPainterV2) {
-                    ((ObjectNode) wf.path("301").path("inputs"))
-                            .put("text", finalPrompt != null ? finalPrompt : "");
+                ((ObjectNode) wf.path("301").path("inputs"))
+                        .put("text", finalPrompt != null ? finalPrompt : "");
 
-                    ObjectNode kInputs = (ObjectNode) wf.path(kSamplerNodeId).path("inputs");
-                    kInputs.set("positive",     mapper.createArrayNode().add("301").add(0));
-                    kInputs.set("negative",     mapper.createArrayNode().add("302").add(0));
-                    kInputs.set("latent_image", mapper.createArrayNode().add("303").add(0));
+                ObjectNode kInputs = (ObjectNode) wf.path(KSAMPLER_NODE).path("inputs");
+                kInputs.set("positive",     mapper.createArrayNode().add("301").add(0));
+                kInputs.set("negative",     mapper.createArrayNode().add("302").add(0));
+                kInputs.set("latent_image", mapper.createArrayNode().add("303").add(0));
 
-                    wf.remove(painterNodeId); // "207"
-                    wf.remove("205");         // GetImageSize
-                    wf.remove("218");         // ImageScaleToTotalPixels
-                    wf.remove("219");         // VAEEncode
-                    wf.remove("220");         // ReferenceLatent
-                    wf.remove("221");         // FluxGuidance
+                wf.remove(PAINTER_NODE); // "207"
+                wf.remove("205");        // GetImageSize
+                wf.remove("218");        // ImageScaleToTotalPixels
+                wf.remove("219");        // VAEEncode
+                wf.remove("220");        // ReferenceLatent
+                wf.remove("221");        // FluxGuidance
 
-                    ObjectNode lp = (ObjectNode) wf.path("223").path("inputs");
-                    if (!lp.isMissingNode()) {
-                        lp.set("positive", mapper.createArrayNode().add("301").add(0));
-                        lp.set("negative", mapper.createArrayNode().add("302").add(0));
-                    }
-                } else {
-                    ObjectNode kInputs = (ObjectNode) wf.path(kSamplerNodeId).path("inputs");
-                    kInputs.set("positive",     mapper.createArrayNode().add("201").add(0));
-                    kInputs.set("negative",     mapper.createArrayNode().add("202").add(0));
-                    kInputs.set("latent_image", mapper.createArrayNode().add("203").add(0));
-
-                    wf.remove("125");
-                    ObjectNode sw130 = (ObjectNode) wf.path("130").path("inputs");
-                    sw130.remove("any_01");
-                    ObjectNode sw131 = (ObjectNode) wf.path("131").path("inputs");
-                    sw131.remove("any_01");
+                ObjectNode lp = (ObjectNode) wf.path("223").path("inputs");
+                if (!lp.isMissingNode()) {
+                    lp.set("positive", mapper.createArrayNode().add("301").add(0));
+                    lp.set("negative", mapper.createArrayNode().add("302").add(0));
                 }
             }
 
             // ── KSampler 시드 랜덤화 ─────────────────────────────────────────
-            ((ObjectNode) wf.path(kSamplerNodeId).path("inputs"))
+            ((ObjectNode) wf.path(KSAMPLER_NODE).path("inputs"))
                     .put("seed", (long)(Math.random() * Long.MAX_VALUE));
 
-            // ── painter v2 2단계(LanPaint) 동적 처리 ────────────────────────
-            if (isPainterV2 && imageCount > 0) {
+            // ── 2단계(LanPaint) 동적 처리 ────────────────────────────────────
+            if (imageCount > 0) {
                 if (!wf.path("223").isMissingNode()) {
                     ((ObjectNode) wf.path("223").path("inputs"))
                             .put("seed", (long)(Math.random() * Long.MAX_VALUE));
                 }
 
                 if (imageCount >= 2 && finalPrompt != null && !finalPrompt.isBlank()) {
+                    // 2장 이상: LLM이 작성한 stage2Prompt를 "216"에 주입
+                    // stage2Prompt가 없으면 finalPrompt로 fallback
+                    String s2 = (stage2Prompt != null && !stage2Prompt.isBlank())
+                            ? stage2Prompt : finalPrompt;
                     ObjectNode clip216 = (ObjectNode) wf.path("216").path("inputs");
                     if (!clip216.isMissingNode()) {
-                        String stage2Prompt = "head_swap: Use the first-stage result as the base image. "
-                                + finalPrompt
-                                + "\nPhotorealistic, high quality, sharp details, 4K.";
-                        clip216.put("text", stage2Prompt);
+                        clip216.put("text", s2);
+                    } else {
+                        System.err.println("[AiImgService] 노드 '216' 없음 — stage2Prompt 주입 실패");
                     }
                 }
 
                 if (imageCount < 2) {
-                    if (!wf.path("218").isMissingNode()) wf.remove("218");
-                    if (!wf.path("219").isMissingNode()) wf.remove("219");
-                    if (!wf.path("220").isMissingNode()) wf.remove("220");
-                    if (!wf.path("221").isMissingNode()) wf.remove("221");
-                    ObjectNode lp223 = (ObjectNode) wf.path("223").path("inputs");
-                    if (!lp223.isMissingNode()) {
-                        lp223.set("positive", mapper.createArrayNode().add("216").add(0));
+                    // 1장 단독 편집: LanPaint 2차 스테이지 전체 비활성화
+                    // "216"~"225" 제거 후 "208"(KSampler) → "209"(VAEDecode) → "226"(SaveImage) 직결
+                    for (String nodeId : new String[]{"216","217","218","219","220","221","222","223","224","225"}) {
+                        if (!wf.path(nodeId).isMissingNode()) wf.remove(nodeId);
                     }
+                    ObjectNode save226 = (ObjectNode) wf.path("226").path("inputs");
+                    if (!save226.isMissingNode()) {
+                        save226.set("images", mapper.createArrayNode().add("209").add(0));
+                    }
+                    System.out.println("[AiImgService] 단독 편집: LanPaint 2차 스테이지 비활성화, 1차 결과 직출력");
                 } else {
+                    // 2장 이상: "218"(ImageScaleToTotalPixels)의 레퍼런스를 image2("204")로 고정
                     ObjectNode in218 = (ObjectNode) wf.path("218").path("inputs");
                     if (!in218.isMissingNode()) {
                         in218.set("image", mapper.createArrayNode().add("204").add(0));
@@ -235,16 +225,9 @@ public class AiImgService {
             }
 
             // ── LoRA 주입 ─────────────────────────────────────────────────────
-            if (isPainterV2) {
-                loraInjector.injectPainterV2(wf, lora);
-            } else {
-                loraInjector.injectPainter(wf, lora);
-            }
+            loraInjector.injectPainterV2(wf, lora);
 
             // ── 제출 ─────────────────────────────────────────────────────────
-            // [수정] clearComfyQueue() 제거 — 전체 큐를 날리면 다른 세션 작업까지
-            //        삭제되어 동시 요청 시 일부 사용자의 이미지가 생성되지 않는 버그 수정.
-            //        ComfyUI는 큐를 순서대로 처리하므로 별도 초기화 불필요.
             if (ctx.isCancelled()) return;
 
             String promptId = submitComfyPrompt(wf);
@@ -253,7 +236,7 @@ public class AiImgService {
             ctx.setComfyPromptId(promptId);
             String imageFileName = pollComfyResult(promptId, 300, ctx);
 
-            // [수정] 취소된 경우 본인 작업만 큐에서 제거
+            // 취소된 경우 본인 작업만 큐에서 제거
             if (ctx.isCancelled()) {
                 cancelComfyPrompt(promptId);
                 return;
@@ -270,11 +253,17 @@ public class AiImgService {
             if (saved == null) { finishWithError(emitter, "이미지를 저장하는 데 실패했어요."); return; }
 
             // ── 세션 이미지 갱신 ─────────────────────────────────────────────
-            sessionStore.putLastImageFile(sessionId, saved);
+            // updateAfterGeneration() 단일 호출로 세 맵을 원자적으로 교체
             String cachedB64 = loadImageFileAsBase64(saved);
             if (cachedB64 != null) {
-                sessionStore.putLastImageB64(sessionId, cachedB64);
-                sessionStore.putAllImages(sessionId, List.of(cachedB64));
+                sessionStore.updateAfterGeneration(sessionId, saved, cachedB64);
+            } else {
+                // b64 변환 실패 시 파일명만 저장.
+                // → lastImageFile은 set되지만 sessionAllImages는 갱신되지 않아 불일치 상태 발생.
+                // → 다음 요청의 AiService.route()에서 resolveSessionImage() fallback이 복구함.
+                sessionStore.putLastImageFile(sessionId, saved);
+                System.err.println("[AiImgService] ⚠ b64 캐싱 실패 → 파일명만 저장, allImages 불일치 발생: " + saved
+                        + " | 다음 요청 시 route()의 resolveSessionImage fallback으로 자동 복구됩니다.");
             }
 
             // ── SSE 완료 이벤트 전송 ─────────────────────────────────────────
@@ -324,10 +313,7 @@ public class AiImgService {
     //  ComfyUI 통신
     // ══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * [수정] 본인 작업만 큐에서 취소.
-     * clearComfyQueue() 대신 이 메서드를 사용해 다른 세션 작업에 영향 없이 취소한다.
-     */
+    /** 본인 작업만 큐에서 취소. 다른 세션 작업에 영향 없음. */
     private void cancelComfyPrompt(String promptId) {
         if (promptId == null) return;
         try {
@@ -440,9 +426,9 @@ public class AiImgService {
                 if (entry.isMissingNode()) continue;
                 Iterator<JsonNode> it = entry.path("outputs").elements();
                 while (it.hasNext()) {
-                    JsonNode images = it.next().path("images");
-                    if (images.isArray() && !images.isEmpty()) {
-                        JsonNode img       = images.get(0);
+                    JsonNode imgs = it.next().path("images");
+                    if (imgs.isArray() && !imgs.isEmpty()) {
+                        JsonNode img       = imgs.get(0);
                         String   filename  = img.path("filename").asText(null);
                         String   type      = img.path("type").asText("output");
                         String   subfolder = img.path("subfolder").asText("");
@@ -462,10 +448,10 @@ public class AiImgService {
 
     private String downloadAndSaveComfyImage(String comfyFileInfo) {
         try {
-            String[] parts     = comfyFileInfo.split("::", -1);
+            String[] parts        = comfyFileInfo.split("::", -1);
             String   comfyFileName = parts[0];
-            String   fileType  = parts.length > 1 ? parts[1] : "output";
-            String   subfolder = parts.length > 2 ? parts[2] : "";
+            String   fileType     = parts.length > 1 ? parts[1] : "output";
+            String   subfolder    = parts.length > 2 ? parts[2] : "";
             String downloadUrl = COMFY_URL + "/view?filename="
                     + URLEncoder.encode(comfyFileName, StandardCharsets.UTF_8)
                     + "&type=" + URLEncoder.encode(fileType, StandardCharsets.UTF_8)
@@ -554,9 +540,6 @@ public class AiImgService {
 
     private void finishWithError(SseEmitter emitter, String errMsg) {
         try {
-            // error 이벤트로 전송 → layout.html / index.html 양쪽에서 ⚠️ 메시지로 표시됨.
-            // 기존 done(imageUrl 없음) 방식은 layout.html에서 "[IMAGE TAG WILL BE INSERTED HERE]"
-            // 같은 LLM 멘트가 그대로 노출되는 버그를 유발하므로 사용하지 않는다.
             emitter.send(SseEmitter.event().name("error")
                     .data("{\"message\":" + mapper.writeValueAsString(errMsg) + "}"));
             emitter.complete();
