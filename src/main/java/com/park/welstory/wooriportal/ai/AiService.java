@@ -40,6 +40,17 @@ import java.util.regex.Pattern;
  * │  │              LLM이 IMAGE_ACTION 태그를 반환하면               │    │
  * │  │              → AiImgService.generate() 위임                  │    │
  * │  └─────────────────────────────────────────────────────────────┘    │
+ * │                                                                      │
+ * │  [수정 내역]                                                          │
+ * │  1. imageStatusMessage() 단일 통합 (hasNewAttach 파라미터 추가)        │
+ * │     - 기존 imageStatusMessage(int) / imageStatusMessageWithNewAttach() │
+ * │       두 메서드를 하나로 합침. 규칙 중복 제거.                          │
+ * │  2. buildMessages()에서 두 메서드 분기 → 단일 호출로 단순화            │
+ * │  3. systemMessage() reminder에서 imageOrder 규칙 제거                 │
+ * │     - 규칙은 imageStatusMessage() 한 곳에만 존재                      │
+ * │  4. IMAGE_GEN 분기에서 세션 이미지 사전 삭제 제거                      │
+ * │     - LLM이 IMAGE_GEN 선택 → imagesForGen=[] 만 설정                 │
+ * │     - 세션 이미지 정리는 AiImgService.generate() 완료 후 책임         │
  * └──────────────────────────────────────────────────────────────────────┘
  */
 @Service
@@ -48,7 +59,7 @@ public class AiService {
 
     private final AiHandler      aiHandler;
     private final AiSessionStore sessionStore;
-    private final AiImgService aiImgService;   // 이미지 생성·편집 위임
+    private final AiImgService   aiImgService;
 
     @Value("${ollama.api.url}")
     private String ollamaApiUrl;
@@ -121,14 +132,13 @@ public class AiService {
             isNewlyAttached = !attachedImages.isEmpty();
         }
 
-        // 새 첨부 이미지가 있으면 세션 저장
+        // 신규 첨부 이미지가 있을 때 세션 allImages 교체
+        // lastImageB64는 "ComfyUI가 만든 생성 결과"만 담으므로 여기서 건드리지 않는다.
         if (isNewlyAttached) {
             sessionStore.putAllImages(sessionId, attachedImages);
-            sessionStore.putLastImageB64(sessionId, attachedImages.get(0));
-            sessionStore.removeLastImageFile(sessionId);
         }
 
-        route(userMessage, attachedImages, sessionId, skin, ctx, ctx.getEmitter());
+        route(userMessage, attachedImages, isNewlyAttached, sessionId, skin, ctx, ctx.getEmitter());
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -136,33 +146,26 @@ public class AiService {
     // ══════════════════════════════════════════════════════════════════════════
 
     private void route(String userMessage, List<String> attachedImages,
+                       boolean isNewlyAttached,
                        String sessionId, String skin,
                        AiHandler.SessionContext ctx, SseEmitter emitter) {
         try {
             if (ctx.isCancelled()) return;
 
-            // 웹 검색 분기
             if (isWebSearch(userMessage)) {
                 handleWebSearch(userMessage, sessionId, skin, ctx, emitter);
                 return;
             }
 
-            // 새 첨부 이미지 세션 갱신
-            if (!attachedImages.isEmpty()) {
-                sessionStore.putAllImages(sessionId, attachedImages);
-                sessionStore.putLastImageB64(sessionId, attachedImages.get(0));
-                sessionStore.removeLastImageFile(sessionId);
-            }
-
             List<String> sessionImages   = sessionStore.getAllImages(sessionId);
-            List<String> availableImages = attachedImages.isEmpty() ? sessionImages : attachedImages;
+            List<String> availableImages = isNewlyAttached ? attachedImages : sessionImages;
 
             System.out.println("[AI Router] sid=" + sessionId
                     + " 신규첨부=" + attachedImages.size() + "장"
                     + " 세션이미지=" + sessionImages.size() + "장"
                     + " → handleChat (LLM 자율 판단)");
 
-            handleChat(userMessage, availableImages, !attachedImages.isEmpty(), sessionId, skin, ctx, emitter);
+            handleChat(userMessage, availableImages, isNewlyAttached, sessionId, skin, ctx, emitter);
 
         } catch (Exception e) {
             System.err.println("[Router] 예외: " + e.getMessage());
@@ -191,7 +194,7 @@ public class AiService {
                     : " [이전에 생성한 이미지 " + availableImages.size() + "장 있음 — 유저가 직접 첨부한 게 아님]";
         }
         addToMemory(sessionId, "user", userMessage + imageHint, null);
-        streamOllama(sessionId, null, userMessage, availableImages, skin, ctx, emitter);
+        streamOllama(sessionId, null, userMessage, availableImages, isUserAttached, skin, ctx, emitter);
     }
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -222,7 +225,7 @@ public class AiService {
 
             sendToken(emitter, "\n");
             addToMemory(sessionId, "user", userMessage, null);
-            streamOllama(sessionId, contextPrompt, userMessage, List.of(), skin, ctx, emitter);
+            streamOllama(sessionId, contextPrompt, userMessage, List.of(), false, skin, ctx, emitter);
         } catch (Exception e) {
             System.err.println("[AiService] 웹 검색 오류: " + e.getMessage());
             sendError(emitter, "검색 중 오류가 발생했습니다.");
@@ -314,9 +317,12 @@ public class AiService {
 
     private void streamOllama(String sessionId, String overrideLastUser,
                               String originMsg,
-                              List<String> availableImages, String skin,
+                              List<String> availableImages,
+                              boolean isUserAttached,
+                              String skin,
                               AiHandler.SessionContext ctx, SseEmitter emitter) {
-        List<AIDTO.OllamaRequest.Message> messages = buildMessages(sessionId, overrideLastUser, skin);
+
+        List<AIDTO.OllamaRequest.Message> messages = buildMessages(sessionId, overrideLastUser, skin, isUserAttached);
         AIDTO.OllamaRequest req = new AIDTO.OllamaRequest();
         req.setModel(chatModel);
         req.setMessages(messages);
@@ -332,17 +338,15 @@ public class AiService {
                 os.write(mapper.writeValueAsBytes(req));
             }
 
-            // ── 실시간 태그 필터링 상태 ──────────────────────────────────────
             boolean       inThink  = false;
             boolean       inAction = false;
-            boolean       inResult = false;  // [IMAGE_RESULT: ...] 필터
+            boolean       inResult = false;
             StringBuilder tagAccum = new StringBuilder();
             StringBuilder completedActionTag = new StringBuilder();
             int           actionBraceDepth = 0;
 
             final String ACTION_OPEN      = "[IMAGE_ACTION:";
             final String ACTION_OPEN_NOBR = "IMAGE_ACTION:";
-            boolean      actionHadBracket = false;
             final String RESULT_OPEN      = "[IMAGE_RESULT:";
 
             try (BufferedReader reader = new BufferedReader(
@@ -366,31 +370,22 @@ public class AiService {
                                     tagAccum.append(c);
                                     String ta = tagAccum.toString();
 
-                                    // [IMAGE_ACTION: 감지 (정상 패턴)
                                     if (ta.endsWith(ACTION_OPEN) || ACTION_OPEN.startsWith(ta)) {
                                         if (ta.equals(ACTION_OPEN)) {
                                             inAction = true;
-                                            actionHadBracket = true;
                                             tagAccum.setLength(0);
                                         }
-                                    }
-                                    // IMAGE_ACTION: 감지 (대괄호 누락 패턴)
-                                    else if (ta.endsWith(ACTION_OPEN_NOBR) || ACTION_OPEN_NOBR.startsWith(ta)) {
+                                    } else if (ta.endsWith(ACTION_OPEN_NOBR) || ACTION_OPEN_NOBR.startsWith(ta)) {
                                         if (ta.equals(ACTION_OPEN_NOBR)) {
                                             inAction = true;
-                                            actionHadBracket = false;
                                             tagAccum.setLength(0);
                                         }
-                                    }
-                                    // [IMAGE_RESULT: 감지 → 닫는 ] 까지 삼키기
-                                    else if (ta.endsWith(RESULT_OPEN) || RESULT_OPEN.startsWith(ta)) {
+                                    } else if (ta.endsWith(RESULT_OPEN) || RESULT_OPEN.startsWith(ta)) {
                                         if (ta.equals(RESULT_OPEN)) {
                                             inResult = true;
                                             tagAccum.setLength(0);
                                         }
-                                    }
-                                    // <think> 감지
-                                    else if (ta.equals("<think>")) {
+                                    } else if (ta.equals("<think>")) {
                                         inThink = true;
                                         tagAccum.setLength(0);
                                     } else if ("<think>".startsWith(ta)) {
@@ -401,7 +396,6 @@ public class AiService {
                                     }
 
                                 } else if (inResult) {
-                                    // 닫는 ] 나올 때까지 버리기
                                     if (c == ']') {
                                         inResult = false;
                                         tagAccum.setLength(0);
@@ -458,7 +452,6 @@ public class AiService {
                 rawFull = rawFull + ACTION_OPEN + tagAccum.toString();
             }
 
-            // 콜론 뒤 공백 허용, 닫는 ] 없어도 매칭, JSON 이 줄바꿈을 포함해도 허용
             Pattern actionPat = Pattern.compile(
                     "\\[?IMAGE_ACTION:\\s*(\\{.*?\\})\\]?", Pattern.DOTALL);
             Matcher actionMat = actionPat.matcher(rawFull);
@@ -475,23 +468,19 @@ public class AiService {
             }
 
             String finalContent = extractAfterThink(visibleText);
-            // 안전망: 스트리밍 필터를 통과한 [IMAGE_RESULT: ...] 잔재 제거
             finalContent = finalContent.replaceAll("(?s)\\[IMAGE_RESULT:[^]]*]", "").trim();
 
             // ── IMAGE_ACTION 발동 → AiImgService 위임 ────────────────────────
             if (imageAction != null) {
-                String intent         = imageAction.path("intent").asText("IMAGE_GEN");
-                String prompt         = imageAction.path("prompt").asText("");
+                String intent            = imageAction.path("intent").asText("IMAGE_GEN");
+                String prompt            = imageAction.path("prompt").asText("");
                 List<Integer> imageOrder = parseImageOrder(imageAction);
 
                 System.out.println("[AiService] IMAGE_ACTION 감지: intent=" + intent
-                        + " prompt=" + prompt + " imageOrder=" + imageOrder);
+                        + " prompt=" + prompt + " imageOrder=" + imageOrder
+                        + " isUserAttached=" + isUserAttached);
 
-                // IMAGE_ACTION 태그를 finalContent와 함께 메모리에 저장한다.
-                // LLM이 컨텍스트 안에서 올바른 [IMAGE_ACTION:{...}] 포맷 예시를 확인할 수 있어
-                // 다음 턴에 image_edit(...)·IMAGE_EDIT(...) 등 엉뚱한 포맷으로 hallucinate하는 문제를 방지한다.
-                // IMAGE_RESULT(생성 결과 URL)는 포함하지 않는다 — 과거에 해당 패턴을 저장했다가
-                // LLM이 IMAGE_ACTION 없이 IMAGE_RESULT만 모방 출력하는 버그가 있었음.
+                // IMAGE_ACTION 태그를 finalContent와 함께 메모리에 저장
                 try {
                     String actionHint = "[IMAGE_ACTION:{\"intent\":\"" + intent
                             + "\",\"prompt\":" + mapper.writeValueAsString(prompt)
@@ -503,23 +492,60 @@ public class AiService {
                 }
 
                 List<String> imagesForGen;
+
                 if ("IMAGE_GEN".equals(intent)) {
-                    // 신규 생성: 세션 이미지 초기화
-                    sessionStore.removeLastImageFile(sessionId);
-                    sessionStore.removeLastImageB64(sessionId);
-                    sessionStore.removeAllImages(sessionId);
+                    // ── [수정 4] 신규 생성: 세션 이미지 사전 삭제 제거 ────────────
+                    // 기존: sessionStore.removeLastImageFile/B64/AllImages 후 List.of()
+                    // 수정: LLM이 IMAGE_GEN을 선택했으므로 imagesForGen=[] 만 설정.
+                    //       세션 이미지 정리는 AiImgService.generate() 완료 콜백에서 처리.
                     imagesForGen = List.of();
+
                 } else {
-                    // 편집: 현재 세션 이미지 사용
-                    imagesForGen = (availableImages != null) ? availableImages : List.of();
+                    // ── IMAGE_EDIT: 어떤 이미지를 넘길지 LLM의 imageOrder로 판단 ──
+                    //
+                    // [케이스 A] 유저가 새 이미지를 첨부한 경우
+                    //   imageOrder에 신규 첨부 범위를 벗어난 인덱스 포함
+                    //     → LLM이 세션 이미지도 필요하다고 판단한 것 (합성/페이스스왑 등)
+                    //     → 신규 이미지 + resolveSessionImage() 추가
+                    //   imageOrder가 신규 첨부 범위 안에만 있음
+                    //     → LLM이 신규 이미지만으로 충분하다고 판단
+                    //     → 신규 이미지만 단독 편집
+                    //
+                    // [케이스 B] 유저가 새 이미지를 첨부하지 않은 경우
+                    //     → 세션 이미지(이전 생성 결과)만 사용
+                    //
+                    if (isUserAttached) {
+                        boolean llmWantsSessionImg = imageOrder.stream()
+                                .anyMatch(o -> o >= availableImages.size());
+
+                        if (llmWantsSessionImg) {
+                            String lastB64 = aiImgService.resolveSessionImage(sessionId);
+                            if (lastB64 != null) {
+                                List<String> merged = new ArrayList<>(availableImages);
+                                merged.add(lastB64);
+                                imagesForGen = merged;
+                                System.out.println("[AiService] 합성 모드: 신규 " + availableImages.size()
+                                        + "장 + 세션 이미지 1장 → 총 " + merged.size() + "장");
+                            } else {
+                                imagesForGen = new ArrayList<>(availableImages);
+                                System.out.println("[AiService] 합성 요청이나 세션 이미지 없음 → 신규 이미지만 사용");
+                            }
+                        } else {
+                            // 단독 편집: 이전 생성 이미지 불필요 → 세션에서 제거
+                            sessionStore.removeLastImageB64(sessionId);
+                            sessionStore.removeLastImageFile(sessionId);
+                            imagesForGen = new ArrayList<>(availableImages);
+                            System.out.println("[AiService] 단독 편집 모드: 신규 이미지 " + availableImages.size() + "장만 사용");
+                        }
+                    } else {
+                        // 유저 첨부 없음 → 세션 이미지 그대로 사용
+                        imagesForGen = (availableImages != null) ? new ArrayList<>(availableImages) : List.of();
+                        System.out.println("[AiService] 세션 이미지 편집: " + imagesForGen.size() + "장");
+                    }
                 }
 
-                // ★ AiImgService에 위임 (originMsg = 유저 원문 → LoRA 키워드 탐지에 사용)
-                // generate() 완료 후 sessionStore에 새 이미지가 저장되고,
-                // 다음 턴 buildMessages()에서 imageStatusMessage()로 자동 감지된다.
                 aiImgService.generate(prompt, imagesForGen, imageOrder,
                         originMsg, sessionId, ctx, emitter);
-
                 return;
             }
 
@@ -572,13 +598,18 @@ public class AiService {
         addToMemory(sessionId, "assistant", newContent, null);
     }
 
-    private List<AIDTO.OllamaRequest.Message> buildMessages(String sessionId, String overrideLastUser, String skin) {
+    // ══════════════════════════════════════════════════════════════════════════
+    //  메시지 빌드
+    // ══════════════════════════════════════════════════════════════════════════
+
+    private List<AIDTO.OllamaRequest.Message> buildMessages(String sessionId, String overrideLastUser,
+                                                            String skin, boolean isUserAttached) {
         List<AIDTO.OllamaRequest.Message> messages = new ArrayList<>();
         Deque<AIDTO.OllamaRequest.Message> deque = sessionMemory.get(sessionId);
         if (deque != null) messages.addAll(deque);
 
-        // [FIX] images가 빈 리스트인 경우 null 처리 — 단, 원본 deque 객체를 직접 변경하지 않도록 새 인스턴스로 교체
-        messages.replaceAll(m -> {
+        // images가 빈 리스트인 경우 null 처리 (원본 deque 불변 유지)
+        messages = messages.stream().map(m -> {
             if (m.getImages() != null && m.getImages().isEmpty()) {
                 AIDTO.OllamaRequest.Message copy = new AIDTO.OllamaRequest.Message();
                 copy.setRole(m.getRole());
@@ -587,14 +618,11 @@ public class AiService {
                 return copy;
             }
             return m;
-        });
+        }).collect(java.util.stream.Collectors.toCollection(ArrayList::new));
 
         if (overrideLastUser != null) {
             for (int i = messages.size() - 1; i >= 0; i--) {
                 if ("user".equals(messages.get(i).getRole())) {
-                    // [FIX] 원본 deque 객체를 직접 변경(setContent)하면 sessionMemory가 영구 오염됨.
-                    //       (웹 검색 시 유저 원본 메시지가 검색 컨텍스트 텍스트로 덮어써지는 버그)
-                    //       새 Message 객체를 생성해 교체한다.
                     AIDTO.OllamaRequest.Message original = messages.get(i);
                     AIDTO.OllamaRequest.Message replaced = new AIDTO.OllamaRequest.Message();
                     replaced.setRole(original.getRole());
@@ -606,13 +634,11 @@ public class AiService {
             }
         }
 
-        // ── 메시지 순서: 히스토리 → 시스템 → 유저 ──────────────────────────
+        // ── 메시지 순서: 히스토리 → IMAGE_STATUS(조건부) → 시스템 → 유저 ──────
         // Gemma는 마지막에 가까운 system을 더 강하게 따르므로
         // 시스템 프롬프트를 현재 user 메시지 바로 앞에 조립한다.
-        // 히스토리가 아무리 길어져도 system·user는 구조적으로 항상 보장된다.
-        // 토큰 추정·트리밍 불필요 — 히스토리는 MAX_MEMORY_TURNS로만 제한한다.
 
-        // ① 현재 user 메시지를 히스토리에서 분리 (맨 마지막에 다시 붙임)
+        // ① 현재 user 메시지를 히스토리에서 분리
         AIDTO.OllamaRequest.Message lastUserMsg = null;
         for (int i = messages.size() - 1; i >= 0; i--) {
             if ("user".equals(messages.get(i).getRole())) {
@@ -621,18 +647,35 @@ public class AiService {
             }
         }
 
-        // ② 이미지 상태 system 메시지 (세션 이미지 있을 때만)
-        // [FIX] assistant 메모리에 남기면 LLM이 IMAGE_RESULT 패턴을 모방 출력하는 버그가 생긴다.
-        //       매 턴 신선하게 system으로 주입한다.
-        List<String> sessionImgs = sessionStore.getAllImages(sessionId);
-        if (!sessionImgs.isEmpty()) {
-            messages.add(imageStatusMessage(sessionImgs.size()));
-        }
+        // ── [수정 1+2] imageStatusMessage() 단일 통합 호출 ───────────────────
+        //
+        // 기존: imageStatusMessage(int) / imageStatusMessageWithNewAttach() 두 메서드로 분기
+        // 수정: imageStatusMessage(sessionCount, hasNewAttach) 단일 메서드로 통합.
+        //
+        // 주입 조건:
+        //   - 신규 첨부 없음 + 세션 이미지 있음 → 세션 이미지 정보 주입
+        //   - 신규 첨부 있음 + 이전 생성 이미지도 있음 → 두 이미지 모두 알림
+        //   - 신규 첨부만 있고 세션 이미지 없음 → IMAGE_STATUS 주입 안 함
+        //     (LLM에게 불필요한 세션 이미지 정보를 주지 않아 imageOrder=[1,2] 오발 방지)
+        //
+        boolean hasPrevGenImage = sessionStore.getLastImageB64(sessionId).isPresent()
+                || sessionStore.getLastImageFile(sessionId).isPresent();
 
-        // ③ 시스템 프롬프트 주입 (reminder 포함)
+        if (!isUserAttached) {
+            List<String> sessionImgs = sessionStore.getAllImages(sessionId);
+            if (!sessionImgs.isEmpty()) {
+                messages.add(imageStatusMessage(sessionImgs.size(), false));
+            }
+        } else if (hasPrevGenImage) {
+            // 신규 첨부 있음 + 이전 생성 이미지도 존재 → 합성 판단 가능하도록 알림
+            messages.add(imageStatusMessage(1, true));
+        }
+        // else: 신규 첨부만 있고 세션 이미지 없음 → IMAGE_STATUS 주입 안 함
+
+        // ② 시스템 프롬프트 주입
         messages.add(systemMessage(skin));
 
-        // ④ 현재 user 메시지를 맨 끝에 복원
+        // ③ 현재 user 메시지를 맨 끝에 복원
         if (lastUserMsg != null) {
             messages.add(lastUserMsg);
         }
@@ -640,17 +683,51 @@ public class AiService {
         return messages;
     }
 
+    // ══════════════════════════════════════════════════════════════════════════
+    //  [수정 1] imageStatusMessage() — 단일 통합 메서드
+    //
+    //  기존: imageStatusMessage(int count)            → 세션 이미지만 있을 때
+    //        imageStatusMessageWithNewAttach()         → 신규 첨부 + 세션 이미지
+    //  수정: imageStatusMessage(int count, boolean hasNewAttach) 하나로 통합.
+    //        규칙 기술이 한 곳에만 존재하므로 LLM이 일관된 기준으로 판단 가능.
+    // ══════════════════════════════════════════════════════════════════════════
 
-    private AIDTO.OllamaRequest.Message imageStatusMessage(int count) {
+    private AIDTO.OllamaRequest.Message imageStatusMessage(int sessionCount, boolean hasNewAttach) {
         AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
         msg.setRole("system");
-        msg.setContent(
-                "[IMAGE_STATUS: 현재 세션에 이미지 " + count + "장이 존재함. " +
-                        "사용자가 이 이미지를 수정·변경·편집·다시 등을 요청하면 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력하라. " +
-                        "새 이미지를 그려달라는 요청이면 IMAGE_ACTION(intent=IMAGE_GEN)을 출력하라.]"
-        );
+
+        String content;
+        if (hasNewAttach) {
+            // 신규 첨부 이미지 있음 + 이전 생성 세션 이미지도 존재
+            content =
+                    "[IMAGE_STATUS: 유저가 새 이미지를 첨부함. 동시에 이전 생성된 세션 이미지 " + sessionCount + "장도 존재함.]\n\n" +
+                            "imageOrder 결정 규칙:\n" +
+                            "1. 새 이미지만 편집 요청 → imageOrder=[1], intent=IMAGE_EDIT\n" +
+                            "2. 새 이미지 얼굴을 이전 이미지에 합성 (페이스스왑 등 두 이미지 모두 필요) → imageOrder=[1,2], intent=IMAGE_EDIT\n" +
+                            "   슬롯2에는 세션 이미지가 자동으로 채워진다.\n" +
+                            "3. 완전 새 이미지 생성 → intent=IMAGE_GEN";
+        } else {
+            // 신규 첨부 없음 + 세션 이미지만 존재
+            content =
+                    "[IMAGE_STATUS: 세션에 이미지 " + sessionCount + "장이 존재함 (이전 생성 결과).]\n\n" +
+                            "imageOrder 결정 규칙:\n" +
+                            "1. 세션 이미지 편집·수정 요청 → imageOrder=[1], intent=IMAGE_EDIT\n" +
+                            "2. 유저가 새 이미지를 첨부하지 않았으므로 imageOrder=[1,2] 사용 불가\n" +
+                            "3. 완전 새 이미지 생성 요청 → intent=IMAGE_GEN";
+        }
+
+        msg.setContent(content);
         return msg;
     }
+
+    // ══════════════════════════════════════════════════════════════════════════
+    //  [수정 3] systemMessage() — imageOrder 중복 규칙 제거
+    //
+    //  기존 reminder에 imageOrder 상세 규칙이 포함되어 있어
+    //  imageStatusMessage()와 내용이 중복·충돌했음.
+    //  수정: imageOrder 규칙은 imageStatusMessage()에만 기술.
+    //        reminder는 "IMAGE_ACTION 출력 의무"만 명시.
+    // ══════════════════════════════════════════════════════════════════════════
 
     private AIDTO.OllamaRequest.Message systemMessage(String skin) {
         String personality = switch (skin == null ? "" : skin) {
@@ -659,16 +736,15 @@ public class AiService {
             case "maltese"   -> " 반드시 짧고 철학적으로 반말로 대답해. 한줄에 17글자만 들어가니 보기좋게.";
             default          -> " 친근하고 가벼운 존칭. 감정적 언변 가능. 한줄에 17글자만 들어가니 보기좋게. [현재화면]은 대화 맥락 참고용이다. 이미지 작업은 사용자 첨부파일, 사진을 우선시 한다.";
         };
-        // reminder를 별도 메시지로 분리하지 않고 통합한다.
-        // buildMessages() 순서: 히스토리 → (imageStatus) → systemMessage → user
-        // Gemma는 마지막 system을 강하게 따르므로 이 위치가 최적이다.
+
+        // imageOrder 세부 규칙은 imageStatusMessage()에만 기술.
+        // 여기선 IMAGE_ACTION 출력 의무만 명시하여 중복·충돌 제거.
         String reminder =
                 "\n\n[규칙 리마인더]\n" +
-                        "위 모든 규칙을 준수하라.\n" +
-                        "이미지 규칙:\n" +
-                        "1. 이미지 생성·편집 의도가 감지되면 응답 마지막 줄에 반드시 IMAGE_ACTION 태그를 출력하라. 태그 없이 마무리하는 것은 절대 금지다.\n" +
-                        "2. [IMAGE_STATUS:] 메시지가 있으면 세션에 이미지가 존재한다. 수정·편집·다시 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력하라.\n" +
-                        "3. IMAGE_ACTION 태그는 응답 마지막에 딱 한 번만 출력한다.";
+                        "이미지 생성·편집 의도가 감지되면 응답 마지막 줄에 반드시 IMAGE_ACTION 태그를 출력하라. 누락 절대 금지.\n" +
+                        "[IMAGE_STATUS:] 메시지가 있으면 세션 이미지가 존재한다. 수정·편집 요청 시 즉시 IMAGE_ACTION(intent=IMAGE_EDIT)을 출력하라.\n" +
+                        "IMAGE_ACTION 태그는 응답 마지막에 딱 한 번만 출력한다.";
+
         AIDTO.OllamaRequest.Message msg = new AIDTO.OllamaRequest.Message();
         msg.setRole("system");
         msg.setContent(SYSTEM_PROMPT + personality
@@ -695,7 +771,6 @@ public class AiService {
         for (int i = request.getMessages().size() - 1; i >= 0; i--) {
             if ("user".equals(request.getMessages().get(i).getRole())) {
                 String content = request.getMessages().get(i).getContent().trim();
-                // [현재화면] 태그가 있으면 [질문] 이후만 추출
                 int idx = content.indexOf("[질문]\n");
                 if (idx != -1) return content.substring(idx + "[질문]\n".length()).trim();
                 return content;
