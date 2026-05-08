@@ -68,6 +68,28 @@ public class AiSessionStore {
         sessionLastImageB64.remove(sessionId);
     }
 
+    // ── 원자적 갱신 ─────────────────────────────────────────────────
+
+    /**
+     * 이미지 생성 완료 시 세 가지 상태를 원자적으로 교체.
+     * 개별 put()을 순차 호출하면 중간 상태가 다른 스레드에 노출될 수 있으므로
+     * generate() 완료 후 반드시 이 메서드 하나로 통일한다.
+     */
+    public void updateAfterGeneration(String sessionId, String fileName, String b64) {
+        sessionLastImageFile.put(sessionId, fileName);
+        sessionLastImageB64.put(sessionId, b64);
+        sessionAllImages.put(sessionId, new ArrayList<>(List.of(b64)));
+    }
+
+    /**
+     * 단독 편집(이전 생성 이미지 불필요) 시 생성 이미지 상태만 원자적으로 초기화.
+     * allImages는 신규 첨부로 이미 교체된 상태이므로 건드리지 않는다.
+     */
+    public void clearGeneratedImages(String sessionId) {
+        sessionLastImageFile.remove(sessionId);
+        sessionLastImageB64.remove(sessionId);
+    }
+
     // ── 세션 전체 초기화 ─────────────────────────────────────────────
 
     public void clearSession(String sessionId) {
