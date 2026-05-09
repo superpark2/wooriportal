@@ -108,7 +108,7 @@ public class SaraminCrawlerService {
     private Map<String, String> fetchCookies() throws IOException {
         long now = System.currentTimeMillis();
         if (cachedCookies != null && (now - cookieFetchedAt) < COOKIE_TTL_MS) {
-            log.info("쿠키 캐시 재사용");
+//            log.info("쿠키 캐시 재사용");
             return cachedCookies;
         }
         Connection.Response res = Jsoup.connect("https://www.saramin.co.kr/")
@@ -122,14 +122,14 @@ public class SaraminCrawlerService {
                 .execute();
         cachedCookies = res.cookies();
         cookieFetchedAt = now;
-        log.info("쿠키 신규 취득: {}", cachedCookies.keySet());
+//        log.info("쿠키 신규 취득: {}", cachedCookies.keySet());
         return cachedCookies;
     }
 
     /** 취소 요청 */
     public void cancelJob(String jobId) {
         cancelledJobs.add(jobId);
-        log.info("취소 요청: jobId={}", jobId);
+//        log.info("취소 요청: jobId={}", jobId);
     }
 
     /** 취소 상태 정리 */
@@ -143,7 +143,7 @@ public class SaraminCrawlerService {
         if (req.getPageCount() <= 0) req.setPageCount(25);
 
         String url = buildSearchUrl(req);
-        log.info("Crawling page {}: {}", req.getPage(), url);
+//        log.info("Crawling page {}: {}", req.getPage(), url);
 
         try {
             Map<String, String> cookies = fetchCookies();
@@ -153,14 +153,14 @@ public class SaraminCrawlerService {
                     .execute();
 
             String body = response.body();
-            log.info("응답 body 앞 200자: {}", body.substring(0, Math.min(200, body.length())));
+//            log.info("응답 body 앞 200자: {}", body.substring(0, Math.min(200, body.length())));
 
             JSONObject json = new JSONObject(body);
             String contentsHtml = json.optString("contents", "");
             int totalCount = json.optInt("total_count", 0);
 
             if (contentsHtml.isBlank()) {
-                log.warn("JSON contents 비어있음. 전체 응답: {}", body.substring(0, Math.min(500, body.length())));
+//                log.warn("JSON contents 비어있음. 전체 응답: {}", body.substring(0, Math.min(500, body.length())));
                 return SearchResultDto.builder()
                         .success(false).crawledUrl(url)
                         .errorMessage("서버가 빈 contents 반환")
@@ -171,7 +171,7 @@ public class SaraminCrawlerService {
             Element listBody = doc.selectFirst("div.list_body");
             if (listBody == null) {
                 listBody = doc.body();
-                log.info("div.list_body 없음 → body 전체를 listBody로 사용");
+//                log.info("div.list_body 없음 → body 전체를 listBody로 사용");
             }
 
             List<JobPostingDto> postings = parse(listBody);
@@ -179,8 +179,8 @@ public class SaraminCrawlerService {
             int pageCount  = req.getPageCount();
             int totalPages = (int) Math.ceil((double) totalCount / pageCount);
 
-            log.info("파싱 결과: {}건 / 현재 페이지: {}/{} / 총 건수: {}건",
-                    postings.size(), req.getPage(), totalPages, totalCount);
+//            log.info("파싱 결과: {}건 / 현재 페이지: {}/{} / 총 건수: {}건",
+//                    postings.size(), req.getPage(), totalPages, totalCount);
 
             return SearchResultDto.builder()
                     .postings(postings)
@@ -225,7 +225,7 @@ public class SaraminCrawlerService {
 
         for (int page = 1; ; page++) {
             if (jobId != null && cancelledJobs.contains(jobId)) {
-                log.info("jobId={} 취소됨 ({}페이지에서 중단)", jobId, page);
+//                log.info("jobId={} 취소됨 ({}페이지에서 중단)", jobId, page);
                 cleanupJob(jobId);
                 break;
             }
@@ -234,7 +234,7 @@ public class SaraminCrawlerService {
             String url = buildSearchUrl(req);
             crawledUrl = url;
 
-            log.info("[{}] 페이지 {}/{} 크롤링 중...", jobId, page, totalPages);
+//            log.info("[{}] 페이지 {}/{} 크롤링 중...", jobId, page, totalPages);
 
             try {
                 Connection.Response response = base(url).cookies(cookies).execute();
@@ -246,11 +246,11 @@ public class SaraminCrawlerService {
                     totalCount = json.optInt("total_count", 0);
                     totalPages = (int) Math.ceil((double) totalCount / req.getPageCount());
                     if (maxPages > 0) totalPages = Math.min(totalPages, maxPages);
-                    log.info("총 {}건 / {}페이지 수집 예정", totalCount, totalPages);
+//                    log.info("총 {}건 / {}페이지 수집 예정", totalCount, totalPages);
                 }
 
                 if (contentsHtml.isBlank()) {
-                    log.warn("페이지 {} contents 비어있음, 중단", page);
+//                    log.warn("페이지 {} contents 비어있음, 중단", page);
                     break;
                 }
 
@@ -265,7 +265,7 @@ public class SaraminCrawlerService {
                 }
 
                 allPostings.addAll(pagePostings);
-                log.info("페이지 {}: {}건 수집 (누적 {}건)", page, pagePostings.size(), allPostings.size());
+//                log.info("페이지 {}: {}건 수집 (누적 {}건)", page, pagePostings.size(), allPostings.size());
 
                 if (page >= totalPages) break;
 
@@ -281,7 +281,7 @@ public class SaraminCrawlerService {
         }
 
         if (jobId != null) cleanupJob(jobId);
-        log.info("전체 크롤링 완료: 총 {}건", allPostings.size());
+//        log.info("전체 크롤링 완료: 총 {}건", allPostings.size());
 
         return SearchResultDto.builder()
                 .postings(allPostings)
@@ -321,7 +321,7 @@ public class SaraminCrawlerService {
 
         for (int page = 1; ; page++) {
             if (jobId != null && cancelledJobs.contains(jobId)) {
-                log.info("jobId={} 취소됨 ({}페이지에서 중단)", jobId, page);
+//                log.info("jobId={} 취소됨 ({}페이지에서 중단)", jobId, page);
                 cleanupJob(jobId);
                 break;
             }
@@ -340,7 +340,7 @@ public class SaraminCrawlerService {
                     totalCount = json.optInt("total_count", 0);
                     totalPages = (int) Math.ceil((double) totalCount / req.getPageCount());
                     if (maxPages > 0) totalPages = Math.min(totalPages, maxPages);
-                    log.info("총 {}건 / {}페이지 수집 예정", totalCount, totalPages);
+//                    log.info("총 {}건 / {}페이지 수집 예정", totalCount, totalPages);
                 }
 
                 if (contentsHtml.isBlank()) { log.warn("페이지 {} 비어있음, 중단", page); break; }
@@ -350,10 +350,10 @@ public class SaraminCrawlerService {
                 if (listBody == null) listBody = doc.body();
 
                 List<JobPostingDto> pagePostings = parse(listBody);
-                if (pagePostings.isEmpty()) { log.info("페이지 {} 공고 없음, 종료", page); break; }
+//                if (pagePostings.isEmpty()) { log.info("페이지 {} 공고 없음, 종료", page); break; }
 
                 allPostings.addAll(pagePostings);
-                log.info("페이지 {}/{}: {}건 (누적 {}건)", page, totalPages, pagePostings.size(), allPostings.size());
+//                log.info("페이지 {}/{}: {}건 (누적 {}건)", page, totalPages, pagePostings.size(), allPostings.size());
 
                 if (callback != null) callback.onPage(page, totalPages, allPostings.size());
 
@@ -371,7 +371,7 @@ public class SaraminCrawlerService {
         }
 
         if (jobId != null) cleanupJob(jobId);
-        log.info("수집 완료: {}건", allPostings.size());
+//        log.info("수집 완료: {}건", allPostings.size());
 
         return SearchResultDto.builder()
                 .postings(allPostings).crawledUrl(crawledUrl)
@@ -388,21 +388,21 @@ public class SaraminCrawlerService {
     // ── 파싱 ────────────────────────────────────────────────────────────────────
     private List<JobPostingDto> parse(Element listBody) {
         if (listBody == null) {
-            log.warn("listBody null — 파싱 불가");
+//            log.warn("listBody null — 파싱 불가");
             return new ArrayList<>();
         }
 
         Elements items = listBody.select("div.list_item[id^=rec-]");
 
         if (items.isEmpty()) {
-            log.warn("div.list_item[id^=rec-] 0개. listBody 자식 클래스 확인:");
-            listBody.children().stream()
-                    .map(Element::className).distinct().limit(10)
-                    .forEach(c -> log.warn("  child.class=[{}]", c));
+//            log.warn("div.list_item[id^=rec-] 0개. listBody 자식 클래스 확인:");
+//            listBody.children().stream()
+//                    .map(Element::className).distinct().limit(10)
+//                    .forEach(c -> log.warn("  child.class=[{}]", c));
             return new ArrayList<>();
         }
 
-        log.info("공고 카드 개수: {}개", items.size());
+//        log.info("공고 카드 개수: {}개", items.size());
         List<JobPostingDto> result = new ArrayList<>();
         for (Element el : items) {
             JobPostingDto dto = extract(el);
@@ -413,7 +413,7 @@ public class SaraminCrawlerService {
 
     // ── extract ─────────────────────────────────────────────────────────────────
     private JobPostingDto extract(Element el) {
-        log.info("=== 카드 HTML ===\n{}", el.outerHtml().substring(0, Math.min(1500, el.outerHtml().length())));
+//        log.info("=== 카드 HTML ===\n{}", el.outerHtml().substring(0, Math.min(1500, el.outerHtml().length())));
 
         // ── 제목 + 링크 ─────────────────────────────────────────────────────────
         Element tEl = el.selectFirst(".job_tit a");

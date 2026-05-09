@@ -28,12 +28,12 @@ public class FileManagerService {
     @Value("D:/WebStorage")
     private String rootPath;
 
-    // 비밀번호 상수
-    private static final String LOCK_PASSWORD = "2004";
+    @Value("${filemanager.password:2004}")
+    private String lockPassword;
 
     // 숨김 폴더 목록
     private static final String[] HIDDEN_FOLDERS = {
-        "보안자료", "시험자료", "WebServer", "PC재원", "프로그램"
+            "보안자료", "시험자료", "WebServer", "PC재원", "프로그램"
     };
 
     // 파일/폴더 목록 조회
@@ -45,17 +45,17 @@ public class FileManagerService {
         if (!Files.exists(targetPath) || !Files.isDirectory(targetPath)) {
             return files;
         }
-        
+
         try (DirectoryStream<Path> stream = Files.newDirectoryStream(targetPath)) {
             for (Path filePath : stream) {
                 try {
                     String fileName = filePath.getFileName().toString();
-                    
+
                     // 숨김 폴더 체크
                     if (Files.isDirectory(filePath) && isHiddenFolder(fileName) && !isUnlocked) {
                         continue; // 잠금 해제 안됐으면 숨김
                     }
-                    
+
                     Map<String, Object> fileInfo = createFileInfo(filePath, path);
                     files.add(fileInfo);
                 } catch (Exception e) {
@@ -63,7 +63,7 @@ public class FileManagerService {
                 }
             }
         }
-        
+
         return files;
     }
 
@@ -81,12 +81,12 @@ public class FileManagerService {
             for (Path filePath : stream) {
                 if (Files.isDirectory(filePath)) {
                     String name = filePath.getFileName().toString();
-                    
+
                     // 숨김 폴더 체크
                     if (isHiddenFolder(name) && !isUnlocked) {
                         continue; // 잠금 해제 안됐으면 숨김
                     }
-                    
+
                     String fullPath = path.endsWith("/") ? path + name : path + "/" + name;
                     if (!fullPath.startsWith("/")) {
                         fullPath = "/" + fullPath;
@@ -96,7 +96,7 @@ public class FileManagerService {
                     node.put("id", fullPath);
                     node.put("text", name);
                     node.put("type", "default");
-                    
+
                     // 하위 폴더 존재 여부 확인
                     boolean hasChildren = hasSubFolders(filePath, password);
                     node.put("children", hasChildren);
@@ -139,18 +139,25 @@ public class FileManagerService {
 
     // 비밀번호 검증
     public boolean verifyPassword(String password) {
-        return LOCK_PASSWORD.equals(password);
+        return lockPassword.equals(password);
+    }
+
+    // 비밀번호 필수 검증 (실패 시 SecurityException)
+    private void requireAuth(String password) {
+        if (!lockPassword.equals(password)) {
+            throw new SecurityException("비밀번호가 올바르지 않습니다.");
+        }
     }
 
     // 폴더 생성
     public void createFolder(String parentPath, String name) throws IOException {
         Path parent = getLocalPath(parentPath);
         Path newFolder = parent.resolve(name);
-        
+
         if (Files.exists(newFolder)) {
             throw new IOException("Folder already exists: " + name);
         }
-        
+
         Files.createDirectories(newFolder);
     }
 
@@ -158,55 +165,58 @@ public class FileManagerService {
     public void createFile(String parentPath, String name) throws IOException {
         Path parent = getLocalPath(parentPath);
         Path newFile = parent.resolve(name);
-        
+
         if (Files.exists(newFile)) {
             throw new IOException("File already exists: " + name);
         }
-        
+
         Files.createFile(newFile);
     }
 
     // 이름 변경
-    public void renameItem(String path, String newName) throws IOException {
+    public void renameItem(String path, String newName, String password) throws IOException {
+        requireAuth(password);
         Path oldPath = getLocalPath(path);
         Path newPath = oldPath.getParent().resolve(newName);
-        
+
         if (Files.exists(newPath)) {
             throw new IOException("File or folder already exists: " + newName);
         }
-        
+
         Files.move(oldPath, newPath);
     }
 
     // 이동
-    public void moveItem(String sourcePath, String targetPath) throws IOException {
+    public void moveItem(String sourcePath, String targetPath, String password) throws IOException {
+        requireAuth(password);
         Path source = getLocalPath(sourcePath);
         Path target = getLocalPath(targetPath);
-        
+
         if (!Files.exists(source)) {
             throw new IOException("Source not found: " + sourcePath);
         }
-        
+
         if (!Files.isDirectory(target)) {
             throw new IOException("Target is not a directory: " + targetPath);
         }
-        
+
         Path dest = target.resolve(source.getFileName());
         if (Files.exists(dest)) {
             throw new IOException("Destination already exists");
         }
-        
+
         Files.move(source, dest);
     }
 
     // 삭제
-    public void deleteItem(String path) throws IOException {
+    public void deleteItem(String path, String password) throws IOException {
+        requireAuth(password);
         Path itemPath = getLocalPath(path);
-        
+
         if (!Files.exists(itemPath)) {
             throw new IOException("Item not found: " + path);
         }
-        
+
         if (Files.isDirectory(itemPath)) {
             deleteDirectoryRecursively(itemPath);
         } else {
@@ -217,19 +227,19 @@ public class FileManagerService {
     // 파일 업로드 (멀티 파일 지원)
     public void uploadFiles(MultipartFile[] files, String path) throws IOException {
         Path targetDir = getLocalPath(path);
-        
+
         if (!Files.exists(targetDir)) {
             Files.createDirectories(targetDir);
         }
-        
+
         for (MultipartFile file : files) {
             String fileName = file.getOriginalFilename();
             if (fileName == null) {
                 continue;
             }
-            
+
             Path filePath = targetDir.resolve(fileName);
-            
+
             // 같은 이름의 파일이 있으면 번호 추가
             int counter = 1;
             while (Files.exists(filePath)) {
@@ -243,7 +253,7 @@ public class FileManagerService {
                 filePath = targetDir.resolve(baseName + "_" + counter + extension);
                 counter++;
             }
-            
+
             try (InputStream is = file.getInputStream()) {
                 Files.copy(is, filePath, StandardCopyOption.REPLACE_EXISTING);
             }
@@ -253,14 +263,14 @@ public class FileManagerService {
     // 파일 다운로드
     public void downloadFile(String path, boolean preview, HttpServletResponse response) throws IOException {
         Path filePath = getLocalPath(path);
-        
+
         if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
             response.sendError(HttpServletResponse.SC_NOT_FOUND);
             return;
         }
-        
+
         String fileName = filePath.getFileName().toString();
-        
+
         if (preview) {
             // 미리보기 모드
             String ext = "";
@@ -268,7 +278,7 @@ public class FileManagerService {
             if (dotIndex > 0) {
                 ext = fileName.substring(dotIndex + 1).toLowerCase();
             }
-            
+
             String contentType = getContentType(ext);
             response.setContentType(contentType);
             response.setHeader("Content-Disposition", "inline; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"");
@@ -278,9 +288,9 @@ public class FileManagerService {
                     "attachment; filename=\"" + URLEncoder.encode(fileName, "UTF-8") + "\"");
             response.setContentType("application/octet-stream");
         }
-        
+
         response.setContentLengthLong(Files.size(filePath));
-        
+
         try (InputStream is = Files.newInputStream(filePath);
              OutputStream os = response.getOutputStream()) {
             is.transferTo(os);
@@ -306,23 +316,23 @@ public class FileManagerService {
         Map<String, Object> info = new HashMap<>();
         String name = path.getFileName().toString();
         boolean isDir = Files.isDirectory(path);
-        
+
         String relativePath = getRelativePath(path);
         if (!relativePath.startsWith("/")) {
             relativePath = "/" + relativePath;
         }
-        
+
         info.put("id", relativePath);
         info.put("name", name);
         info.put("type", isDir ? "folder" : "file");
         info.put("size", isDir ? 0 : Files.size(path));
-        
+
         ZonedDateTime modified = ZonedDateTime.ofInstant(
                 Files.getLastModifiedTime(path).toInstant(),
                 ZoneId.systemDefault()
         );
         info.put("date", modified.toInstant().toEpochMilli());
-        
+
         if (!isDir) {
             String ext = "";
             int dotIndex = name.lastIndexOf('.');
@@ -331,7 +341,7 @@ public class FileManagerService {
             }
             info.put("ext", ext);
         }
-        
+
         return info;
     }
 
@@ -351,17 +361,17 @@ public class FileManagerService {
         if (path == null || path.isEmpty() || path.equals("/")) {
             return Paths.get(rootPath);
         }
-        
+
         String normalizedPath = path.replaceAll("^/+", "");
         normalizedPath = normalizedPath.replace("/", File.separator);
-        
+
         Path fullPath = Paths.get(rootPath, normalizedPath).normalize();
         Path rootPathObj = Paths.get(rootPath).normalize();
-        
+
         if (!fullPath.startsWith(rootPathObj)) {
             throw new SecurityException("Access denied: " + path);
         }
-        
+
         return fullPath;
     }
 
@@ -376,14 +386,14 @@ public class FileManagerService {
                 if (!Files.exists(filePath) || Files.isDirectory(filePath)) {
                     continue;
                 }
-                
+
                 String entryName = filePath.getFileName().toString();
                 zos.putNextEntry(new ZipEntry(entryName));
-                
+
                 try (InputStream is = Files.newInputStream(filePath)) {
                     is.transferTo(zos);
                 }
-                
+
                 zos.closeEntry();
             }
         }
@@ -407,16 +417,16 @@ public class FileManagerService {
     public Map<String, Object> getDiskUsage() {
         Map<String, Object> usage = new HashMap<>();
         File root = new File(rootPath);
-        
+
         if (root.exists()) {
             long totalSpace = root.getTotalSpace();
             long freeSpace = root.getFreeSpace();
             long usedSpace = totalSpace - freeSpace;
-            
+
             usage.put("total", totalSpace);
             usage.put("used", usedSpace);
             usage.put("free", freeSpace);
-            
+
             // 사용률 계산 (소수점 1자리까지)
             double percent = (double) usedSpace / totalSpace * 100;
             usage.put("percent", Math.round(percent * 10) / 10.0);
@@ -426,7 +436,7 @@ public class FileManagerService {
             usage.put("free", 0L);
             usage.put("percent", 0.0);
         }
-        
+
         return usage;
     }
 }

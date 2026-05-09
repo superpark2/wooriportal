@@ -466,7 +466,7 @@ public class AiService {
             }
 
             Pattern actionPat = Pattern.compile(
-                    "\\[?IMAGE_ACTION:\\s*(\\{.*?\\})\\]?", Pattern.DOTALL);
+                    "\\[IMAGE_ACTION:\\s*(\\{.*?\\})\\]?", Pattern.DOTALL);
             Matcher actionMat = actionPat.matcher(rawFull);
 
             JsonNode imageAction = null;

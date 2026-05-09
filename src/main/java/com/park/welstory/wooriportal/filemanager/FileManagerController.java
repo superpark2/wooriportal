@@ -28,19 +28,19 @@ public class FileManagerController {
     @GetMapping("/list")
     public String showFileManagerPage() {
 
-        return "common/filemanager/list";
+        return "filemanager/list";
     }
 
     @GetMapping
     public String showFileManagerPageView() {
-        return "common/filemanager/view";
+        return "filemanager/view";
     }
 
     // 파일/폴더 목록 조회
     @GetMapping("/api/files")
     @ResponseBody
     public List<Map<String, Object>> getFiles(@RequestParam(required = false) String path,
-                                               @RequestParam(required = false) String password) throws IOException {
+                                              @RequestParam(required = false) String password) throws IOException {
         return fileManagerService.getFiles(path, password);
     }
 
@@ -48,7 +48,7 @@ public class FileManagerController {
     @GetMapping("/api/files/tree")
     @ResponseBody
     public List<Map<String, Object>> getTree(@RequestParam(required = false) String path,
-                                            @RequestParam(required = false) String password) throws IOException {
+                                             @RequestParam(required = false) String password) throws IOException {
         return fileManagerService.getTree(path, password);
     }
 
@@ -68,13 +68,13 @@ public class FileManagerController {
         String path = request.get("path");
         String name = request.get("name");
         String type = request.get("type"); // "file" or "folder"
-        
+
         if ("folder".equals(type)) {
             fileManagerService.createFolder(path, name);
         } else {
             fileManagerService.createFile(path, name);
         }
-        
+
         return ResponseEntity.ok().build();
     }
 
@@ -83,25 +83,35 @@ public class FileManagerController {
     @ResponseBody
     public ResponseEntity<?> updateItem(@RequestBody Map<String, Object> request) throws IOException {
         String action = (String) request.get("action");
-        
-        if ("rename".equals(action)) {
-            String path = (String) request.get("path");
-            String newName = (String) request.get("newName");
-            fileManagerService.renameItem(path, newName);
-        } else if ("move".equals(action)) {
-            String source = (String) request.get("source");
-            String target = (String) request.get("target");
-            fileManagerService.moveItem(source, target);
+        String password = (String) request.get("password");
+
+        try {
+            if ("rename".equals(action)) {
+                String path = (String) request.get("path");
+                String newName = (String) request.get("newName");
+                fileManagerService.renameItem(path, newName, password);
+            } else if ("move".equals(action)) {
+                String source = (String) request.get("source");
+                String target = (String) request.get("target");
+                fileManagerService.moveItem(source, target, password);
+            }
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("message", e.getMessage()));
         }
-        
+
         return ResponseEntity.ok().build();
     }
 
     // 파일/폴더 삭제
     @DeleteMapping("/api/files")
     @ResponseBody
-    public ResponseEntity<?> deleteItem(@RequestParam String path) throws IOException {
-        fileManagerService.deleteItem(path);
+    public ResponseEntity<?> deleteItem(@RequestParam String path,
+                                        @RequestParam(required = false) String password) throws IOException {
+        try {
+            fileManagerService.deleteItem(path, password);
+        } catch (SecurityException e) {
+            return ResponseEntity.status(403).body(Map.of("message", e.getMessage()));
+        }
         return ResponseEntity.ok().build();
     }
 
@@ -109,23 +119,23 @@ public class FileManagerController {
     @PostMapping("/api/files/upload")
     @ResponseBody
     public ResponseEntity<?> uploadFile(@RequestParam("file") MultipartFile[] files,
-                                       @RequestParam(required = false) String path) throws IOException {
+                                        @RequestParam(required = false) String path) throws IOException {
         fileManagerService.uploadFiles(files, path);
         return ResponseEntity.ok().build();
     }
 
     // 파일 다운로드
     @GetMapping("/api/files/download")
-    public void downloadFile(@RequestParam String path, 
-                            @RequestParam(required = false) Boolean preview,
-                            HttpServletResponse response) throws IOException {
+    public void downloadFile(@RequestParam String path,
+                             @RequestParam(required = false) Boolean preview,
+                             HttpServletResponse response) throws IOException {
         fileManagerService.downloadFile(path, preview != null && preview, response);
     }
 
     // 멀티 파일 다운로드 (ZIP)
     @PostMapping("/api/files/download-multiple")
     public void downloadMultipleFiles(@RequestBody Map<String, Object> request,
-                                     HttpServletResponse response) throws IOException {
+                                      HttpServletResponse response) throws IOException {
         @SuppressWarnings("unchecked")
         List<String> paths = (List<String>) request.get("paths");
         fileManagerService.downloadFilesAsZip(paths, response);

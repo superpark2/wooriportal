@@ -216,7 +216,7 @@
       "paint_mode": "Image First"
     },
     "class_type": "LanPaint_KSampler",
-    "_meta": { "title": "LanPaint KSampler (2차 정밀)" },
+    "_meta": { "title": "LanPaint KSampler (2차 정밀)" }
 
   },
   "224": {
