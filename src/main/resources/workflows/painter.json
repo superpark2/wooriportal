@@ -1,7 +1,7 @@
 {
   "200": {
     "inputs": {
-      "unet_name": "Flux2-Klein-9B-True-v2-mxfp8mixed.safetensors",
+      "unet_name": "flux-2-klein-9b-kv-fp8.safetensors",
       "weight_dtype": "default"
     },
     "class_type": "UNETLoader",
@@ -59,7 +59,7 @@
       "vae":    ["202", 0],
       "image1": ["203", 0],
       "image2": ["204", 0],
-      "image3": null,
+      "image3": ["227", 0],
       "prompt": ["206", 0],
       "width":  ["205", 0],
       "height": ["205", 1]
@@ -216,8 +216,8 @@
       "paint_mode": "Image First"
     },
     "class_type": "LanPaint_KSampler",
-    "_meta": { "title": "LanPaint KSampler (2차 정밀)" }
-
+    "_meta": { "title": "LanPaint KSampler (2차 정밀)" },
+    "widgets_values": [42, "randomize", 20, 1, "euler", "simple", 1, 2, "Image First", "LanPaint KSampler", "🖼️ Image Inpainting"]
   },
   "224": {
     "inputs": {
@@ -242,6 +242,15 @@
     },
     "class_type": "SaveImage",
     "_meta": { "title": "SaveImage (최종)" }
+  },
+
+  "227": {
+    "inputs": {
+      "image": "upload.png",
+      "upload": "image"
+    },
+    "class_type": "LoadImage",
+    "_meta": { "title": "Image 3 (소스)" }
   },
 
   "301": {

@@ -312,7 +312,7 @@
         <!-- 입력 행 -->
         <div class="input-row">
             <textarea id="chatTextarea" placeholder="무엇이든 물어보세요." rows="1"></textarea>
-            <button class="btn-icon-sm" id="btnSearch" title="웹 검색 모드 토글">
+            <button class="btn-icon-sm" id="btnSearch" title="웹 검색 (AI가 자동 판단)"  style="cursor:default;opacity:0.5;" disabled>
                 <i class="fas fa-search"></i>
             </button>
             <button class="btn-icon-sm" id="btnAttach" title="이미지 첨부">
@@ -434,7 +434,6 @@
     let attachedThumbs   = [];
     let lastUserInput    = '';
     let lastUserImages   = [];
-    let webSearchMode    = false;
     let editModeImageUrl = null;
     let renderTimer      = null;
     let _isRestoring     = false;
@@ -768,7 +767,6 @@
         attachedThumbs   = [];
         lastUserInput    = '';
         lastUserImages   = [];
-        webSearchMode    = false;
         editModeImageUrl = null;
         _mermaidIdx      = 0;
 
@@ -780,12 +778,6 @@
         </div>`;
 
         updateImagePreview();
-
-        const btnSearch = document.getElementById('btnSearch');
-        if (btnSearch) {
-            btnSearch.classList.remove('active');
-            btnSearch.title = '웹 검색 모드 토글';
-        }
 
         const ta = document.getElementById('chatTextarea');
         if (ta) ta.placeholder = '무엇이든 물어보세요.';
@@ -861,13 +853,6 @@
 
         if (role === 'user') {
             msgDiv.className = 'text-end mt-2';
-
-            if (webSearchMode) {
-                const tag = document.createElement('div');
-                tag.className = 'mb-1 text-end';
-                tag.innerHTML = `<span class="search-tag"><i class="fas fa-search" style="font-size:9px;"></i>웹 검색</span>`;
-                msgDiv.appendChild(tag);
-            }
 
             if (thumbs && thumbs.length > 0) {
                 const imgWrap = document.createElement('div');
@@ -1054,7 +1039,7 @@
         const textarea = document.getElementById('chatTextarea');
         const text     = textarea ? textarea.value.trim() : '';
 
-        if (!text && attachedImages.length === 0 && !editModeImageUrl) return;
+        if (!text && attachedImages.length === 0) return;
 
         lastUserInput  = text;
         lastUserImages = [...attachedImages];
@@ -1064,17 +1049,14 @@
         aiAbortCtrl = new AbortController();
         hideWelcome();
 
-        const curImages       = [...attachedImages];
-        const curThumbs       = [...attachedThumbs];
-        const isSearching     = webSearchMode;
-        const isEditing       = !!editModeImageUrl;
-        const capturedEditUrl = editModeImageUrl;
+        const curImages = [...attachedImages];
+        const curThumbs = [...attachedThumbs];
 
-        appendMessage('user', text || (isEditing ? '[이미지 편집 요청]' : '[이미지 첨부]'), curThumbs, null);
+        appendMessage('user', text || '[이미지 첨부]', curThumbs, null);
 
         const userEntry = {
             role: 'user',
-            content: text || (isEditing ? '이미지 편집 요청' : '이미지 첨부'),
+            content: text || '이미지 첨부',
             thumbs: curThumbs
         };
         if (curImages.length > 0) userEntry.images = curImages;
@@ -1083,7 +1065,6 @@
         if (textarea) { textarea.value = ''; textarea.style.height = '24px'; }
         attachedImages = []; attachedThumbs = [];
         updateImagePreview();
-        if (isEditing) cancelEditMode();
 
         const loadingId = appendLoadingBubble();
         let streamContentId = null;
@@ -1100,17 +1081,7 @@
             return obj;
         });
 
-        if (isSearching && payload.length > 0) {
-            const last = payload[payload.length - 1];
-            if (last.role === 'user' && !last.content.match(/검색해줘|찾아줘/)) {
-                last.content = last.content + ' 검색해줘';
-            }
-        }
-
         const requestBody = { sessionId: SESSION_ID, messages: payload };
-        if (isEditing && capturedEditUrl) {
-            requestBody.editImageUrl = capturedEditUrl;
-        }
 
         try {
             const response = await fetch(STREAM_URL, {
@@ -1305,20 +1276,6 @@
     // ============================================================================
     // 웹 검색 토글
     // ============================================================================
-    function toggleWebSearch() {
-        webSearchMode = !webSearchMode;
-        const btn = document.getElementById('btnSearch');
-        const ta  = document.getElementById('chatTextarea');
-        if (webSearchMode) {
-            btn.classList.add('active');
-            btn.title = '웹 검색 모드 켜짐 (클릭하여 끄기)';
-            ta.placeholder = '검색할 내용을 입력하세요.';
-        } else {
-            btn.classList.remove('active');
-            btn.title = '웹 검색 모드 토글';
-            ta.placeholder = '무엇이든 물어보세요.';
-        }
-    }
 
     // ============================================================================
     // 이미지 처리
@@ -1391,7 +1348,7 @@
         if (ta && !editModeImageUrl) {
             ta.placeholder = attachedImages.length > 0
                 ? `${attachedImages.length}장 첨부됨 — 변형/편집 내용을 입력하거나 바로 전송`
-                : (webSearchMode ? '검색할 내용을 입력하세요.' : '무엇이든 물어보세요.');
+                : '무엇이든 물어보세요.';
         }
     }
 
@@ -1441,7 +1398,6 @@
         const btnAttach = document.getElementById('btnAttach');
         const fileInput = document.getElementById('fileInput');
         const btnReset  = document.getElementById('btnReset');
-        const btnSearch = document.getElementById('btnSearch');
         const modal     = document.getElementById('aiImageModal');
         const msgContainer = document.getElementById('chat-messages-container');
 
@@ -1477,7 +1433,6 @@
             processFiles(e.target.files); fileInput.value = '';
         });
 
-        btnSearch.addEventListener('click', toggleWebSearch);
         document.getElementById('btnCancelEdit').addEventListener('click', cancelEditMode);
 
         textarea.addEventListener('paste', function (e) {

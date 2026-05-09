@@ -3,6 +3,7 @@ package com.park.welstory.wooriportal.ai;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.Getter;
 import lombok.Setter;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
@@ -112,6 +113,9 @@ public class AiHandler {
         /** FastAPI taskId 등록 */
         @Setter
         private volatile String            excelTaskId    = null;
+        /** 채팅 → MCP ExcelTool 경유 처리 시 업로드된 엑셀 파일 */
+        @Getter @Setter
+        private volatile MultipartFile     pendingExcelFile = null;
 
         private ScheduledFuture<?> heartbeatTask;
 
@@ -348,6 +352,11 @@ public class AiHandler {
     /**
      * 외부(컨트롤러 중지 버튼)에서 세션 취소.
      */
+    /** 세션 ID로 컨텍스트 조회 (없으면 null) */
+    public SessionContext getSession(String sessionId) {
+        return sessions.get(sessionId);
+    }
+
     public void cancelSession(String sessionId) {
         SessionContext ctx = sessions.get(sessionId);
         if (ctx != null) {

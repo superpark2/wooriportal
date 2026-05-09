@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.ai.img;
+package com.park.welstory.wooriportal.ai.mcp.tools.img;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -52,7 +52,7 @@ public class AiImgService {
     @Value("${comfy.url}")
     private String COMFY_URL;
 
-    private final String COMFY_IMAGE_DIR = System.getProperty("user.dir") + "/ai/image/AIgen";
+    private final String COMFY_IMAGE_DIR = System.getProperty("user.dir") + "/image/AIgen";
     private final ObjectMapper         mapper       = new ObjectMapper();
     private final LoraWorkflowInjector loraInjector = new LoraWorkflowInjector(mapper);
 
@@ -62,7 +62,7 @@ public class AiImgService {
     private static final String   PROMPT_NODE      = "206";
     private static final String   PAINTER_NODE     = "207";
     private static final String   KSAMPLER_NODE    = "208";
-    private static final String[] LOAD_IMAGE_NODES = {"203", "204"};
+    private static final String[] LOAD_IMAGE_NODES = {"203", "204", "227"};
 
     @PostConstruct
     public void init() {
@@ -192,8 +192,6 @@ public class AiImgService {
                 }
 
                 if (imageCount >= 2 && finalPrompt != null && !finalPrompt.isBlank()) {
-                    // 2장 이상: LLM이 작성한 stage2Prompt를 "216"에 주입
-                    // stage2Prompt가 없으면 finalPrompt로 fallback
                     String s2 = (stage2Prompt != null && !stage2Prompt.isBlank())
                             ? stage2Prompt : finalPrompt;
                     ObjectNode clip216 = (ObjectNode) wf.path("216").path("inputs");
@@ -206,7 +204,6 @@ public class AiImgService {
 
                 if (imageCount < 2) {
                     // 1장 단독 편집: LanPaint 2차 스테이지 전체 비활성화
-                    // "216"~"225" 제거 후 "208"(KSampler) → "209"(VAEDecode) → "226"(SaveImage) 직결
                     for (String nodeId : new String[]{"216","217","218","219","220","221","222","223","224","225"}) {
                         if (!wf.path(nodeId).isMissingNode()) wf.remove(nodeId);
                     }
@@ -216,7 +213,7 @@ public class AiImgService {
                     }
                     System.out.println("[AiImgService] 단독 편집: LanPaint 2차 스테이지 비활성화, 1차 결과 직출력");
                 } else {
-                    // 2장 이상: "218"(ImageScaleToTotalPixels)의 레퍼런스를 image2("204")로 고정
+                    // 2장 이상: "218"의 레퍼런스를 image2("204")로 고정
                     ObjectNode in218 = (ObjectNode) wf.path("218").path("inputs");
                     if (!in218.isMissingNode()) {
                         in218.set("image", mapper.createArrayNode().add("204").add(0));
@@ -229,14 +226,12 @@ public class AiImgService {
 
             // ── 제출 ─────────────────────────────────────────────────────────
             if (ctx.isCancelled()) return;
-
             String promptId = submitComfyPrompt(wf);
             if (promptId == null) { finishWithError(emitter, "이미지 서버에 연결할 수 없어요."); return; }
 
             ctx.setComfyPromptId(promptId);
             String imageFileName = pollComfyResult(promptId, 300, ctx);
 
-            // 취소된 경우 본인 작업만 큐에서 제거
             if (ctx.isCancelled()) {
                 cancelComfyPrompt(promptId);
                 return;
@@ -253,21 +248,17 @@ public class AiImgService {
             if (saved == null) { finishWithError(emitter, "이미지를 저장하는 데 실패했어요."); return; }
 
             // ── 세션 이미지 갱신 ─────────────────────────────────────────────
-            // updateAfterGeneration() 단일 호출로 세 맵을 원자적으로 교체
             String cachedB64 = loadImageFileAsBase64(saved);
             if (cachedB64 != null) {
                 sessionStore.updateAfterGeneration(sessionId, saved, cachedB64);
             } else {
-                // b64 변환 실패 시 파일명만 저장.
-                // → lastImageFile은 set되지만 sessionAllImages는 갱신되지 않아 불일치 상태 발생.
-                // → 다음 요청의 AiService.route()에서 resolveSessionImage() fallback이 복구함.
                 sessionStore.putLastImageFile(sessionId, saved);
                 System.err.println("[AiImgService] ⚠ b64 캐싱 실패 → 파일명만 저장, allImages 불일치 발생: " + saved
                         + " | 다음 요청 시 route()의 resolveSessionImage fallback으로 자동 복구됩니다.");
             }
 
             // ── SSE 완료 이벤트 전송 ─────────────────────────────────────────
-            String imgUrl  = "/ai/image/AIgen/" + saved;
+            String imgUrl  = "/image/AIgen/" + saved;
             String comment = imageCount == 0 ? "이미지를 생성했어요!" : "이미지 편집이 완료됐어요!";
 
             emitter.send(SseEmitter.event().name("done")
@@ -313,7 +304,6 @@ public class AiImgService {
     //  ComfyUI 통신
     // ══════════════════════════════════════════════════════════════════════════
 
-    /** 본인 작업만 큐에서 취소. 다른 세션 작업에 영향 없음. */
     private void cancelComfyPrompt(String promptId) {
         if (promptId == null) return;
         try {
@@ -448,10 +438,10 @@ public class AiImgService {
 
     private String downloadAndSaveComfyImage(String comfyFileInfo) {
         try {
-            String[] parts        = comfyFileInfo.split("::", -1);
+            String[] parts         = comfyFileInfo.split("::", -1);
             String   comfyFileName = parts[0];
-            String   fileType     = parts.length > 1 ? parts[1] : "output";
-            String   subfolder    = parts.length > 2 ? parts[2] : "";
+            String   fileType      = parts.length > 1 ? parts[1] : "output";
+            String   subfolder     = parts.length > 2 ? parts[2] : "";
             String downloadUrl = COMFY_URL + "/view?filename="
                     + URLEncoder.encode(comfyFileName, StandardCharsets.UTF_8)
                     + "&type=" + URLEncoder.encode(fileType, StandardCharsets.UTF_8)
@@ -492,12 +482,8 @@ public class AiImgService {
     //  이미지 유틸
     // ══════════════════════════════════════════════════════════════════════════
 
-    /**
-     * imageOrder(0-based)에 따라 images 리스트를 재배열한다.
-     * imageOrder가 비어있거나 범위 초과이면 원본 순서 유지.
-     */
     private List<String> applyImageOrder(List<String> images, List<Integer> imageOrder) {
-        if (images.isEmpty() || imageOrder.isEmpty()) return images;
+        if (images.isEmpty() || imageOrder.isEmpty()) return new ArrayList<>(images);
         List<String> result = new ArrayList<>();
         Set<Integer> used   = new LinkedHashSet<>();
         for (int idx : imageOrder) {
@@ -506,9 +492,7 @@ public class AiImgService {
                 used.add(idx);
             }
         }
-        for (int i = 0; i < images.size(); i++) {
-            if (!used.contains(i)) result.add(images.get(i));
-        }
+        // fallback 제거 — imageOrder에 명시되지 않은 이미지는 포함하지 않음
         return result;
     }
 

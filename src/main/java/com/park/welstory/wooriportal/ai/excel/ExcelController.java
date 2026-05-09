@@ -1,6 +1,7 @@
 package com.park.welstory.wooriportal.ai.excel;
 
 import com.park.welstory.wooriportal.ai.AiHandler;
+import com.park.welstory.wooriportal.ai.mcp.tools.excel.ExcelAiService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpHeaders;
@@ -79,6 +80,29 @@ public class ExcelController {
         });
 
         return emitter;
+    }
+
+    /**
+     * 채팅 MCP Tool 경유 처리용 엑셀 파일 업로드.
+     * POST /excel/upload?sessionId=xxx
+     *
+     * 파일을 세션 컨텍스트에 보관해두면, 이후 채팅에서
+     * LLM이 excel_process 툴을 호출할 때 ExcelTool이 꺼내 쓴다.
+     */
+    @PostMapping("/excel/upload")
+    @ResponseBody
+    public ResponseEntity<Void> uploadExcel(
+            @RequestParam("file")      MultipartFile file,
+            @RequestParam("sessionId") String sessionId) {
+
+        AiHandler.SessionContext ctx = aiHandler.getSession(sessionId);
+        if (ctx == null) {
+            return ResponseEntity.badRequest().build();
+        }
+        ctx.setPendingExcelFile(file);
+        System.out.println("[ExcelController] 엑셀 파일 세션 등록: " + file.getOriginalFilename()
+                + " → sessionId=" + sessionId);
+        return ResponseEntity.ok().build();
     }
 
     /**

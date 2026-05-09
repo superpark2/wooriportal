@@ -1,6 +1,6 @@
 package com.park.welstory.wooriportal.ai;
 
-import com.park.welstory.wooriportal.ai.dto.AIDTO;
+import com.park.welstory.wooriportal.ai.dto.ChatRequestDTO;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.MediaType;
@@ -26,7 +26,8 @@ public class AiController {
     /** 메인 채팅 페이지 */
     @GetMapping("/ai")
     public String index() {
-        return "ai/index"; }
+        return "ai/index";
+    }
 
     /**
      * SSE 스트리밍 채팅.
@@ -36,7 +37,7 @@ public class AiController {
     @PostMapping(value = "/ai/chat/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     @ResponseBody
     public SseEmitter chat(
-            @RequestBody AIDTO.ChatRequest request,
+            @RequestBody ChatRequestDTO request,
             HttpServletResponse response) {
 
         response.setHeader("Cache-Control",     "no-cache");
@@ -56,7 +57,6 @@ public class AiController {
         // ── SSE 콜백 등록 (브라우저 종료 / 타임아웃 / 에러 → cancel) ──
         emitter.onTimeout(ctx::cancel);
         emitter.onError(e -> ctx.cancel());
-        // onCompletion 은 정상 완료 시에도 호출되므로 complete() 사용
         emitter.onCompletion(ctx::complete);
 
         // ── 비동기 처리 ─────────────────────────────────────────────

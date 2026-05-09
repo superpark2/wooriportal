@@ -26,6 +26,10 @@ public class AiSessionStore {
     /** 세션별 마지막 이미지 Base64 캐시 */
     private final Map<String, String>       sessionLastImageB64  = new ConcurrentHashMap<>();
 
+    /** 세션별 전체 이미지 파일 경로 목록 **/
+    private final Map<String, List<String>> sessionImagePaths = new ConcurrentHashMap<>();
+
+
     // ── 이미지 목록 ──────────────────────────────────────────────────
 
     public List<String> getAllImages(String sessionId) {
@@ -78,7 +82,12 @@ public class AiSessionStore {
     public void updateAfterGeneration(String sessionId, String fileName, String b64) {
         sessionLastImageFile.put(sessionId, fileName);
         sessionLastImageB64.put(sessionId, b64);
-        sessionAllImages.put(sessionId, new ArrayList<>(List.of(b64)));
+        // allImages는 건드리지 않음 — 첨부 이미지 상태 유지 (ImageTool.resolveImages()가 조합)
+        sessionImagePaths.put(sessionId, new ArrayList<>(List.of(fileName)));
+    }
+
+    public List<String> getImagePaths(String sessionId) {
+        return sessionImagePaths.getOrDefault(sessionId, List.of());
     }
 
     /**
@@ -96,5 +105,6 @@ public class AiSessionStore {
         sessionAllImages.remove(sessionId);
         sessionLastImageFile.remove(sessionId);
         sessionLastImageB64.remove(sessionId);
+        sessionImagePaths.remove(sessionId);
     }
 }

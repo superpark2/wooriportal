@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.ai.excel;
+package com.park.welstory.wooriportal.ai.mcp.tools.excel;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -54,9 +54,6 @@ public class ExcelAiService {
             forwardFastApiSse(file, prompt, taskId, ctx, emitter);
         } catch (Exception e) {
             if (ctx.isCancelled()) {
-                // [수정 3] 취소 시 FastAPI에도 cancel 요청 전송
-                // 기존: Java 연결만 끊고 FastAPI 작업은 계속 실행됨
-                // 변경: /cancel/{taskId} 호출해서 FastAPI 측 작업도 중단
                 sendEvent(emitter, "token", "{\"token\":\"\\n🛑 중단됨\\n\"}");
             } else {
                 e.printStackTrace();
@@ -69,7 +66,6 @@ public class ExcelAiService {
 
     // ══════════════════════════════════════════════════════════════
     //  FastAPI /cancel 호출 (별도 스레드, 실패해도 무시)
-    // [수정 3] 추가된 메서드
     // ══════════════════════════════════════════════════════════════
 
     private void notifyCancelToFastApi(String taskId) {
@@ -153,10 +149,8 @@ public class ExcelAiService {
                 } else if (line.startsWith("data:")) {
                     dataLine = line.substring(5).trim();
                 } else if (line.isEmpty() && !eventName.isEmpty()) {
-                    // 이벤트 완성 → 처리
                     handleFastApiEvent(eventName, dataLine, ctx, emitter);
 
-                    // done / error / cancelled 이벤트면 종료
                     if ("done".equals(eventName) || "error".equals(eventName)
                             || "cancelled".equals(eventName)) {
                         break;
@@ -167,9 +161,6 @@ public class ExcelAiService {
                 }
             }
         } finally {
-            // [수정 2] 스트림 종료 후 명시적 disconnect
-            // 기존: HttpURLConnection이 GC될 때까지 소켓 유지 → 리소스 낭비
-            // 변경: finally 블록에서 항상 disconnect() 호출
             conn.disconnect();
         }
 
@@ -189,18 +180,11 @@ public class ExcelAiService {
                                     SseEmitter emitter) {
         try {
             switch (eventName) {
-                case "token" -> {
-                    // 로그 메시지 → 그대로 포워딩
-                    sendEvent(emitter, "token", dataJson);
-                }
-                case "code" -> {
-                    // AI 생성 코드 → 프론트 코드 블록으로 표시
-                    sendEvent(emitter, "code", dataJson);
-                }
-                case "done" -> {
-                    // base64 파일 디코딩 → 저장 → fileName 전달
+                case "token" -> sendEvent(emitter, "token", dataJson);
+                case "code"  -> sendEvent(emitter, "code",  dataJson);
+                case "done"  -> {
                     JsonNode node = mapper.readTree(dataJson);
-                    String fileB64 = node.path("fileBase64").asText("");
+                    String fileB64  = node.path("fileBase64").asText("");
                     String origName = node.path("fileName").asText("result.xlsx");
 
                     if (!fileB64.isEmpty()) {
@@ -219,11 +203,8 @@ public class ExcelAiService {
                         sendEvent(emitter, "error", "{\"message\":\"파일 데이터 없음\"}");
                     }
                 }
-                case "error" -> sendEvent(emitter, "error", dataJson);
+                case "error"     -> sendEvent(emitter, "error", dataJson);
                 case "cancelled" -> {
-                    // [수정 1] cancelled 이벤트 수신 시 emitter를 명확히 완료 처리
-                    // 기존: token 이벤트로만 전달하고 emitter가 열린 채로 유지될 수 있음
-                    // 변경: 중단 메시지 전송 후 emitter complete() 까지 호출
                     sendEvent(emitter, "token", "{\"token\":\"\\n🛑 작업이 중단되었습니다.\\n\"}");
                     safeComplete(emitter);
                     ctx.complete();
