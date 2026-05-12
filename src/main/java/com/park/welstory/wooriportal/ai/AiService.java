@@ -52,6 +52,9 @@ public class AiService {
 
     private String systemPrompt = "";
 
+    @Value("${ollama.options.num-ctx}")
+    private int numCtx;
+
     private final ObjectMapper mapper = new ObjectMapper();
 
     /** 세션별 대화 메모리 */
@@ -201,7 +204,7 @@ public class AiService {
                 .stream(true)
                 .options(OllamaRequestDTO.Options.builder()
                         .numPredict(2048)
-                        .numCtx(8192)
+                        .numCtx(numCtx)
                         .build())
                 .tools(mcpToolRegistry.getToolDefinitions())  // ← MCP 도구 목록 포함
                 .build();

@@ -25,7 +25,7 @@ public class MainController {
     private final FacilityRepository facilityRepository;
     private final ManagementRepository managementRepository;
 
-    @GetMapping({"/", "/main"})
+    @GetMapping({"","/", "/main"})
     public String index(HttpServletRequest request, Model model) {
         request.setAttribute("activeMenu", "main");
         
