@@ -20,4 +20,6 @@ public class ChatRequestDTO {
 
     /** UI 스킨 (ruru / silicagel / maltese / 기본) */
     private String skin;
+
+    private boolean regenerate;
 }

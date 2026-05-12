@@ -1,4 +1,4 @@
-package com.park.welstory.wooriportal.ai.mcp.tools.img.dto;
+package com.park.welstory.wooriportal.ai.mcp.tools.img;
 
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -35,4 +35,7 @@ public class ImageToolArgumentDTO {
 
     /** 편집 시 사용할 이미지 슬롯 순서 (1-based). 예) [1] 또는 [1,2] */
     private List<Integer> imageOrder;
+
+    /** 이전 생성 이미지를 편집에 포함할지 여부. true면 생성 이미지를 마지막 슬롯에 추가. */
+    private boolean useGeneratedImage;
 }

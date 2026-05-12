@@ -58,7 +58,11 @@ public class ImageTool implements McpTool {
                                                 .build(),
                                         "imageOrder", ToolDefinitionDTO.PropertySchema.builder()
                                                 .type("array")
-                                                .description("편집 시 사용할 이미지 슬롯 순서 (1-based). 예) [1] 또는 [1,2]")
+                                                .description("편집 시 첨부 이미지 슬롯 순서 (1-based). 예) [1] 또는 [2,1]")
+                                                .build(),
+                                        "useGeneratedImage", ToolDefinitionDTO.PropertySchema.builder()
+                                                .type("boolean")
+                                                .description("이전 생성 이미지를 편집에 포함할지 여부. 생성 이미지 추가 편집 시 true.")
                                                 .build()
                                 ))
                                 .required(List.of("prompt", "intent"))
@@ -71,7 +75,7 @@ public class ImageTool implements McpTool {
     public void execute(String argumentsJson, String sessionId,
                         AiHandler.SessionContext ctx, SseEmitter emitter) {
         try {
-            com.park.welstory.wooriportal.ai.mcp.tools.img.dto.ImageToolArgumentDTO args = MAPPER.readValue(argumentsJson, com.park.welstory.wooriportal.ai.mcp.tools.img.dto.ImageToolArgumentDTO.class);
+            ImageToolArgumentDTO args = MAPPER.readValue(argumentsJson, ImageToolArgumentDTO.class);
 
             List<Integer> imageOrder = args.getImageOrder() != null
                     ? args.getImageOrder() : List.of();
@@ -82,7 +86,12 @@ public class ImageTool implements McpTool {
                     .map(o -> o - 1)
                     .toList();
 
-            List<String> images = resolveImages(args.getIntent(), sessionId);
+            List<String> images = resolveImages(
+                    args.getIntent(),
+                    args.isUseGeneratedImage(),
+                    ctx.isRegenerate(),   // ← SessionContext에서 꺼냄
+                    sessionId
+            );
 
             System.out.println("[ImageTool] intent=" + args.getIntent()
                     + " images=" + images.size() + "장"
@@ -107,23 +116,26 @@ public class ImageTool implements McpTool {
 
     // ── private ───────────────────────────────────────────────────
 
-    private List<String> resolveImages(String intent, String sessionId) {
-        if ("IMAGE_GEN".equals(intent)) {
-            return List.of();   // 새 생성 → 이미지 불필요
+    private List<String> resolveImages(String intent, boolean useGeneratedImage,
+                                       boolean regenerate, String sessionId) {
+        if ("IMAGE_GEN".equals(intent)) return List.of();
+
+        // 다시생성이면 직전 이미지 목록 그대로 재사용
+        if (regenerate) {
+            List<String> last = sessionStore.getLastUsedImages(sessionId);
+            if (!last.isEmpty()) return last;
         }
 
-        // IMAGE_EDIT
-        // 슬롯 1 = lastGen (이전 생성 이미지)
-        // 슬롯 2~ = attached (새 첨부 이미지들)
-        // imageOrder가 슬롯 번호를 지정하면 applyImageOrder가 순서대로 뽑아감
-        List<String> attached = sessionStore.getAllImages(sessionId);
-        String lastGen = aiImgService.resolveSessionImage(sessionId);
+        List<String> pool = new java.util.ArrayList<>(sessionStore.getAllImages(sessionId));
 
-        List<String> pool = new java.util.ArrayList<>();
-        if (lastGen != null) pool.add(lastGen);  // index 0 = 슬롯 1
-        pool.addAll(attached);                    // index 1~ = 슬롯 2~
+        if (useGeneratedImage) {
+            String lastGen = aiImgService.resolveSessionImage(sessionId);
+            if (lastGen != null) pool.add(0, lastGen);
+        }
 
-        return pool;
+        List<String> result = pool.subList(0, Math.min(pool.size(), 3));
+        sessionStore.putLastUsedImages(sessionId, result);  // 사용 목록 저장
+        return result;
     }
 
     private void sendError(SseEmitter emitter, String message) {

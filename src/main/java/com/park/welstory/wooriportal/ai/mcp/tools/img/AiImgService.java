@@ -2,7 +2,9 @@ package com.park.welstory.wooriportal.ai.mcp.tools.img;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.node.TextNode;
 import com.park.welstory.wooriportal.ai.AiHandler;
 import com.park.welstory.wooriportal.ai.AiSessionStore;
 import com.park.welstory.wooriportal.ai.lora.LoraConfig;
@@ -52,7 +54,7 @@ public class AiImgService {
     @Value("${comfy.url}")
     private String COMFY_URL;
 
-    private final String COMFY_IMAGE_DIR = System.getProperty("user.dir") + "/image/AIgen";
+    private final String COMFY_IMAGE_DIR = System.getProperty("user.dir") + "/ai/image/AIgen";
     private final ObjectMapper         mapper       = new ObjectMapper();
     private final LoraWorkflowInjector loraInjector = new LoraWorkflowInjector(mapper);
 
@@ -144,6 +146,10 @@ public class AiImgService {
             };
             painterInputs.put("mode", modeValue);
             painterInputs.put("batch_size", 1);
+            ArrayNode wv = (ArrayNode) wf.path(PAINTER_NODE).get("widgets_values");
+            if (wv != null && wv.size() > 1) {
+                wv.set(1, new TextNode(modeValue));
+            }
 
             // ── LoadImage 노드에 업로드 파일명 주입 ──────────────────────────
             String[] imageInputKeys = {"image1", "image2", "image3"};
@@ -258,7 +264,7 @@ public class AiImgService {
             }
 
             // ── SSE 완료 이벤트 전송 ─────────────────────────────────────────
-            String imgUrl  = "/image/AIgen/" + saved;
+            String imgUrl  = "/ai/image/AIgen/" + saved;
             String comment = imageCount == 0 ? "이미지를 생성했어요!" : "이미지 편집이 완료됐어요!";
 
             emitter.send(SseEmitter.event().name("done")

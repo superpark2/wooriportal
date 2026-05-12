@@ -39,7 +39,7 @@ public class AiService {
 
     private final AiHandler        aiHandler;
     private final AiSessionStore   sessionStore;
-    private final McpToolRegistry  mcpToolRegistry;
+    private final McpToolRegistry mcpToolRegistry;
 
     @Value("${ollama.api.url}")
     private String ollamaApiUrl;
@@ -71,6 +71,7 @@ public class AiService {
         String sessionId = ctx.getSessionId();
         String skin      = request.getSkin();
 
+        ctx.setRegenerate(request.isRegenerate());
         String userMessage     = extractLastUserMessage(request);
         List<String> attached  = extractAttachedImages(request);
 
@@ -82,10 +83,10 @@ public class AiService {
         // 메모리에 유저 메시지 추가
         String memContent = userMessage
                 + (attached.isEmpty() ? "" : " [이미지 " + attached.size() + "장 첨부]");
-        addToMemory(sessionId, "user", memContent, attached.isEmpty() ? null : attached);
+        addToMemory(sessionId, "user", memContent, null);
 
         // Ollama 스트리밍 호출
-        streamOllama(sessionId, userMessage, attached, skin, ctx, ctx.getEmitter());
+        streamOllama(sessionId, userMessage, List.of(), skin, ctx, ctx.getEmitter());
     }
 
     public void clearSession(String sessionId) {
@@ -158,8 +159,7 @@ public class AiService {
                 System.out.println("[AiService] tool_calls 수신: " + toolName);
 
                 // 메모리에 assistant tool_call 기록
-                addToMemory(sessionId, "assistant",
-                        "[tool_call:" + toolName + "]", null);
+                addToMemory(sessionId, "assistant", "이미지 작업을 수행했습니다.", null);
 
                 boolean executed = mcpToolRegistry.execute(
                         toolName, toolArgs, sessionId, ctx, emitter);
@@ -224,9 +224,11 @@ public class AiService {
         }
 
         // 세션 이미지 상태 주입
-        List<String> sessionImages = sessionStore.getAllImages(sessionId);
-        if (!sessionImages.isEmpty()) {
-            messages.add(buildImageStatusMessage(sessionImages.size()));
+        List<String> attached = sessionStore.getAllImages(sessionId);
+        String lastGenB64 = sessionStore.getLastImageB64(sessionId).orElse(null);
+
+        if (!attached.isEmpty() || lastGenB64 != null) {
+            messages.add(buildImageStatusMessage(attached, lastGenB64));
         }
 
         // 시스템 프롬프트
@@ -256,13 +258,20 @@ public class AiService {
                 .build();
     }
 
-    private OllamaRequestDTO.MessageDTO buildImageStatusMessage(int count) {
-        String content = "[IMAGE_STATUS: 세션에 이미지 " + count + "장 존재. "
-                + "편집/수정 요청 시 image_action 도구를 사용할 것.]";
+    private OllamaRequestDTO.MessageDTO buildImageStatusMessage(List<String> attached, String lastGenB64) {
+        StringBuilder sb = new StringBuilder("[IMAGE_STATUS: ");
+
+        for (int i = 0; i < attached.size(); i++) {
+            sb.append("슬롯").append(i + 1).append("=첨부이미지").append(i + 1).append(" ");
+        }
+        if (lastGenB64 != null) {
+            sb.append("/ 이전생성이미지 존재(useGeneratedImage=true로 슬롯3에 포함 가능) ");
+        }
+        sb.append("/ 편집·수정 요청 시 image_action 도구 사용.]");
 
         return OllamaRequestDTO.MessageDTO.builder()
                 .role("system")
-                .content(content)
+                .content(sb.toString())
                 .build();
     }
 

@@ -101,6 +101,10 @@ public class AiHandler {
         private final SseEmitter  emitter;
         private final SessionType type;
 
+        @Getter
+        @Setter
+        private boolean regenerate;
+
         private final AtomicBoolean cancelled = new AtomicBoolean(false);
         private final AtomicBoolean done      = new AtomicBoolean(false);
 

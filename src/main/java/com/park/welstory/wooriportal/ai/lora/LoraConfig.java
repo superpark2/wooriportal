@@ -84,6 +84,14 @@ public enum LoraConfig {
             "ArsMovieStill, 80s Fantasy Movie Still",
             1.0,
             "80년대 판타지", "옛날 판타지 영화"
+    ),
+
+
+    Ghibli(
+            "Ghibli_style_Flux 9B.safetensors",
+            "Ghiblistyle, ChihiroOgino, HakuSA",
+            1.0,
+            "지브리"
     );
 
     // ──────────────────────────────────────────────────────────────────────────

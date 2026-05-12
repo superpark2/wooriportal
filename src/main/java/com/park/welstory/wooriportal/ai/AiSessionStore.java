@@ -106,5 +106,19 @@ public class AiSessionStore {
         sessionLastImageFile.remove(sessionId);
         sessionLastImageB64.remove(sessionId);
         sessionImagePaths.remove(sessionId);
+        sessionLastUsedImages.remove(sessionId);
+    }
+
+
+    // ── 세션 이미지 다시생성용 ─────────────────────────────────────────────
+
+    private final Map<String, List<String>> sessionLastUsedImages = new ConcurrentHashMap<>();
+
+    public void putLastUsedImages(String sessionId, List<String> images) {
+        sessionLastUsedImages.put(sessionId, new ArrayList<>(images));
+    }
+
+    public List<String> getLastUsedImages(String sessionId) {
+        return sessionLastUsedImages.getOrDefault(sessionId, List.of());
     }
 }
