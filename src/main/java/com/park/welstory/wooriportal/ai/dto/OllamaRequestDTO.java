@@ -3,8 +3,7 @@ package com.park.welstory.wooriportal.ai.dto;
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import com.park.welstory.wooriportal.ai.mcp.dto.ToolDefinitionDTO;
-import lombok.Builder;
-import lombok.Getter;
+import lombok.*;
 
 import java.util.List;
 
@@ -28,6 +27,9 @@ public class OllamaRequestDTO {
     // ── 내부 DTO ──────────────────────────────────────────────────
 
     @Getter
+    @Setter
+    @NoArgsConstructor
+    @AllArgsConstructor
     @Builder
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class MessageDTO {

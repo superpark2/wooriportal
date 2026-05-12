@@ -24,9 +24,9 @@ public class AiController {
     private final ExecutorService executor = Executors.newCachedThreadPool();
 
     /** 메인 채팅 페이지 */
-    @GetMapping
+    @GetMapping("/ai")
     public String index() {
-        return "index";
+        return "ai/index";
     }
 
     /**

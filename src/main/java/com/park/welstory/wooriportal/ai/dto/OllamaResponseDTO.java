@@ -7,8 +7,7 @@ import com.fasterxml.jackson.core.JsonToken;
 import com.fasterxml.jackson.databind.DeserializationContext;
 import com.fasterxml.jackson.databind.JsonDeserializer;
 import com.fasterxml.jackson.databind.annotation.JsonDeserialize;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.io.IOException;
 import java.util.List;
@@ -44,7 +43,10 @@ public class OllamaResponseDTO {
     // ── 내부 DTO ──────────────────────────────────────────────────
 
     @Getter
+    @Setter
     @NoArgsConstructor
+    @AllArgsConstructor
+    @Builder
     @JsonIgnoreProperties(ignoreUnknown = true)
     public static class MessageDTO {
         private String role;

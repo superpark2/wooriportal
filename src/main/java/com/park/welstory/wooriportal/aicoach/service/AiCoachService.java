@@ -157,10 +157,10 @@ public class AiCoachService {
     @Scheduled(cron = "0 0 0 * * *")
     @Transactional
     public void deleteOldSessions() {
-        List<AICoachSession> old = sessionRepository.findByCreatedAtBefore(LocalDateTime.now().minusDays(1));
+        List<AICoachSession> old = sessionRepository.findByCreatedAtBefore(LocalDateTime.now().minusDays(30));
         if (old.isEmpty()) { log.info("🧹 삭제할 만료 세션 없음"); return; }
         sessionRepository.deleteAll(old);
-        log.info("🧹 만료 세션 {}개 자동 삭제 완료", old.size());
+        log.info("🧹 만료 세션 {}개 자동 삭제 완료 (30일 초과)", old.size());
     }
 
     // ── 내부 헬퍼 ───────────────────────────────────────────────────

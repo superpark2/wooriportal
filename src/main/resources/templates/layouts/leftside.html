@@ -88,6 +88,7 @@
             <li><a th:classappend="${activeMenu == 'ai' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="ai-submenu"><i class="fas fa-robot"></i> AI 도구</a></li>
         </ul>
         <ul th:classappend="${activeMenu == 'ai' ? 'show' : ''}" class="sidebar-menu submenu" id="ai-submenu">
+            <li><a th:classappend="${activeSubMenu == 'aiCoach' ? 'active' : ''}" href="/aicoach" target="_blank" rel="noopener noreferrer"><i class="fas fa-user-tie"></i>AI 면접/이력서 코치</a></li>
             <li><a th:classappend="${activeSubMenu == 'aiChat' ? 'active' : ''}" href="/ai" target="_blank" rel="noopener noreferrer"><i class="fas fa-robot"></i> WOORI AI</a></li>
             <li><a th:classappend="${activeSubMenu == 'aiExcel' ? 'active' : ''}" href="/excel" target="_blank" rel="noopener noreferrer"><i class="fas fa-file-excel"></i> 엑셀 AI</a></li>
         </ul>

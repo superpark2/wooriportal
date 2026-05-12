@@ -60,6 +60,7 @@ public class AiCoachAiService {
         String prompt = """
             당신은 %s 기업의 %s 직무 채용 면접관입니다.
             지원자는 아직 해당 직무 경험이 없는 신입 지원자입니다.
+            매우 엄격한 자세로 임해주십시오.
 
             [면접 유형: %s 면접]
             %s
@@ -82,6 +83,7 @@ public class AiCoachAiService {
     public Map<String, Object> generateFeedback(AiCoachRequestDto.GenerateFeedbackRequest req) {
         String prompt = """
             당신은 %s 기업의 %s 직무 전문 면접관입니다.
+            매우 엄격한 자세로 임해주십시오.
             질문: %s
             지원자 답변: %s
 
@@ -129,6 +131,7 @@ public class AiCoachAiService {
 
         String prompt = """
             당신은 대기업 채용 전문가이자 자기소개서 컨설턴트입니다.
+            매우 엄격한 자세로 임해주십시오.
 
             [지원 회사] %s
             [지원 직무] %s

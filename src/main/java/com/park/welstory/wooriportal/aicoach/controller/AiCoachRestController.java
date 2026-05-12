@@ -23,12 +23,6 @@ public class AiCoachRestController {
 
     private final AiCoachService aiCoachService;
 
-    // ── DB 연결 테스트 ──────────────────────────────────────────────
-    @GetMapping("/test")
-    public ResponseEntity<Map<String, String>> test() {
-        return ResponseEntity.ok(Map.of("message", "✅ DB 연결 성공!"));
-    }
-
     // ================================================================
     // SESSION
     // ================================================================
@@ -41,9 +35,9 @@ public class AiCoachRestController {
     }
 
     @GetMapping("/sessions")
-    public ResponseEntity<List<AiCoachResponseDto.SessionResponse>> getSessions(
+    public ResponseEntity<AiCoachResponseDto.ApiResponse<List<AiCoachResponseDto.SessionResponse>>> getSessions(
             @RequestParam(required = false) Long user_id) {
-        return ResponseEntity.ok(aiCoachService.getSessions(user_id));
+        return ResponseEntity.ok(AiCoachResponseDto.ApiResponse.ok(aiCoachService.getSessions(user_id)));
     }
 
     @DeleteMapping("/sessions/{id}")

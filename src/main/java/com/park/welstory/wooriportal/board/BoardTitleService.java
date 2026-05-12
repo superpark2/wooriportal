@@ -14,6 +14,7 @@ public class BoardTitleService {
             Map.entry("facility", "시설장비"),
             Map.entry("personal", "개인"),
             Map.entry("common", "통합")
+
     );
 
     private static final Map<String, String> CATEGORY_SUBTITLE_MAP = Map.ofEntries(
