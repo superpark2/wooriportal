@@ -210,7 +210,7 @@ public class AiImgService {
 
                 if (imageCount < 2) {
                     // 1장 단독 편집: LanPaint 2차 스테이지 전체 비활성화
-                    for (String nodeId : new String[]{"216","217","218","219","220","221","222","223","224","225"}) {
+                    for (String nodeId : new String[]{"210","225","216","217","218","219","220","221","222","223","224","225"}) {
                         if (!wf.path(nodeId).isMissingNode()) wf.remove(nodeId);
                     }
                     ObjectNode save226 = (ObjectNode) wf.path("226").path("inputs");

@@ -86,7 +86,7 @@ public class AiService {
         // 메모리에 유저 메시지 추가
         String memContent = userMessage
                 + (attached.isEmpty() ? "" : " [이미지 " + attached.size() + "장 첨부]");
-        addToMemory(sessionId, "user", memContent, null);
+        addToMemory(sessionId, "user", memContent, attached.isEmpty() ? null : attached);
 
         // Ollama 스트리밍 호출
         streamOllama(sessionId, userMessage, List.of(), skin, ctx, ctx.getEmitter());
@@ -154,23 +154,32 @@ public class AiService {
             if (ctx.isCancelled()) return;
 
             // ── tool_calls 처리 ───────────────────────────────────
+            // streamOllama()의 tool_call 처리 부분에 직접 인라인
             if (toolCall != null) {
                 OllamaResponseDTO.ToolCallDTO tc = toolCall.firstToolCall();
-                String toolName    = tc.getFunction().getName();
-                String toolArgs    = tc.getFunction().getArguments();
 
-                System.out.println("[AiService] tool_calls 수신: " + toolName);
+                // ✅ sessionMemory에 직접 tool_call 메시지 삽입
+                Deque<OllamaRequestDTO.MessageDTO> deque =
+                        sessionMemory.computeIfAbsent(sessionId, k -> new ArrayDeque<>());
 
-                // 메모리에 assistant tool_call 기록
-                addToMemory(sessionId, "assistant", "이미지 작업을 수행했습니다.", null);
+                OllamaRequestDTO.MessageDTO assistantMsg = OllamaRequestDTO.MessageDTO.builder()
+                        .role("assistant")
+                        .content("")
+                        .toolCalls(List.of(tc))  // ← 실제 tool_call 객체 그대로
+                        .build();
 
+                deque.addLast(assistantMsg);
+                while (deque.size() > MAX_MEMORY_TURNS * 2) deque.pollFirst();
+
+                // tool 실행
                 boolean executed = mcpToolRegistry.execute(
-                        toolName, toolArgs, sessionId, ctx, emitter);
+                        tc.getFunction().getName(), tc.getFunction().getArguments(),
+                        sessionId, ctx, emitter);
 
-                if (!executed) {
-                    sendError(emitter, "알 수 없는 도구 요청입니다: " + toolName);
+                // ✅ tool result도 추가
+                if (executed) {
+                    addToMemory(sessionId, "tool", "완료", null);
                 }
-                return;
             }
 
             // ── 일반 채팅 완료 ────────────────────────────────────
