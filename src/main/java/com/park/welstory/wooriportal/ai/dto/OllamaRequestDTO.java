@@ -38,9 +38,6 @@ public class OllamaRequestDTO {
 
         /** 이미지 첨부 (Base64 목록). null이면 직렬화 제외 */
         private List<String> images;
-
-        @JsonProperty("tool_calls")
-        private List<OllamaResponseDTO.ToolCallDTO> toolCalls;
     }
 
     @Getter
