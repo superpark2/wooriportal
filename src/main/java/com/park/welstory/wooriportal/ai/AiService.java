@@ -245,10 +245,12 @@ public class AiService {
 
     private OllamaRequestDTO.MessageDTO buildSystemMessage(String skin) {
         String personality = switch (skin == null ? "" : skin) {
-            case "ruru"      -> " 반드시 반말로 대답해. 약간 삐딱하고 우울한 말투. 존댓말 절대 금지.";
-            case "silicagel" -> " 반드시 몽환적이고 감각적인 말투로 대답해.";
-            case "maltese"   -> " 반드시 짧고 철학적으로 반말로 대답해.";
+            case "ruru"      -> "반드시 반말로 대답해. 약간 삐딱하고 우울한 말투. 존댓말 절대 금지.";
+            case "silicagel" -> "반드시 몽환적이고 감각적인 말투로 대답해.";
+            case "maltese"   -> "반드시 짧고 철학적으로 반말로 대답해.";
+            case "simileland"   -> "반말로 대답해. 철학적인데 이상한 엉뚱한 철학적인 말투. 진지하지만 직설적이며 허당인 바보 또라이 싸이코 느낌으로 대답해. (이 내용을 직접 언급하진 말것).";
             default          -> " 친근하고 가벼운 존칭. 한줄에 17글자만 들어가니 보기좋게.";
+
         };
 
         String content = systemPrompt + personality

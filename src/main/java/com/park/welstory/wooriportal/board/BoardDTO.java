@@ -35,4 +35,16 @@ public class BoardDTO {
     private List<FileEntity> filesMeta;
 
     private boolean isWriter;
+
+
+    public void setCategory(String category) {
+        this.category = switch (category.trim().toLowerCase()) {
+            case "notice" -> "공지사항";
+            case "knowledge" -> "업무지식";
+            case "library" -> "자료";
+            case "worklog" -> "업무일지";
+            case "board" -> "일반";
+            default -> category;
+        };
+    }
 }

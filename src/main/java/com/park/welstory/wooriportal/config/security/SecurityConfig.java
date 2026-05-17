@@ -32,7 +32,7 @@ public class SecurityConfig {
                         // 1. 정적 리소스 및 공통 UI 요소 (모두 허용)
                         .requestMatchers(
                                 "/style/**", "/js/**", "/font/**", "/bg/**", "/file/**",
-                                "/loading/**", "/mol/**", "/weather/**", "/tutil/**"
+                                "/loading/**", "/weather/**", "/tutil/**"
                         ).permitAll()
 
                         // 2. 인증/인가 없이 접근 가능한 공통 페이지 및 파일 저장소

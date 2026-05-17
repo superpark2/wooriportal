@@ -19,11 +19,6 @@ public class AICoachConfig implements WebMvcConfigurer {
         return new RestTemplate(factory);
     }
 
-    @Bean
-    public ObjectMapper objectMapper() {
-        return new ObjectMapper();
-    }
-
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/ai/aicoach/api/**")
