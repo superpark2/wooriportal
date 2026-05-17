@@ -353,14 +353,12 @@ public class AiHandler {
         return ctx;
     }
 
-    /**
-     * 외부(컨트롤러 중지 버튼)에서 세션 취소.
-     */
     /** 세션 ID로 컨텍스트 조회 (없으면 null) */
     public SessionContext getSession(String sessionId) {
         return sessions.get(sessionId);
     }
 
+    /** 외부(컨트롤러 중지 버튼)에서 세션 취소. */
     public void cancelSession(String sessionId) {
         SessionContext ctx = sessions.get(sessionId);
         if (ctx != null) {

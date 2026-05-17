@@ -3,12 +3,12 @@ package com.park.welstory.wooriportal.pcinfo;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -18,6 +18,10 @@ import java.util.Map;
 public class PcInfoController {
 
     private final PcInfoService pcinfoService;
+
+    // 버그수정: 하드코딩된 비밀번호 "2004"를 application.properties로 외부화
+    @Value("${pcinfo.verify.password}")
+    private String verifyPassword;
 
     @GetMapping("/facility/pcinfo/list")
     public String pcinfoView(HttpServletRequest request, Model model) {
@@ -52,10 +56,7 @@ public class PcInfoController {
             PcInfoDTO pcInfoDTO,
             @RequestParam(required = false) String imageDelete) {
         PcInfoEntity saved = pcinfoService.pcInfoAdd(pcInfoDTO, imageDelete);
-        Map<String, Object> result = new HashMap<>();
-        result.put("success", true);
-        result.put("pcInfoNum", saved.getPcInfoNum()); // 프론트에서 pcInfoNum 받아갈 수 있도록
-        return ResponseEntity.ok(result);
+        return ResponseEntity.ok(Map.of("success", true, "pcInfoNum", saved.getPcInfoNum()));
     }
 
     @DeleteMapping("/facility/pcinfo/delete")
@@ -70,9 +71,7 @@ public class PcInfoController {
 
     @PostMapping("/facility/pcinfo/verify-password")
     @ResponseBody
-    public ResponseEntity<Object> verifyPassword(@RequestBody String password) {
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", password.equals("2004"));
-        return ResponseEntity.ok(response);
+    public ResponseEntity<Map<String, Object>> verifyPassword(@RequestBody String password) {
+        return ResponseEntity.ok(Map.of("success", verifyPassword.equals(password)));
     }
 }

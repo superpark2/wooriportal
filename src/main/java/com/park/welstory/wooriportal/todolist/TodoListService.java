@@ -18,13 +18,12 @@ public class TodoListService {
     private final TodoListRepository todoListRepository;
     private final MemberRepository memberRepository;
 
-    public Page<TodoListDTO> todoList (Long memberNum, Pageable pageable) {
-        Page<TodoListEntity> entity = todoListRepository.findByMember_MemberNum(memberNum, pageable);
-        Page<TodoListDTO> dto =  entity.map(entityTemp -> modelMapper.map(entityTemp, TodoListDTO.class));
-        return dto;
+    public Page<TodoListDTO> todoList(Long memberNum, Pageable pageable) {
+        return todoListRepository.findByMember_MemberNum(memberNum, pageable)
+                .map(entity -> modelMapper.map(entity, TodoListDTO.class));
     }
 
-    public void addToDoList (TodoListDTO todoListDTO, Long memberNum){
+    public void addToDoList(TodoListDTO todoListDTO, Long memberNum) {
         TodoListEntity entity = modelMapper.map(todoListDTO, TodoListEntity.class);
         entity.setMember(memberRepository.findByMemberNum(memberNum));
         entity.setTodoDone(false);
@@ -35,10 +34,9 @@ public class TodoListService {
     public void updateToDoList(Long todoNum, TodoListDTO todoListDTO) {
         TodoListEntity entity = todoListRepository.findById(todoNum)
                 .orElseThrow(() -> new RuntimeException("할일을 찾을 수 없습니다."));
-        
         entity.setTodoTitle(todoListDTO.getTodoTitle());
         entity.setTodoContent(todoListDTO.getTodoContent());
-        todoListRepository.save(entity);
+        // save() 불필요 — @Transactional 내 dirty checking으로 자동 반영
     }
 
     @Transactional
@@ -48,27 +46,14 @@ public class TodoListService {
 
     @Transactional
     public void toggleToDoStatus(Long todoNum) {
-        try {
-            TodoListEntity entity = todoListRepository.findById(todoNum)
-                    .orElse(null);
-            
-            if (entity == null) {
-                return;
-            }
-            
-            boolean currentStatus = entity.getTodoDone() != null ? entity.getTodoDone() : false;
-            entity.setTodoDone(!currentStatus);
-            
-            if (!currentStatus) {
-                entity.setDoneDate(LocalDateTime.now());
-            } else {
-                entity.setDoneDate(null);
-            }
-            todoListRepository.save(entity);
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
-    }
+        // 버그수정: try-catch 제거 (예외는 호출자에게 전파, e.printStackTrace 불필요)
+        // 버그수정: orElse(null) + null체크 → orElseThrow로 명확하게
+        TodoListEntity entity = todoListRepository.findById(todoNum)
+                .orElseThrow(() -> new RuntimeException("할일을 찾을 수 없습니다."));
 
+        boolean currentStatus = Boolean.TRUE.equals(entity.getTodoDone());
+        entity.setTodoDone(!currentStatus);
+        entity.setDoneDate(currentStatus ? null : LocalDateTime.now());
+        // save() 불필요 — @Transactional 내 dirty checking으로 자동 반영
+    }
 }

@@ -34,40 +34,31 @@ public class PcInfoService {
                     return s.matches("\\d+") ? String.format("%08d", Integer.parseInt(s)) : s;
                 })
         );
-        List<PcInfoDTO> list = new ArrayList<>();
-        for (PcInfoEntity entityTemp : entity) {
-            list.add(modelMapper.map(entityTemp, PcInfoDTO.class));
-        }
-        return list;
+        return entity.stream()
+                .map(e -> modelMapper.map(e, PcInfoDTO.class))
+                .toList();
     }
 
     @Transactional
     public PcInfoEntity pcInfoAdd(PcInfoDTO pcInfoDTO, String imageDelete) {
-        MultipartFile newImage    = pcInfoDTO.getPcInfoImage();
-        String existingMeta       = null;
-        Long targetLocationNum    = pcInfoDTO.getLocationNum();
-        boolean isNew             = (pcInfoDTO.getPcInfoNum() == null);
+        MultipartFile newImage = pcInfoDTO.getPcInfoImage();
+        String existingMeta   = null;
+        Long targetLocationNum = pcInfoDTO.getLocationNum();
+        boolean isNew         = (pcInfoDTO.getPcInfoNum() == null);
 
-        // ── 원본 스냅샷 ─────────────────────────────────────────────
-        // JPA 영속성 컨텍스트가 save() 후 동일 ID 엔티티를 덮어쓰기 때문에
-        // findById 직후 String 값으로 즉시 복사해 두어야 비교가 정확하다.
-        String snapCpu      = null;
-        String snapRam      = null;
-        String snapStorage  = null;
-        String snapVga      = null;
-        String snapMonitor  = null;
-        String snapIp       = null;
-        Long   snapLocNum   = null;
+        // 기존 엔티티 스냅샷 (save() 이후 영속성 컨텍스트 덮어쓰기 전에 캡처)
+        String snapCpu = null, snapRam = null, snapStorage = null;
+        String snapVga = null, snapMonitor = null, snapIp = null;
+        Long snapLocNum = null;
 
         if (!isNew) {
             Optional<PcInfoEntity> existingOpt = pcInfoRepository.findById(pcInfoDTO.getPcInfoNum());
             if (existingOpt.isPresent()) {
                 PcInfoEntity orig = existingOpt.get();
-                existingMeta  = orig.getPcInfoImageMeta();
+                existingMeta = orig.getPcInfoImageMeta();
                 if (targetLocationNum == null && orig.getLocation() != null) {
                     targetLocationNum = orig.getLocation().getLocationNum();
                 }
-                // 스냅샷 — save 이전에 반드시 여기서 캡처
                 snapCpu     = orig.getPcInfoCpu();
                 snapRam     = orig.getPcInfoRam();
                 snapStorage = orig.getPcInfoStorage();
@@ -82,13 +73,11 @@ public class PcInfoService {
         if (newImage != null && !newImage.isEmpty()) {
             if (existingMeta != null) deleteLocalFileByMeta(existingMeta);
             pcInfoDTO.setPcInfoImageMeta(savePcImageToLocal(newImage, targetLocationNum));
-        } else {
-            if ("true".equalsIgnoreCase(imageDelete) && existingMeta != null) {
-                deleteLocalFileByMeta(existingMeta);
-                pcInfoDTO.setPcInfoImageMeta(null);
-            } else if (existingMeta != null) {
-                pcInfoDTO.setPcInfoImageMeta(existingMeta);
-            }
+        } else if ("true".equalsIgnoreCase(imageDelete) && existingMeta != null) {
+            deleteLocalFileByMeta(existingMeta);
+            pcInfoDTO.setPcInfoImageMeta(null);
+        } else if (existingMeta != null) {
+            pcInfoDTO.setPcInfoImageMeta(existingMeta);
         }
 
         PcInfoEntity entity = modelMapper.map(pcInfoDTO, PcInfoEntity.class);
@@ -98,35 +87,31 @@ public class PcInfoService {
             entity.setLocation(locRef);
         }
 
-        PcInfoEntity savedEntity = pcInfoRepository.save(entity);
-        // save 이후 영속성 컨텍스트가 orig 를 덮어쓰므로 스냅샷 값으로만 비교
+        PcInfoEntity saved = pcInfoRepository.save(entity);
 
-        // ── 로그 기록 ────────────────────────────────────────────────
+        // 로그 기록
         if (isNew) {
-            logService.savePcLog(savedEntity.getPcInfoNum(), "PC 신규 등록");
+            logService.savePcLog(saved.getPcInfoNum(), "PC 신규 등록");
         } else {
-            // 위치 변경
-            Long newLocNum = savedEntity.getLocation() != null ? savedEntity.getLocation().getLocationNum() : null;
+            Long newLocNum = saved.getLocation() != null ? saved.getLocation().getLocationNum() : null;
             if (!Objects.equals(snapLocNum, newLocNum)) {
-                logService.savePcLog(savedEntity.getPcInfoNum(), "PC 위치 변경");
+                logService.savePcLog(saved.getPcInfoNum(), "PC 위치 변경");
             }
 
-            // 사양 변경
             StringBuilder specLog = new StringBuilder();
-            appendIfChanged(specLog, "CPU",      snapCpu,     savedEntity.getPcInfoCpu());
-            appendIfChanged(specLog, "RAM",      snapRam,     savedEntity.getPcInfoRam());
-            appendIfChanged(specLog, "저장장치", snapStorage, savedEntity.getPcInfoStorage());
-            appendIfChanged(specLog, "VGA",      snapVga,     savedEntity.getPcInfoVga());
-            appendIfChanged(specLog, "모니터",   snapMonitor, savedEntity.getPcInfoMonitor());
-            appendIfChanged(specLog, "IP",       snapIp,      savedEntity.getPcInfoIp());
+            appendIfChanged(specLog, "CPU",      snapCpu,     saved.getPcInfoCpu());
+            appendIfChanged(specLog, "RAM",      snapRam,     saved.getPcInfoRam());
+            appendIfChanged(specLog, "저장장치", snapStorage, saved.getPcInfoStorage());
+            appendIfChanged(specLog, "VGA",      snapVga,     saved.getPcInfoVga());
+            appendIfChanged(specLog, "모니터",   snapMonitor, saved.getPcInfoMonitor());
+            appendIfChanged(specLog, "IP",       snapIp,      saved.getPcInfoIp());
 
-            if (specLog.length() > 0) {
-                logService.savePcLog(savedEntity.getPcInfoNum(), "사양 변경 — " + specLog.toString().trim());
+            if (!specLog.isEmpty()) {
+                logService.savePcLog(saved.getPcInfoNum(), "사양 변경 — " + specLog.toString().trim());
             }
         }
-        // ────────────────────────────────────────────────────────────
 
-        return savedEntity;
+        return saved;
     }
 
     private void appendIfChanged(StringBuilder sb, String fieldName, String oldVal, String newVal) {
@@ -141,9 +126,7 @@ public class PcInfoService {
     public void pcInfoDelete(Long pcInfoNum) {
         pcInfoRepository.findById(pcInfoNum).ifPresent(entity -> {
             logService.savePcLog(pcInfoNum, "PC 삭제");
-            if (entity.getPcInfoImageMeta() != null) {
-                deleteLocalFileByMeta(entity.getPcInfoImageMeta());
-            }
+            if (entity.getPcInfoImageMeta() != null) deleteLocalFileByMeta(entity.getPcInfoImageMeta());
             pcInfoRepository.deleteById(pcInfoNum);
         });
     }
@@ -152,32 +135,29 @@ public class PcInfoService {
         PcInfoEntity entity = pcInfoRepository.findById(pcInfoNum).orElseThrow();
         PcInfoDTO dto = modelMapper.map(entity, PcInfoDTO.class);
         if (entity.getLocation() != null) {
-            dto.setBuildingNum(entity.getLocation().getLocationParent() != null
-                    ? entity.getLocation().getLocationParent().getLocationNum() : null);
-            dto.setBuildingName(entity.getLocation().getLocationParent() != null
-                    ? entity.getLocation().getLocationParent().getLocationName() : null);
+            LocationEntity parent = entity.getLocation().getLocationParent();
+            dto.setBuildingNum(parent != null ? parent.getLocationNum() : null);
+            dto.setBuildingName(parent != null ? parent.getLocationName() : null);
         }
         return dto;
     }
 
-    public void pcInfoUpdate(PcInfoDTO pcInfoDTO, String imageDelete) {
-        pcInfoAdd(pcInfoDTO, imageDelete);
-    }
+    // 버그수정: pcInfoUpdate 중복 메서드 제거 — 호출부에서 pcInfoAdd를 직접 사용
+    // (기존에 pcInfoUpdate가 pcInfoAdd를 그대로 위임만 했음)
 
     private String savePcImageToLocal(MultipartFile image, Long locationNum) {
         String uuidPrefix   = UUID.randomUUID().toString().substring(0, 8);
         String originalName = image.getOriginalFilename() == null ? "image" : image.getOriginalFilename();
         String fileName     = uuidPrefix + "_" + originalName;
-        String dirPath      = "file/pcinfo/" + (locationNum == null ? "unknown" : locationNum);
-        File dir = new File(dirPath);
+        String locationDir  = locationNum == null ? "unknown" : String.valueOf(locationNum);
+        File dir = new File("file/pcinfo/" + locationDir);
         if (!dir.exists()) dir.mkdirs();
-        File dest = new File(dir, fileName);
         try (InputStream in = image.getInputStream()) {
-            Files.copy(in, dest.toPath(), StandardCopyOption.REPLACE_EXISTING);
+            Files.copy(in, new File(dir, fileName).toPath(), StandardCopyOption.REPLACE_EXISTING);
         } catch (IOException e) {
             throw new RuntimeException("이미지 저장 실패: " + originalName, e);
         }
-        return "/file/pcinfo/" + (locationNum == null ? "unknown" : locationNum) + "/" + fileName;
+        return "/file/pcinfo/" + locationDir + "/" + fileName;
     }
 
     private void deleteLocalFileByMeta(String metaPath) {

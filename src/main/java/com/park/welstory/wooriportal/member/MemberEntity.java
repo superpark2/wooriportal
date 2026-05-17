@@ -1,7 +1,6 @@
 package com.park.welstory.wooriportal.member;
 
 import com.park.welstory.wooriportal.global.base.BaseEntity;
-import groovyjarjarantlr4.v4.runtime.misc.NotNull;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -18,13 +17,12 @@ public class MemberEntity extends BaseEntity {
     private Long memberNum;
 
     @Column(unique = true, nullable = false)
-    @NotNull
     private String memberId;
 
-    @NotNull
+    @Column(nullable = false)
     private String memberName;
 
-    @NotNull
+    @Column(nullable = false)
     private String memberPassword;
 
     private String memberPictureMeta;

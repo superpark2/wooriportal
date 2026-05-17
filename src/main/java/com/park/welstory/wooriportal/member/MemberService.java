@@ -21,7 +21,7 @@ public class MemberService {
         memberDTO.setMemberPassword(passwordEncoder.encode(memberDTO.getMemberPassword()));
         memberDTO.setMemberRole("wait");
 
-        if (memberDTO.getMemberPicture() != null) {
+        if (memberDTO.getMemberPicture() != null && !memberDTO.getMemberPicture().isEmpty()) {
 
             String basePath = new File("file/profileimg").getAbsolutePath();
             File dir = new File(basePath);
@@ -30,9 +30,11 @@ public class MemberService {
             String originalName = memberDTO.getMemberPicture().getOriginalFilename();
             String extension = "";
 
-            int dotIndex = originalName.lastIndexOf('.');
-            if (dotIndex != -1 && dotIndex < originalName.length() - 1) {
-                extension = originalName.substring(dotIndex);
+            if (originalName != null) {
+                int dotIndex = originalName.lastIndexOf('.');
+                if (dotIndex != -1 && dotIndex < originalName.length() - 1) {
+                    extension = originalName.substring(dotIndex);
+                }
             }
 
             String fileName = memberDTO.getMemberId() + extension;
@@ -50,8 +52,8 @@ public class MemberService {
         memberRepository.save(modelMapper.map(memberDTO, MemberEntity.class));
     }
 
-    public MemberDTO getMember (Long memberNum) {
-        memberRepository.findByMemberNum(memberNum);
+    public MemberDTO getMember(Long memberNum) {
+        // 버그수정: 기존 코드는 findByMemberNum을 두 번 호출했음
         return modelMapper.map(memberRepository.findByMemberNum(memberNum), MemberDTO.class);
     }
 }

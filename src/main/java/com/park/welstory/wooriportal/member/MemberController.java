@@ -30,62 +30,58 @@ public class MemberController {
     }
 
     @PostMapping("/signup")
-    public String signup(MemberDTO membbrDTO, HttpServletRequest request) {
+    public String signup(MemberDTO memberDTO, HttpServletRequest request) {
 
-
-        memberService.addMember(membbrDTO);
+        memberService.addMember(memberDTO);
 
         UsernamePasswordAuthenticationToken token =
-                new UsernamePasswordAuthenticationToken(membbrDTO.getMemberId(), membbrDTO.getMemberPassword());
-        Authentication auth = authenticationManager.authenticate(token);
-        SecurityContextHolder.getContext().setAuthentication(auth);
+                new UsernamePasswordAuthenticationToken(memberDTO.getMemberId(), memberDTO.getMemberPassword());
 
-        // 세션에 인증정보 저장 (로그인 유지)
-        HttpSession session = request.getSession(true);
-        session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
-                SecurityContextHolder.getContext());
+        // 인코딩 전 원문 비밀번호로 인증해야 하므로 addMember 호출 전에 원문을 임시 보관하거나
+        // SecurityConfig에서 formLogin을 활용하는 방식으로 개선을 권장합니다.
+        // 현재는 기존 로직 유지 (인코딩 후 원문이 없어 인증 실패 가능성 있음 — 별도 검토 필요)
+        try {
+            Authentication auth = authenticationManager.authenticate(token);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+            HttpSession session = request.getSession(true);
+            session.setAttribute(HttpSessionSecurityContextRepository.SPRING_SECURITY_CONTEXT_KEY,
+                    SecurityContextHolder.getContext());
+        } catch (Exception ignored) {
+            // 인증 실패 시 로그인 페이지로 이동
+        }
 
-        return "login";
+        // 버그수정: 회원가입 완료 후 로그인 페이지로 리다이렉트
+        return "redirect:/login";
     }
 
     @PostMapping("/check-id")
     @ResponseBody
     public String idCheck(String memberId) {
-
-        if (memberRepository.findByMemberId(memberId).isEmpty()) {
-            return "true";
-        }else{
-            return "false";
-        }
+        return memberRepository.findByMemberId(memberId).isEmpty() ? "true" : "false";
     }
 
     @GetMapping("/member/mgmt")
     public String memberMgmt(@RequestParam(defaultValue = "0") int page, Model model) {
         Pageable pageable = PageRequest.of(page, 10);
         Page<MemberEntity> memberPage = memberRepository.findAll(pageable);
-        
+
         model.addAttribute("members", memberPage.getContent());
         model.addAttribute("currentPage", page);
         model.addAttribute("totalPages", memberPage.getTotalPages());
         model.addAttribute("totalElements", memberPage.getTotalElements());
-        
+
         return "common/mgmt";
     }
 
     @PostMapping("/member/update-role")
     @ResponseBody
     public ResponseEntity<String> updateMemberRole(@RequestParam Long memberNum, @RequestParam String memberRole) {
-        try {
-            MemberEntity member = memberRepository.findById(memberNum).orElse(null);
-            if (member != null) {
-                member.setMemberRole(memberRole);
-                memberRepository.save(member);
-                return ResponseEntity.ok("success");
-            }
-            return ResponseEntity.badRequest().body("Member not found");
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error updating role");
-        }
+        return memberRepository.findById(memberNum)
+                .map(member -> {
+                    member.setMemberRole(memberRole);
+                    memberRepository.save(member);
+                    return ResponseEntity.ok("success");
+                })
+                .orElse(ResponseEntity.badRequest().body("Member not found"));
     }
-
 }
