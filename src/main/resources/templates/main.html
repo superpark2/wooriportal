@@ -450,14 +450,7 @@
                 <button class="todo-add-btn" id="todo-add-btn" title="추가"><i class="fas fa-plus"></i></button>
             </div>
             <!-- 목록 -->
-            <div class="todo-list" id="todo-list-wrap">
-                <!-- JS가 렌더링. 서버 데이터를 JSON으로 전달 -->
-                <script th:inline="javascript">
-                    /*<![CDATA[*/
-                    var _serverTodos = /*[[${todoList}]]*/ [];
-                    /*]]>*/
-                </script>
-            </div>
+            <div class="todo-list" id="todo-list-wrap"></div>
         </div>
 
     </div><!-- /.main-grid -->
@@ -549,149 +542,155 @@
 
     </div><!-- /.bottom-grid -->
 
-</div><!-- /.dash -->
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        var _serverTodos = /*[[${todoList}]]*/ [];
+        /*]]>*/
+    </script>
 
-<script th:inline="javascript">
-    /*<![CDATA[*/
-    // ── 날짜 표시
-    (function(){
-        var d = new Date();
-        var days = ['일','월','화','수','목','금','토'];
-        var s = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ('+ days[d.getDay()] + ')';
-        document.getElementById('js-date').textContent = s;
-    })();
+    <script th:inline="javascript">
+        /*<![CDATA[*/
+        // ── 날짜 표시
+        (function(){
+            var d = new Date();
+            var days = ['일','월','화','수','목','금','토'];
+            var s = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ('+ days[d.getDay()] + ')';
+            document.getElementById('js-date').textContent = s;
+        })();
 
-    // ── 도넛 차트
-    (function(){
-        var pending = parseInt(document.getElementById('lg-pending').textContent)||0;
-        var done    = parseInt(document.getElementById('lg-done').textContent)||0;
-        var total   = pending + done;
-        document.getElementById('lg-total').textContent = total + '건';
-        document.getElementById('donut-label').textContent = total;
+        // ── 도넛 차트
+        (function(){
+            var pending = parseInt(document.getElementById('lg-pending').textContent)||0;
+            var done    = parseInt(document.getElementById('lg-done').textContent)||0;
+            var total   = pending + done;
+            document.getElementById('lg-total').textContent = total + '건';
+            document.getElementById('donut-label').textContent = total;
 
-        if(total > 0){
-            var pct = (pending/total*100).toFixed(1);
-            var dct = (done/total*100).toFixed(1);
-            // animate on load
-            setTimeout(function(){
-                document.getElementById('donut-rose').setAttribute('stroke-dasharray', pct + ' ' + (100-pct));
-                var offset = 25 - pct; // after rose ends
-                document.getElementById('donut-green').setAttribute('stroke-dasharray', dct + ' ' + (100-dct));
-                document.getElementById('donut-green').setAttribute('stroke-dashoffset', 25 - pct);
-            }, 200);
-        }
-    })();
-
-    // ── To-Do 위젯
-    (function(){
-        // _serverTodos: MainController에서 th:inline으로 주입된 서버 데이터
-        var todos = [];
-
-        if(typeof _serverTodos !== 'undefined' && Array.isArray(_serverTodos) && _serverTodos.length){
-            todos = _serverTodos.map(function(t){
-                return { id: t.todoNum, text: t.todoTitle || '', done: !!t.todoDone };
-            });
-        }
-
-        var wrap  = document.getElementById('todo-list-wrap');
-        var input = document.getElementById('todo-new-input');
-
-        // Spring Security CSRF 토큰 (layout에 <meta name="_csrf"> 있으면 자동 사용)
-        var csrfToken  = (document.querySelector('meta[name="_csrf"]')  || {}).content;
-        var csrfHeader = (document.querySelector('meta[name="_csrf_header"]') || {}).content || 'X-CSRF-TOKEN';
-
-        function apiFetch(url, method){
-            var headers = {};
-            if(csrfToken) headers[csrfHeader] = csrfToken;
-            return fetch(url, { method: method, headers: headers });
-        }
-
-        function render(){
-            if(!todos.length){
-                wrap.innerHTML = '<div class="todo-empty"><i class="fas fa-clipboard"></i>할 일을 추가해보세요!</div>';
-                document.getElementById('todo-count').textContent = '';
-                return;
+            if(total > 0){
+                var pct = (pending/total*100).toFixed(1);
+                var dct = (done/total*100).toFixed(1);
+                // animate on load
+                setTimeout(function(){
+                    document.getElementById('donut-rose').setAttribute('stroke-dasharray', pct + ' ' + (100-pct));
+                    var offset = 25 - pct; // after rose ends
+                    document.getElementById('donut-green').setAttribute('stroke-dasharray', dct + ' ' + (100-dct));
+                    document.getElementById('donut-green').setAttribute('stroke-dashoffset', 25 - pct);
+                }, 200);
             }
-            var doneCount = todos.filter(function(t){ return t.done; }).length;
-            document.getElementById('todo-count').textContent = doneCount + '/' + todos.length + ' 완료';
-            wrap.innerHTML = todos.map(function(t, i){
-                return '<div class="todo-item" data-idx="' + i + '">'
-                    + '<div class="todo-check' + (t.done ? ' done' : '') + '" data-action="toggle" data-idx="' + i + '"></div>'
-                    + '<div class="todo-text'  + (t.done ? ' done' : '') + '">' + escHtml(t.text) + '</div>'
-                    + '<button class="todo-del" data-action="del" data-idx="' + i + '" title="삭제"><i class="fas fa-times"></i></button>'
-                    + '</div>';
-            }).join('');
-        }
+        })();
 
-        function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+        // ── To-Do 위젯
+        (function(){
+            // _serverTodos: MainController에서 th:inline으로 주입된 서버 데이터
+            var todos = [];
 
-        // ── 클릭: 토글 / 삭제
-        wrap.addEventListener('click', function(e){
-            var action = e.target.closest('[data-action]');
-            if(!action) return;
-            var idx  = parseInt(action.dataset.idx);
-            var todo = todos[idx];
-            if(!todo) return;
-
-            if(action.dataset.action === 'toggle'){
-                todo.done = !todo.done;
-                render();
-                if(todo.id){
-                    // PATCH /personal/todolist/{id}/toggle  (기존 컨트롤러 그대로)
-                    apiFetch('/personal/todolist/' + todo.id + '/toggle', 'PATCH')
-                        .catch(function(){ todo.done = !todo.done; render(); });
-                }
-
-            } else if(action.dataset.action === 'del'){
-                var removed = todos.splice(idx, 1)[0];
-                render();
-                if(removed.id){
-                    // DELETE /personal/todolist/{id}  (기존 컨트롤러 그대로)
-                    apiFetch('/personal/todolist/' + removed.id, 'DELETE')
-                        .catch(function(){ todos.splice(idx, 0, removed); render(); });
-                }
-            }
-        });
-
-        // ── 추가
-        document.getElementById('todo-add-btn').addEventListener('click', addTodo);
-        input.addEventListener('keydown', function(e){ if(e.key === 'Enter') addTodo(); });
-
-        function addTodo(){
-            var text = input.value.trim();
-            if(!text) return;
-
-            // 낙관적 추가: 화면 먼저 업데이트 (id는 서버 응답 후 채움)
-            var tempItem = { id: null, text: text, done: false };
-            todos.unshift(tempItem);
-            input.value = '';
-            render();
-
-            // POST /api/todolist -> { todoNum, todoTitle, todoDone, ... }
-            var headers = { 'Content-Type': 'application/json' };
-            if(csrfToken) headers[csrfHeader] = csrfToken;
-
-            fetch('/api/todolist', {
-                method: 'POST',
-                headers: headers,
-                body: JSON.stringify({ todoTitle: text })
-            })
-                .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
-                .then(function(data){
-                    tempItem.id = data.todoNum; // 실제 id 확보 -> 이후 토글/삭제 정상 동작
-                })
-                .catch(function(){
-                    // 서버 저장 실패 시 롤백
-                    var fi = todos.indexOf(tempItem);
-                    if(fi !== -1) todos.splice(fi, 1);
-                    input.value = text;
-                    render();
+            if(typeof _serverTodos !== 'undefined' && Array.isArray(_serverTodos) && _serverTodos.length){
+                todos = _serverTodos.map(function(t){
+                    return { id: t.todoNum, text: t.todoTitle || '', done: !!t.todoDone };
                 });
-        }
+            }
 
-        render();
-    })();
-    /*]]>*/
-</script>
+            var wrap  = document.getElementById('todo-list-wrap');
+            var input = document.getElementById('todo-new-input');
+
+            // Spring Security CSRF 토큰 (layout에 <meta name="_csrf"> 있으면 자동 사용)
+            var csrfToken  = (document.querySelector('meta[name="_csrf"]')  || {}).content;
+            var csrfHeader = (document.querySelector('meta[name="_csrf_header"]') || {}).content || 'X-CSRF-TOKEN';
+
+            function apiFetch(url, method){
+                var headers = {};
+                if(csrfToken) headers[csrfHeader] = csrfToken;
+                return fetch(url, { method: method, headers: headers });
+            }
+
+            function render(){
+                if(!todos.length){
+                    wrap.innerHTML = '<div class="todo-empty"><i class="fas fa-clipboard"></i>할 일을 추가해보세요!</div>';
+                    document.getElementById('todo-count').textContent = '';
+                    return;
+                }
+                var doneCount = todos.filter(function(t){ return t.done; }).length;
+                document.getElementById('todo-count').textContent = doneCount + '/' + todos.length + ' 완료';
+                wrap.innerHTML = todos.map(function(t, i){
+                    return '<div class="todo-item" data-idx="' + i + '">'
+                        + '<div class="todo-check' + (t.done ? ' done' : '') + '" data-action="toggle" data-idx="' + i + '"></div>'
+                        + '<div class="todo-text'  + (t.done ? ' done' : '') + '">' + escHtml(t.text) + '</div>'
+                        + '<button class="todo-del" data-action="del" data-idx="' + i + '" title="삭제"><i class="fas fa-times"></i></button>'
+                        + '</div>';
+                }).join('');
+            }
+
+            function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+            // ── 클릭: 토글 / 삭제
+            wrap.addEventListener('click', function(e){
+                var action = e.target.closest('[data-action]');
+                if(!action) return;
+                var idx  = parseInt(action.dataset.idx);
+                var todo = todos[idx];
+                if(!todo) return;
+
+                if(action.dataset.action === 'toggle'){
+                    todo.done = !todo.done;
+                    render();
+                    if(todo.id){
+                        // PATCH /personal/todolist/{id}/toggle  (기존 컨트롤러 그대로)
+                        apiFetch('/api/todolist/' + todo.id + '/toggle', 'PATCH')
+                            .catch(function(){ todo.done = !todo.done; render(); });
+                    }
+
+                } else if(action.dataset.action === 'del'){
+                    var removed = todos.splice(idx, 1)[0];
+                    render();
+                    if(removed.id){
+                        // DELETE /personal/todolist/{id}  (기존 컨트롤러 그대로)
+                        apiFetch('/api/todolist/' + removed.id, 'DELETE')
+                            .catch(function(){ todos.splice(idx, 0, removed); render(); });
+                    }
+                }
+            });
+
+            // ── 추가
+            document.getElementById('todo-add-btn').addEventListener('click', addTodo);
+            input.addEventListener('keydown', function(e){ if(e.key === 'Enter') addTodo(); });
+
+            function addTodo(){
+                var text = input.value.trim();
+                if(!text) return;
+
+                // 낙관적 추가: 화면 먼저 업데이트 (id는 서버 응답 후 채움)
+                var tempItem = { id: null, text: text, done: false };
+                todos.unshift(tempItem);
+                input.value = '';
+                render();
+
+                // POST /api/todolist -> { todoNum, todoTitle, todoDone, ... }
+                var headers = { 'Content-Type': 'application/json' };
+                if(csrfToken) headers[csrfHeader] = csrfToken;
+
+                fetch('/api/todolist', {
+                    method: 'POST',
+                    headers: headers,
+                    body: JSON.stringify({ todoTitle: text })
+                })
+                    .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+                    .then(function(data){
+                        tempItem.id = data.todoNum; // 실제 id 확보 -> 이후 토글/삭제 정상 동작
+                    })
+                    .catch(function(){
+                        // 서버 저장 실패 시 롤백
+                        var fi = todos.indexOf(tempItem);
+                        if(fi !== -1) todos.splice(fi, 1);
+                        input.value = text;
+                        render();
+                    });
+            }
+
+            render();
+        })();
+        /*]]>*/
+    </script>
+
+</div><!-- /.dash -->
 </body>
 </html>

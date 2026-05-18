@@ -1,14 +1,11 @@
 package com.mrpark.dev.wooriportal.main;
 
-import com.mrpark.dev.wooriportal.board.BoardDTO;
 import com.mrpark.dev.wooriportal.board.BoardService;
 import com.mrpark.dev.wooriportal.config.security.CustomUserDetails;
 import com.mrpark.dev.wooriportal.pcinfo.require.PcInfoRequireService;
 import com.mrpark.dev.wooriportal.todolist.TodoListRepository;
-import com.mrpark.dev.wooriportal.todolist.TodoListDTO;
 import jakarta.servlet.http.HttpServletRequest;
 import lombok.RequiredArgsConstructor;
-import org.modelmapper.ModelMapper;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -17,6 +14,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 import java.util.List;
+import java.util.Map;
 
 @Controller
 @RequiredArgsConstructor
@@ -24,8 +22,7 @@ public class MainController {
 
     private final BoardService boardService;
     private final PcInfoRequireService pcInfoRequireService;
-    private final TodoListRepository todoListRepository;  // 레포지토리 직접 — 단순 목록 조회라 충분
-    private final ModelMapper modelMapper = new ModelMapper();
+    private final TodoListRepository todoListRepository;
 
     @GetMapping({"", "/", "/main"})
     public String index(HttpServletRequest request, Model model,
@@ -47,7 +44,7 @@ public class MainController {
             model.addAttribute("pcDoneCount",    0L);
         }
 
-        // ── 게시판 최근 5건 + 전체 수 (BoardService → BoardDTO, setCategory 한글 변환 적용)
+        // ── 게시판 최근 5건 + 전체 수
         var sortDesc = PageRequest.of(0, 5, Sort.by(Sort.Direction.DESC, "createdAt"));
         for (String group : List.of("sales", "facility", "management")) {
             try {
@@ -60,15 +57,21 @@ public class MainController {
             }
         }
 
-        // ── 나의 할 일 (레포지토리 직접 → ModelMapper로 DTO 변환)
+        // ── 나의 할 일
+        // TodoListDTO 대신 Map으로 넘겨서 LocalDateTime/MemberDTO 직렬화 문제 방지
         try {
             if (memberNum != null) {
                 var todoEntities = todoListRepository.findByMember_MemberNum(
                         memberNum,
                         PageRequest.of(0, 20, Sort.by(Sort.Direction.DESC, "createdAt"))
                 ).getContent();
-                List<TodoListDTO> todoList = todoEntities.stream()
-                        .map(e -> modelMapper.map(e, TodoListDTO.class))
+
+                List<Map<String, Object>> todoList = todoEntities.stream()
+                        .map(e -> Map.<String, Object>of(
+                                "todoNum",   e.getTodoNum(),
+                                "todoTitle", e.getTodoTitle() != null ? e.getTodoTitle() : "",
+                                "todoDone",  Boolean.TRUE.equals(e.getTodoDone())
+                        ))
                         .toList();
                 model.addAttribute("todoList", todoList);
             } else {
