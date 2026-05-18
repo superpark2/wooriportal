@@ -4,140 +4,694 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layouts/layout.html}">
 <head>
-  <meta charset="UTF-8">
+    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>𝓦𝓸𝓸𝓻𝓲</title>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="/style/skin/default/main/main.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@300;400;500;600;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+    <style>
+        /* ── 기본 변수 */
+        :root {
+            --bg:          #f4f3ef;
+            --surface:     #ffffff;
+            --surface-2:   #faf9f6;
+            --border:      #e8e4de;
+            --text-1:      #1a1814;
+            --text-2:      #6b6760;
+            --text-3:      #a8a49e;
+            --accent:      #2d5a4e;
+            --accent-lt:   #e8f0ee;
+            --amber:       #c8841a;
+            --amber-lt:    #fdf3e3;
+            --rose:        #b84545;
+            --rose-lt:     #fdeaea;
+            --sky:         #2a5fa8;
+            --sky-lt:      #e8eef8;
+            --radius:      14px;
+            --radius-sm:   8px;
+            --shadow:      0 1px 3px rgba(0,0,0,.06), 0 4px 16px rgba(0,0,0,.06);
+            --shadow-hover:0 4px 8px rgba(0,0,0,.08), 0 12px 32px rgba(0,0,0,.1);
+        }
+
+        /* ── 레이아웃 */
+        .dash {
+            max-width: 1280px;
+            margin: 0 auto;
+            padding: 32px 24px 64px;
+            font-family: 'Pretendard', -apple-system, sans-serif;
+        }
+
+        /* ── 헤더 */
+        .dash-header {
+            display: flex;
+            align-items: flex-end;
+            justify-content: space-between;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1.5px solid var(--border);
+        }
+        .dash-greeting {
+            font-family: 'DM Serif Display', serif;
+            font-size: clamp(22px, 3vw, 32px);
+            color: var(--text-1);
+            font-style: italic;
+            letter-spacing: -.5px;
+        }
+        .dash-greeting span {
+            color: var(--accent);
+            font-style: normal;
+        }
+        .dash-date {
+            font-size: 13px;
+            color: var(--text-3);
+            font-weight: 400;
+            letter-spacing: .3px;
+        }
+
+        /* ── Stat 카드 행 */
+        .stat-row {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 14px;
+            margin-bottom: 20px;
+        }
+        @media (max-width: 900px) { .stat-row { grid-template-columns: repeat(2,1fr); } }
+        @media (max-width: 560px) { .stat-row { grid-template-columns: 1fr; } }
+
+        .stat-card {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            padding: 18px 20px 16px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            box-shadow: var(--shadow);
+            transition: box-shadow .2s, transform .2s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .stat-card:hover { box-shadow: var(--shadow-hover); transform: translateY(-2px); }
+        .stat-icon {
+            width: 42px; height: 42px;
+            border-radius: 10px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+        .stat-icon.green  { background: var(--accent-lt); color: var(--accent); }
+        .stat-icon.amber  { background: var(--amber-lt);  color: var(--amber); }
+        .stat-icon.rose   { background: var(--rose-lt);   color: var(--rose); }
+        .stat-icon.sky    { background: var(--sky-lt);    color: var(--sky); }
+
+        .stat-body { flex: 1; min-width: 0; }
+        .stat-label { font-size: 12px; color: var(--text-3); font-weight: 500; letter-spacing: .4px; text-transform: uppercase; }
+        .stat-value { font-size: 26px; font-weight: 700; color: var(--text-1); line-height: 1.1; }
+        .stat-sub   { font-size: 11.5px; color: var(--text-3); margin-top: 2px; }
+
+        /* ── 메인 그리드 */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr 340px;
+            grid-template-rows: auto auto;
+            gap: 16px;
+        }
+        @media (max-width: 1100px) { .main-grid { grid-template-columns: 1fr 1fr; } .todo-col { grid-column: 1/-1; } }
+        @media (max-width: 680px)  { .main-grid { grid-template-columns: 1fr; } }
+
+        /* ── 위젯 공통 */
+        .widget {
+            background: var(--surface);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+        .widget-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 16px 18px 14px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+        }
+        .widget-title {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 13.5px; font-weight: 600; color: var(--text-1);
+        }
+        .widget-title i { font-size: 13px; }
+        .widget-title i.green  { color: var(--accent); }
+        .widget-title i.amber  { color: var(--amber); }
+        .widget-title i.rose   { color: var(--rose); }
+        .widget-title i.sky    { color: var(--sky); }
+
+        .widget-link {
+            font-size: 11.5px; color: var(--text-3); text-decoration: none;
+            font-weight: 500; display: flex; align-items: center; gap: 4px;
+            transition: color .15s;
+        }
+        .widget-link:hover { color: var(--accent); }
+        .widget-body { flex: 1; padding: 0; overflow: hidden; }
+
+        /* ── 피드 아이템 */
+        .feed-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 11px 18px;
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+            text-decoration: none;
+            color: inherit;
+        }
+        .feed-item:last-child { border-bottom: none; }
+        .feed-item:hover { background: var(--surface-2); }
+        .feed-dot {
+            width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0;
+            background: var(--border);
+        }
+        .feed-dot.green  { background: var(--accent); }
+        .feed-dot.amber  { background: var(--amber); }
+        .feed-dot.sky    { background: var(--sky); }
+
+        .feed-info { flex: 1; min-width: 0; }
+        .feed-title {
+            font-size: 13px; color: var(--text-1); font-weight: 500;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .feed-meta { font-size: 11px; color: var(--text-3); margin-top: 1px; display: flex; gap: 6px; align-items: center; }
+        .feed-tag {
+            font-size: 10.5px; font-weight: 600; padding: 1px 7px;
+            border-radius: 20px; letter-spacing: .3px;
+        }
+        .feed-tag.green  { background: var(--accent-lt); color: var(--accent); }
+        .feed-tag.amber  { background: var(--amber-lt);  color: var(--amber); }
+        .feed-tag.sky    { background: var(--sky-lt);    color: var(--sky); }
+        .feed-tag.rose   { background: var(--rose-lt);   color: var(--rose); }
+
+        /* PC 상태 태그 */
+        .status-미완료 { background: var(--rose-lt);  color: var(--rose);  font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 20px; }
+        .status-완료   { background: var(--accent-lt); color: var(--accent); font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 20px; }
+        .status-진행중 { background: var(--amber-lt);  color: var(--amber);  font-size: 10.5px; font-weight: 600; padding: 1px 7px; border-radius: 20px; }
+
+        /* ── PC 요청 위젯 (span 2 cols) */
+        .pc-widget { grid-column: span 1; }
+
+        /* ── 도넛 차트 위젯 */
+        .chart-wrap {
+            padding: 18px;
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+        .donut-svg { width: 90px; height: 90px; flex-shrink: 0; }
+        .donut-legend { flex: 1; display: flex; flex-direction: column; gap: 8px; }
+        .legend-row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+        .legend-dot { width: 9px; height: 9px; border-radius: 50%; flex-shrink: 0; }
+        .legend-label { color: var(--text-2); flex: 1; }
+        .legend-val { font-weight: 700; color: var(--text-1); }
+
+        /* ── To-Do 위젯 (우측 tall 컬럼) */
+        .todo-col { grid-row: span 2; }
+        .todo-input-area {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            background: var(--surface-2);
+            display: flex;
+            gap: 8px;
+        }
+        .todo-input {
+            flex: 1; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+            padding: 8px 12px; font-size: 13px; font-family: inherit;
+            background: var(--surface); color: var(--text-1);
+            outline: none; transition: border-color .15s;
+        }
+        .todo-input:focus { border-color: var(--accent); }
+        .todo-add-btn {
+            width: 34px; height: 34px; border-radius: var(--radius-sm);
+            background: var(--accent); color: #fff; border: none;
+            cursor: pointer; font-size: 15px; display: flex;
+            align-items: center; justify-content: center;
+            transition: background .15s, transform .1s;
+            flex-shrink: 0;
+        }
+        .todo-add-btn:hover { background: #234a3f; transform: scale(1.05); }
+
+        .todo-list { padding: 6px 0; flex: 1; overflow-y: auto; max-height: 420px; }
+        .todo-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 9px 16px;
+            border-bottom: 1px solid var(--border);
+            transition: background .15s;
+        }
+        .todo-item:last-child { border-bottom: none; }
+        .todo-item:hover { background: var(--surface-2); }
+        .todo-check {
+            width: 18px; height: 18px; border-radius: 5px;
+            border: 2px solid var(--border); cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0; transition: all .15s; background: transparent;
+        }
+        .todo-check.done { background: var(--accent); border-color: var(--accent); }
+        .todo-check.done::after { content: '✓'; color: #fff; font-size: 11px; font-weight: 700; }
+        .todo-text {
+            flex: 1; font-size: 13px; color: var(--text-1);
+            min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .todo-text.done { color: var(--text-3); text-decoration: line-through; }
+        .todo-del {
+            width: 22px; height: 22px; border-radius: 5px; border: none;
+            background: transparent; color: var(--text-3); cursor: pointer;
+            font-size: 13px; display: flex; align-items: center; justify-content: center;
+            opacity: 0; transition: opacity .15s, background .15s;
+        }
+        .todo-item:hover .todo-del { opacity: 1; }
+        .todo-del:hover { background: var(--rose-lt); color: var(--rose); }
+
+        .todo-empty {
+            text-align: center; padding: 40px 20px;
+            color: var(--text-3); font-size: 13px;
+        }
+        .todo-empty i { font-size: 28px; display: block; margin-bottom: 8px; opacity: .4; }
+
+        /* ── 빈 피드 */
+        .feed-empty {
+            padding: 32px 18px; text-align: center;
+            color: var(--text-3); font-size: 13px;
+        }
+        .feed-empty i { font-size: 24px; display: block; margin-bottom: 8px; opacity: .35; }
+
+        /* ── 하단 피드 2열 그리드 */
+        .bottom-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            margin-top: 16px;
+        }
+        @media (max-width: 700px) { .bottom-grid { grid-template-columns: 1fr; } }
+
+        /* ── 전체 빈 상태 */
+        .empty-all {
+            text-align: center; padding: 80px 20px;
+            color: var(--text-3);
+        }
+        .empty-all i { font-size: 48px; display: block; margin-bottom: 16px; opacity: .3; }
+        .empty-all h3 { font-size: 18px; color: var(--text-2); margin-bottom: 8px; }
+
+        /* ── 애니메이션 */
+        .widget { animation: fadeUp .4s ease both; }
+        .widget:nth-child(2) { animation-delay: .05s; }
+        .widget:nth-child(3) { animation-delay: .1s; }
+        .widget:nth-child(4) { animation-delay: .15s; }
+        .stat-card { animation: fadeUp .35s ease both; }
+        .stat-card:nth-child(2) { animation-delay: .04s; }
+        .stat-card:nth-child(3) { animation-delay: .08s; }
+        .stat-card:nth-child(4) { animation-delay: .12s; }
+
+        @keyframes fadeUp {
+            from { opacity: 0; transform: translateY(12px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+    </style>
 </head>
 <body>
-    <div layout:fragment="content" class="dashboard-container">
+<div layout:fragment="content" class="dash">
 
-        <div class="dashboard-header">
-            <h1 class="dashboard-title">
-                <i class="fas fa-tachometer-alt"></i>
-                <span>대시보드</span>
-            </h1>
-            <p class="dashboard-subtitle">최근 현황</p>
+    <!-- ── 헤더 -->
+    <div class="dash-header">
+        <div class="dash-greeting">
+            안녕하세요,&nbsp;<span th:text="${memberName != null ? memberName : '우리'}">우리</span>님
         </div>
-
-        <div class="dashboard-grid">
-
-            <div class="dashboard-card" th:if="${not #lists.isEmpty(pcRequireList)}">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-desktop"></i>
-                        최근 PC 요청건
-                    </h3>
-                    <a href="/pcinforequire" class="card-link">
-                        <i class="fas fa-external-link-alt"></i>
-                        전체보기
-                    </a>
-                </div>
-                <div class="card-content">
-                    <div class="item-list">
-                        <div th:each="item : ${pcRequireList}" class="item-row">
-                            <div class="item-info">
-                                <span class="item-title" th:text="${item.reContent}">PC 요청 내용</span>
-                                <span class="item-meta">
-                                    <span class="item-status" th:class="'status-' + ${item.reStatus}" th:text="${item.reStatus}">상태</span>
-                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card" th:if="${not #lists.isEmpty(salesList)}">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-chart-line"></i>
-                        최근 세일즈 게시글
-                    </h3>
-                    <a href="/sales/board/list" class="card-link">
-                        <i class="fas fa-external-link-alt"></i>
-                        전체보기
-                    </a>
-                </div>
-                <div class="card-content">
-                    <div class="item-list">
-                        <div th:each="item : ${salesList}" class="item-row">
-                            <div class="item-info">
-                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
-                                <span class="item-meta">
-                                    <span class="item-category" th:text="${item.category}">카테고리</span>
-                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card" th:if="${not #lists.isEmpty(facilityList)}">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-tools"></i>
-                        최근 Facility 게시글
-                    </h3>
-                    <a href="/facility/board/list" class="card-link">
-                        <i class="fas fa-external-link-alt"></i>
-                        전체보기
-                    </a>
-                </div>
-                <div class="card-content">
-                    <div class="item-list">
-                        <div th:each="item : ${facilityList}" class="item-row">
-                            <div class="item-info">
-                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
-                                <span class="item-meta">
-                                    <span class="item-category" th:text="${item.category}">카테고리</span>
-                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="dashboard-card" th:if="${not #lists.isEmpty(managementList)}">
-                <div class="card-header">
-                    <h3 class="card-title">
-                        <i class="fas fa-clipboard-list"></i>
-                        최근 Management 게시글
-                    </h3>
-                    <a href="/management/board/list" class="card-link">
-                        <i class="fas fa-external-link-alt"></i>
-                        전체보기
-                    </a>
-                </div>
-                <div class="card-content">
-                    <div class="item-list">
-                        <div th:each="item : ${managementList}" class="item-row">
-                            <div class="item-info">
-                                <span class="item-title" th:text="${item.BoardTitle}">게시글 제목</span>
-                                <span class="item-meta">
-                                    <span class="item-category" th:text="${item.category}">카테고리</span>
-                                    <span class="item-date" th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">12/25 14:30</span>
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-
-        <div class="empty-state" th:if="${#lists.isEmpty(pcRequireList) and #lists.isEmpty(salesList) and #lists.isEmpty(facilityList) and #lists.isEmpty(managementList)}">
-            <div class="empty-icon">
-                <i class="fas fa-inbox"></i>
-            </div>
-            <h3>아직 게시글이 없습니다</h3>
-            <p>새로운 게시글을 작성해보세요!</p>
-        </div>
-
+        <div class="dash-date" id="js-date">오늘도 좋은 하루 되세요</div>
     </div>
 
+    <!-- ── Stat 카드 4개 -->
+    <div class="stat-row">
+        <a href="/pcinforequire" class="stat-card">
+            <div class="stat-icon rose"><i class="fas fa-desktop"></i></div>
+            <div class="stat-body">
+                <div class="stat-label">PC 미완료</div>
+                <div class="stat-value" th:text="${pcPendingCount}">0</div>
+                <div class="stat-sub">완료 <span th:text="${pcDoneCount}">0</span>건</div>
+            </div>
+        </a>
+        <a href="/sales/board/list" class="stat-card">
+            <div class="stat-icon amber"><i class="fas fa-chart-line"></i></div>
+            <div class="stat-body">
+                <div class="stat-label">세일즈</div>
+                <div class="stat-value" th:text="${salesTotalCount}">0</div>
+                <div class="stat-sub">전체 게시글</div>
+            </div>
+        </a>
+        <a href="/facility/board/list" class="stat-card">
+            <div class="stat-icon green"><i class="fas fa-tools"></i></div>
+            <div class="stat-body">
+                <div class="stat-label">Facility</div>
+                <div class="stat-value" th:text="${facilityTotalCount}">0</div>
+                <div class="stat-sub">전체 게시글</div>
+            </div>
+        </a>
+        <a href="/management/board/list" class="stat-card">
+            <div class="stat-icon sky"><i class="fas fa-clipboard-list"></i></div>
+            <div class="stat-body">
+                <div class="stat-label">Management</div>
+                <div class="stat-value" th:text="${managementTotalCount}">0</div>
+                <div class="stat-sub">전체 게시글</div>
+            </div>
+        </a>
+    </div>
+
+    <!-- ── 메인 그리드 -->
+    <div class="main-grid">
+
+        <!-- PC 요청 현황 위젯 -->
+        <div class="widget pc-widget">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-desktop rose"></i> 최근 PC 요청
+                </div>
+                <a href="/pcinforequire" class="widget-link"><i class="fas fa-arrow-right"></i> 전체</a>
+            </div>
+            <div class="widget-body">
+                <div th:if="${not #lists.isEmpty(pcRequireList)}">
+                    <div th:each="item : ${pcRequireList}" class="feed-item">
+                        <div class="feed-dot rose"></div>
+                        <div class="feed-info">
+                            <div class="feed-title" th:text="${item.reContent}">요청내용</div>
+                            <div class="feed-meta">
+                                <span th:class="'status-' + ${item.reStatus}" th:text="${item.reStatus}">상태</span>
+                                <span th:text="${item.reSeat != null ? item.reSeat : ''}"></span>
+                                <span th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">날짜</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div th:if="${#lists.isEmpty(pcRequireList)}" class="feed-empty">
+                    <i class="fas fa-inbox"></i>PC 요청이 없습니다
+                </div>
+            </div>
+        </div>
+
+        <!-- PC 상태 도넛 차트 위젯 -->
+        <div class="widget">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-chart-pie amber"></i> PC 요청 현황
+                </div>
+            </div>
+            <div class="widget-body">
+                <div class="chart-wrap">
+                    <!-- 도넛: JS로 동적으로 그림 -->
+                    <svg class="donut-svg" viewBox="0 0 36 36" id="pc-donut">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#e8e4de" stroke-width="3.5"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#b84545" stroke-width="3.5"
+                                stroke-dasharray="0 100" stroke-dashoffset="25"
+                                id="donut-rose" style="transition: stroke-dasharray .6s ease;"/>
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="#2d5a4e" stroke-width="3.5"
+                                stroke-dasharray="0 100" stroke-dashoffset="25"
+                                id="donut-green" style="transition: stroke-dasharray .6s ease .3s;"/>
+                        <text x="18" y="19.5" text-anchor="middle" font-size="5.5"
+                              fill="#1a1814" font-weight="700" id="donut-label">-</text>
+                    </svg>
+                    <div class="donut-legend">
+                        <div class="legend-row">
+                            <div class="legend-dot" style="background:var(--rose)"></div>
+                            <span class="legend-label">미완료</span>
+                            <span class="legend-val" id="lg-pending" th:text="${pcPendingCount}">0</span>
+                        </div>
+                        <div class="legend-row">
+                            <div class="legend-dot" style="background:var(--accent)"></div>
+                            <span class="legend-label">완료</span>
+                            <span class="legend-val" id="lg-done" th:text="${pcDoneCount}">0</span>
+                        </div>
+                        <div class="legend-row" style="margin-top:6px; border-top:1px solid var(--border); padding-top:8px;">
+                            <div class="legend-dot" style="background:var(--border)"></div>
+                            <span class="legend-label">전체</span>
+                            <span class="legend-val" id="lg-total">-</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- To-Do 위젯 (우측 tall 컬럼) -->
+        <div class="widget todo-col">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-check-square green"></i> 나의 할 일
+                </div>
+                <span id="todo-count" style="font-size:11px;color:var(--text-3);font-weight:600;"></span>
+            </div>
+            <!-- 입력 -->
+            <div class="todo-input-area">
+                <input type="text" class="todo-input" id="todo-new-input" placeholder="할 일을 입력하세요..." maxlength="80">
+                <button class="todo-add-btn" id="todo-add-btn" title="추가"><i class="fas fa-plus"></i></button>
+            </div>
+            <!-- 목록 -->
+            <div class="todo-list" id="todo-list-wrap">
+                <!-- JS가 렌더링. 서버 데이터를 JSON으로 전달 -->
+                <script th:inline="javascript">
+                    /*<![CDATA[*/
+                    var _serverTodos = /*[[${todoList}]]*/ [];
+                    /*]]>*/
+                </script>
+            </div>
+        </div>
+
+    </div><!-- /.main-grid -->
+
+    <!-- ── 하단 피드 그리드 (Sales / Facility / Management) -->
+    <div class="bottom-grid">
+
+        <!-- Sales -->
+        <div class="widget">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-chart-line amber"></i> 최근 세일즈
+                </div>
+                <a href="/sales/board/list" class="widget-link"><i class="fas fa-arrow-right"></i> 전체</a>
+            </div>
+            <div class="widget-body">
+                <div th:if="${not #lists.isEmpty(salesList)}">
+                    <a th:each="item : ${salesList}"
+                       th:href="@{'/sales/' + ${item.category == null ? 'board' : item.category} + '/view/' + ${item.boardNum}}"
+                       class="feed-item">
+                        <div class="feed-dot amber"></div>
+                        <div class="feed-info">
+                            <div class="feed-title" th:text="${item.boardTitle}">제목</div>
+                            <div class="feed-meta">
+                                <span class="feed-tag amber" th:text="${item.category}">카테고리</span>
+                                <span th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">날짜</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div th:if="${#lists.isEmpty(salesList)}" class="feed-empty">
+                    <i class="fas fa-inbox"></i>게시글이 없습니다
+                </div>
+            </div>
+        </div>
+
+        <!-- Facility -->
+        <div class="widget">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-tools green"></i> 최근 Facility
+                </div>
+                <a href="/facility/board/list" class="widget-link"><i class="fas fa-arrow-right"></i> 전체</a>
+            </div>
+            <div class="widget-body">
+                <div th:if="${not #lists.isEmpty(facilityList)}">
+                    <a th:each="item : ${facilityList}"
+                       th:href="@{'/facility/' + ${item.category == null ? 'board' : item.category} + '/view/' + ${item.boardNum}}"
+                       class="feed-item">
+                        <div class="feed-dot green"></div>
+                        <div class="feed-info">
+                            <div class="feed-title" th:text="${item.boardTitle}">제목</div>
+                            <div class="feed-meta">
+                                <span class="feed-tag green" th:text="${item.category}">카테고리</span>
+                                <span th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">날짜</span>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+                <div th:if="${#lists.isEmpty(facilityList)}" class="feed-empty">
+                    <i class="fas fa-inbox"></i>게시글이 없습니다
+                </div>
+            </div>
+        </div>
+
+        <!-- Management -->
+        <div class="widget" style="grid-column: 1 / -1;" th:if="${not #lists.isEmpty(managementList)}">
+            <div class="widget-head">
+                <div class="widget-title">
+                    <i class="fas fa-clipboard-list sky"></i> 최근 Management
+                </div>
+                <a href="/management/board/list" class="widget-link"><i class="fas fa-arrow-right"></i> 전체</a>
+            </div>
+            <div class="widget-body" style="display:grid;grid-template-columns:1fr 1fr;">
+                <a th:each="item : ${managementList}"
+                   th:href="@{'/management/' + ${item.category == null ? 'board' : item.category} + '/view/' + ${item.boardNum}}"
+                   class="feed-item" style="border-right:1px solid var(--border);">
+                    <div class="feed-dot sky"></div>
+                    <div class="feed-info">
+                        <div class="feed-title" th:text="${item.boardTitle}">제목</div>
+                        <div class="feed-meta">
+                            <span class="feed-tag sky" th:text="${item.category}">카테고리</span>
+                            <span th:text="${#temporals.format(item.createdAt, 'MM/dd HH:mm')}">날짜</span>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        </div>
+
+    </div><!-- /.bottom-grid -->
+
+</div><!-- /.dash -->
+
+<script th:inline="javascript">
+    /*<![CDATA[*/
+    // ── 날짜 표시
+    (function(){
+        var d = new Date();
+        var days = ['일','월','화','수','목','금','토'];
+        var s = d.getFullYear() + '년 ' + (d.getMonth()+1) + '월 ' + d.getDate() + '일 ('+ days[d.getDay()] + ')';
+        document.getElementById('js-date').textContent = s;
+    })();
+
+    // ── 도넛 차트
+    (function(){
+        var pending = parseInt(document.getElementById('lg-pending').textContent)||0;
+        var done    = parseInt(document.getElementById('lg-done').textContent)||0;
+        var total   = pending + done;
+        document.getElementById('lg-total').textContent = total + '건';
+        document.getElementById('donut-label').textContent = total;
+
+        if(total > 0){
+            var pct = (pending/total*100).toFixed(1);
+            var dct = (done/total*100).toFixed(1);
+            // animate on load
+            setTimeout(function(){
+                document.getElementById('donut-rose').setAttribute('stroke-dasharray', pct + ' ' + (100-pct));
+                var offset = 25 - pct; // after rose ends
+                document.getElementById('donut-green').setAttribute('stroke-dasharray', dct + ' ' + (100-dct));
+                document.getElementById('donut-green').setAttribute('stroke-dashoffset', 25 - pct);
+            }, 200);
+        }
+    })();
+
+    // ── To-Do 위젯
+    (function(){
+        // _serverTodos: MainController에서 th:inline으로 주입된 서버 데이터
+        var todos = [];
+
+        if(typeof _serverTodos !== 'undefined' && Array.isArray(_serverTodos) && _serverTodos.length){
+            todos = _serverTodos.map(function(t){
+                return { id: t.todoNum, text: t.todoTitle || '', done: !!t.todoDone };
+            });
+        }
+
+        var wrap  = document.getElementById('todo-list-wrap');
+        var input = document.getElementById('todo-new-input');
+
+        // Spring Security CSRF 토큰 (layout에 <meta name="_csrf"> 있으면 자동 사용)
+        var csrfToken  = (document.querySelector('meta[name="_csrf"]')  || {}).content;
+        var csrfHeader = (document.querySelector('meta[name="_csrf_header"]') || {}).content || 'X-CSRF-TOKEN';
+
+        function apiFetch(url, method){
+            var headers = {};
+            if(csrfToken) headers[csrfHeader] = csrfToken;
+            return fetch(url, { method: method, headers: headers });
+        }
+
+        function render(){
+            if(!todos.length){
+                wrap.innerHTML = '<div class="todo-empty"><i class="fas fa-clipboard"></i>할 일을 추가해보세요!</div>';
+                document.getElementById('todo-count').textContent = '';
+                return;
+            }
+            var doneCount = todos.filter(function(t){ return t.done; }).length;
+            document.getElementById('todo-count').textContent = doneCount + '/' + todos.length + ' 완료';
+            wrap.innerHTML = todos.map(function(t, i){
+                return '<div class="todo-item" data-idx="' + i + '">'
+                    + '<div class="todo-check' + (t.done ? ' done' : '') + '" data-action="toggle" data-idx="' + i + '"></div>'
+                    + '<div class="todo-text'  + (t.done ? ' done' : '') + '">' + escHtml(t.text) + '</div>'
+                    + '<button class="todo-del" data-action="del" data-idx="' + i + '" title="삭제"><i class="fas fa-times"></i></button>'
+                    + '</div>';
+            }).join('');
+        }
+
+        function escHtml(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+        // ── 클릭: 토글 / 삭제
+        wrap.addEventListener('click', function(e){
+            var action = e.target.closest('[data-action]');
+            if(!action) return;
+            var idx  = parseInt(action.dataset.idx);
+            var todo = todos[idx];
+            if(!todo) return;
+
+            if(action.dataset.action === 'toggle'){
+                todo.done = !todo.done;
+                render();
+                if(todo.id){
+                    // PATCH /personal/todolist/{id}/toggle  (기존 컨트롤러 그대로)
+                    apiFetch('/personal/todolist/' + todo.id + '/toggle', 'PATCH')
+                        .catch(function(){ todo.done = !todo.done; render(); });
+                }
+
+            } else if(action.dataset.action === 'del'){
+                var removed = todos.splice(idx, 1)[0];
+                render();
+                if(removed.id){
+                    // DELETE /personal/todolist/{id}  (기존 컨트롤러 그대로)
+                    apiFetch('/personal/todolist/' + removed.id, 'DELETE')
+                        .catch(function(){ todos.splice(idx, 0, removed); render(); });
+                }
+            }
+        });
+
+        // ── 추가
+        document.getElementById('todo-add-btn').addEventListener('click', addTodo);
+        input.addEventListener('keydown', function(e){ if(e.key === 'Enter') addTodo(); });
+
+        function addTodo(){
+            var text = input.value.trim();
+            if(!text) return;
+
+            // 낙관적 추가: 화면 먼저 업데이트 (id는 서버 응답 후 채움)
+            var tempItem = { id: null, text: text, done: false };
+            todos.unshift(tempItem);
+            input.value = '';
+            render();
+
+            // POST /api/todolist -> { todoNum, todoTitle, todoDone, ... }
+            var headers = { 'Content-Type': 'application/json' };
+            if(csrfToken) headers[csrfHeader] = csrfToken;
+
+            fetch('/api/todolist', {
+                method: 'POST',
+                headers: headers,
+                body: JSON.stringify({ todoTitle: text })
+            })
+                .then(function(r){ if(!r.ok) throw new Error(r.status); return r.json(); })
+                .then(function(data){
+                    tempItem.id = data.todoNum; // 실제 id 확보 -> 이후 토글/삭제 정상 동작
+                })
+                .catch(function(){
+                    // 서버 저장 실패 시 롤백
+                    var fi = todos.indexOf(tempItem);
+                    if(fi !== -1) todos.splice(fi, 1);
+                    input.value = text;
+                    render();
+                });
+        }
+
+        render();
+    })();
+    /*]]>*/
+</script>
 </body>
 </html>

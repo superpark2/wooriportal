@@ -1,0 +1,580 @@
+// ── AI 팝업 채팅 ──────────────────────────────────────────────────────────────
+// 의존:
+//   - 전역 변수 skin (layout.html th:inline 블록에서 선언)
+//   - marked.js, mermaid.js (CDN 로드)
+//   - DOM: #aiPopup, #aiPopupClose, #aiResetBtn, #aiPrompt, #aiSendBtn,
+//          #aiAttachBtn, #aiFileInput, #aiResponse, #popupImagePreview,
+//          #aiImgModal, #aiImgModalInner, #aiBtn, .ai-avatar
+
+// ── 세션 ID (탭 단위 유지) ──────────────────────────────────────────────────
+const POPUP_SESSION_KEY = 'wooriPopupSessionId';
+const POPUP_SESSION_ID = (() => {
+    let id = sessionStorage.getItem(POPUP_SESSION_KEY);
+    if (!id) {
+        id = 'sess_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 7);
+        sessionStorage.setItem(POPUP_SESSION_KEY, id);
+    }
+    return id;
+})();
+
+// ── 상태 ──────────────────────────────────────────────────────────────────────
+const AI_HISTORY_KEY    = 'wooriPopupAiHistory';
+const MAX_POPUP_HISTORY = 10;
+const MAX_POPUP_IMAGES  = 3;
+
+let popupHistory      = [];
+let popupImages       = [];   // base64 (전송용)
+let popupThumbs       = [];   // base64 (미리보기용)
+let lastUserPrompt    = '';
+let lastUserThumbs    = [];   // 썸네일 (응답 헤더 표시용)
+let isAiRequesting    = false;
+let aiAbortController = null;
+let isImageGenerating = false;  // 이미지 생성 중 토큰 누적 차단용
+
+function loadPopupHistory() {
+    try { popupHistory = JSON.parse(localStorage.getItem(AI_HISTORY_KEY) || '[]'); }
+    catch { popupHistory = []; }
+}
+
+function savePopupHistory() {
+    localStorage.setItem(AI_HISTORY_KEY, JSON.stringify(popupHistory.slice(-MAX_POPUP_HISTORY)));
+}
+
+// ── 이미지 리사이즈 ────────────────────────────────────────────────────────────
+function popupResizeImage(file, maxDim, quality = 0.85) {
+    return new Promise((res, rej) => {
+        const reader = new FileReader();
+        reader.onload = e => {
+            const img = new Image();
+            img.onload = () => {
+                let w = img.width, h = img.height;
+                if (w > h) { if (w > maxDim) { h = Math.round(h * maxDim / w); w = maxDim; } }
+                else       { if (h > maxDim) { w = Math.round(w * maxDim / h); h = maxDim; } }
+                const c = document.createElement('canvas');
+                c.width = w; c.height = h;
+                c.getContext('2d').drawImage(img, 0, 0, w, h);
+                res(c.toDataURL('image/jpeg', quality));
+            };
+            img.onerror = rej;
+            img.src = e.target.result;
+        };
+        reader.onerror = rej;
+        reader.readAsDataURL(file);
+    });
+}
+
+async function popupProcessFiles(files) {
+    const slots    = MAX_POPUP_IMAGES - popupImages.length;
+    const imgFiles = Array.from(files).filter(f => f.type.startsWith('image/'));
+    if (imgFiles.length > slots) alert(`이미지는 최대 ${MAX_POPUP_IMAGES}장까지만 첨부 가능합니다.`);
+    for (const file of imgFiles.slice(0, slots)) {
+        try {
+            const send  = await popupResizeImage(file, 1024, 0.88);
+            const thumb = await popupResizeImage(file, 300,  0.82);
+            popupImages.push(send.split(',')[1]);
+            popupThumbs.push(thumb);
+        } catch (err) { console.error('이미지 처리 오류:', err); }
+    }
+    updatePopupImagePreview();
+}
+
+function updatePopupImagePreview() {
+    const strip = document.getElementById('popupImagePreview');
+    if (!strip) return;
+    strip.innerHTML = '';
+    popupThumbs.forEach((src, idx) => {
+        const wrap = document.createElement('div');
+        wrap.style.cssText = 'position:relative;display:inline-block;';
+
+        const img = document.createElement('img');
+        img.src = src;
+        img.style.cssText = 'width:52px;height:52px;object-fit:cover;border-radius:6px;border:1px solid #e0e0e0;cursor:zoom-in;';
+        img.addEventListener('click', () => openPopupImgModal(src));
+
+        const del = document.createElement('button');
+        del.innerHTML = '<i class="fas fa-times"></i>';
+        del.style.cssText = 'position:absolute;top:-6px;right:-6px;width:16px;height:16px;border-radius:50%;'
+            + 'background:#e63946;border:2px solid #fff;color:#fff;font-size:8px;cursor:pointer;'
+            + 'display:flex;align-items:center;justify-content:center;padding:0;line-height:1;';
+        del.addEventListener('click', () => {
+            popupImages.splice(idx, 1);
+            popupThumbs.splice(idx, 1);
+            updatePopupImagePreview();
+        });
+
+        wrap.appendChild(img);
+        wrap.appendChild(del);
+        strip.appendChild(wrap);
+    });
+}
+
+// ── 이미지 모달 ────────────────────────────────────────────────────────────────
+function openPopupImgModal(src) {
+    const modal = document.getElementById('aiImgModal');
+    const inner = document.getElementById('aiImgModalInner');
+    inner.style.cssText = 'background:none;padding:0;border-radius:0;width:auto;height:auto;overflow:visible;'
+        + 'display:flex;align-items:center;justify-content:center;';
+    inner.innerHTML = `<img src="${src}"
+        style="display:block;border-radius:8px;cursor:zoom-out;max-width:96vw;max-height:96vh;"
+        onclick="document.getElementById('aiImgModal').style.display='none';document.body.style.overflow='';">`;
+    modal.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+}
+
+// ── marked / mermaid 초기화 ────────────────────────────────────────────────────
+if (typeof marked !== 'undefined') {
+    marked.use({ breaks: true, gfm: true, pedantic: false });
+}
+if (typeof mermaid !== 'undefined') {
+    mermaid.initialize({ startOnLoad: false, theme: 'default', securityLevel: 'loose' });
+}
+
+let _popupMermaidIdx = 0;
+
+// ── mermaid 안전처리 ───────────────────────────────────────────────────────────
+function sanitizePopupMermaid(code) {
+    return code
+        .replace(/<script[\s\S]*?<\/script>/gi, '')
+        .replace(/\bon\w+\s*=/gi, '')
+        .replace(/javascript\s*:/gi, '')
+        .replace(/data\s*:/gi, '');
+}
+
+// ── mermaid 렌더링 ─────────────────────────────────────────────────────────────
+async function renderPopupMermaid(container) {
+    if (typeof mermaid === 'undefined') return;
+    const nodes = Array.from(container.querySelectorAll('.popup-mermaid'))
+        .filter(el => !el.getAttribute('data-rendered'));
+    if (!nodes.length) return;
+    nodes.forEach(el => el.setAttribute('data-rendered', '1'));
+    try {
+        await mermaid.run({ nodes });
+
+        // 렌더링 완료 후 SVG 클릭 → 모달 확대
+        nodes.forEach(el => {
+            const svg = el.querySelector('svg');
+            if (!svg) return;
+            svg.style.cursor = 'zoom-in';
+            svg.addEventListener('click', async () => {
+                const modal = document.getElementById('aiImgModal');
+                const inner = document.getElementById('aiImgModalInner');
+
+                const svgStr  = new XMLSerializer().serializeToString(svg);
+                const svgBlob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
+                const url     = URL.createObjectURL(svgBlob);
+
+                const img = new Image();
+                img.onload = () => {
+                    const maxW  = window.innerWidth  * 0.90;
+                    const maxH  = window.innerHeight * 0.90;
+                    const ratio = Math.min(maxW / img.naturalWidth, maxH / img.naturalHeight);
+                    const dispW = img.naturalWidth  * ratio;
+                    const dispH = img.naturalHeight * ratio;
+
+                    const dpr    = 2;
+                    const canvas = document.createElement('canvas');
+                    canvas.width  = dispW * dpr;
+                    canvas.height = dispH * dpr;
+                    const ctx = canvas.getContext('2d');
+                    ctx.fillStyle = '#ffffff';
+                    ctx.fillRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    URL.revokeObjectURL(url);
+
+                    const pngUrl = canvas.toDataURL('image/png');
+                    inner.style.cssText = 'background:#fff;padding:12px;border-radius:12px;width:auto;height:auto;'
+                        + 'overflow:auto;display:flex;align-items:center;justify-content:center;';
+                    inner.innerHTML = `<img src="${pngUrl}"
+                        style="width:${dispW}px;height:${dispH}px;display:block;border-radius:6px;cursor:zoom-out;"
+                        onclick="document.getElementById('aiImgModal').style.display='none';document.body.style.overflow='';">`;
+                    modal.style.display = 'flex';
+                    document.body.style.overflow = 'hidden';
+                };
+                img.onerror = () => URL.revokeObjectURL(url);
+                img.src = url;
+            });
+        });
+
+    } catch (e) {
+        nodes.forEach(el => {
+            el.removeAttribute('data-rendered');
+            el.innerHTML = `<span style="color:#e63946;font-size:12px;">다이어그램 렌더링 실패</span>`;
+        });
+        console.warn('[Mermaid popup]', e);
+    }
+}
+
+// ── 응답 텍스트 → HTML ─────────────────────────────────────────────────────────
+function renderPopupText(text) {
+    if (!text) return '';
+
+    // [AI_IMAGE] 보호
+    const imgPlaceholders = [];
+    text = text.replace(/\[AI_IMAGE:([^\]]+)\]/g, (_, url) => {
+        const idx = imgPlaceholders.length;
+        imgPlaceholders.push(url);
+        return `\x00IMG${idx}\x00`;
+    });
+
+    // <think> 제거
+    text = text.replace(/<think>[\s\S]*?<\/think>/gi, '').trim();
+
+    // mermaid 블록 분리
+    const mermaidRe = /```[ \t]*mermaid[ \t]*\r?\n([\s\S]*?)```[ \t]*(?:\r?\n|$)/gi;
+    const parts = [];
+    let lastIdx = 0, m;
+    while ((m = mermaidRe.exec(text)) !== null) {
+        if (m.index > lastIdx) parts.push({ md: true, text: text.slice(lastIdx, m.index) });
+        const id   = 'popup-mermaid-' + (++_popupMermaidIdx);
+        const safe = sanitizePopupMermaid(m[1]);
+        parts.push({ md: false, html:
+                `<div style="margin:8px 0;background:#f8f9ff;border-radius:8px;padding:10px;overflow:auto;">` +
+                `<div class="popup-mermaid" id="${id}">${safe}</div></div>` });
+        lastIdx = m.index + m[0].length;
+    }
+    if (lastIdx < text.length) parts.push({ md: true, text: text.slice(lastIdx) });
+    if (!parts.length) parts.push({ md: true, text });
+
+    let html = parts.map(p => {
+        if (!p.md) return p.html;
+        if (typeof marked !== 'undefined') {
+            p.text = p.text
+                .replace(/\*\*'([^'\n*]+?)'\*\*/g,               "'**$1**'")
+                .replace(/\*\*"([^"\n*]+?)"\*\*/g,               '"**$1**"')
+                .replace(/\*\*\u2018([^\u2019\n*]+?)\u2019\*\*/g, '\u2018**$1**\u2019')
+                .replace(/\*\*\u201c([^\u201d\n*]+?)\u201d\*\*/g, '\u201c**$1**\u201d');
+            return marked.parse(p.text);
+        }
+        // fallback
+        return p.text
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+            .replace(/\*(.+?)\*/g,     '<em>$1</em>')
+            .replace(/`([^`]+)`/g,     '<code>$1</code>')
+            .replace(/\n/g,            '<br>');
+    }).join('');
+
+    // AI_IMAGE 복원
+    html = html.replace(/\x00IMG(\d+)\x00/g, (_, i) => {
+        const url = imgPlaceholders[+i];
+        return `<img src="${url}" alt="생성 이미지"
+            style="max-width:100%;border-radius:8px;cursor:zoom-in;margin-top:6px;"
+            onclick="openPopupImgModal('${url}')">`;
+    });
+
+    return html;
+}
+
+// ── 대화 표시 (누적 방식) ──────────────────────────────────────────────────────
+const MAX_POPUP_DISPLAY = 5;
+
+let popupDisplayHistory = [];
+let currentStreamEl     = null;
+
+function renderDisplayHistory() {
+    const el = document.getElementById('aiResponse');
+    el.innerHTML = '';
+    popupDisplayHistory.forEach((item, idx) => {
+        if (idx > 0) {
+            const hr = document.createElement('hr');
+            hr.style.cssText = 'border:none;border-top:1px solid #e8e8e8;margin:8px 0;';
+            el.appendChild(hr);
+        }
+
+        // 사용자 메시지
+        const userDiv = document.createElement('div');
+        userDiv.style.cssText = 'margin-bottom:4px;';
+        let userHtml = '';
+        if (item.userPrompt) {
+            userHtml += `<div class="ai-user-prompt-small"
+                style="overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:100%;">
+                [명령] ${item.userPrompt.replace(/</g, '&lt;')}</div>`;
+        }
+        if (item.userThumbs && item.userThumbs.length > 0) {
+            userHtml += `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:3px 0;">`;
+            item.userThumbs.forEach(src => {
+                userHtml += `<img src="${src}"
+                    style="width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid #e0e0e0;cursor:zoom-in;"
+                    onclick="openPopupImgModal('${src}')">`;
+            });
+            userHtml += `</div>`;
+        }
+        userDiv.innerHTML = userHtml;
+        el.appendChild(userDiv);
+
+        // AI 응답
+        const aiDiv = document.createElement('div');
+        aiDiv.className = 'ai-response';
+        aiDiv.innerHTML = item.assistantHtml || '';
+        el.appendChild(aiDiv);
+
+        if (idx === popupDisplayHistory.length - 1) {
+            currentStreamEl = aiDiv;
+        }
+    });
+    el.scrollTop = el.scrollHeight;
+}
+
+function pushUserMessage(prompt, thumbs) {
+    popupDisplayHistory.push({ userPrompt: prompt, userThumbs: thumbs, assistantHtml: '' });
+    if (popupDisplayHistory.length > MAX_POPUP_DISPLAY) {
+        popupDisplayHistory = popupDisplayHistory.slice(-MAX_POPUP_DISPLAY);
+    }
+    renderDisplayHistory();
+}
+
+function updateCurrentResponse(content, isRawHtml) {
+    if (!popupDisplayHistory.length) return;
+    const html = isRawHtml ? content : renderPopupText(content);
+    popupDisplayHistory[popupDisplayHistory.length - 1].assistantHtml = html;
+    if (currentStreamEl) {
+        currentStreamEl.innerHTML = html;
+        renderPopupMermaid(currentStreamEl);
+        document.getElementById('aiResponse').scrollTop = document.getElementById('aiResponse').scrollHeight;
+    }
+}
+
+function restorePopupDisplay() {
+    popupDisplayHistory = [];
+    const pairs = [];
+    for (let i = 0; i < popupHistory.length; i++) {
+        if (popupHistory[i].role === 'user') {
+            const next = popupHistory[i + 1];
+            if (next && next.role === 'assistant') {
+                pairs.push({
+                    userPrompt:    popupHistory[i].content,
+                    userThumbs:    [],
+                    assistantHtml: renderPopupText(next.content),
+                });
+                i++;
+            }
+        }
+    }
+    popupDisplayHistory = pairs.slice(-MAX_POPUP_DISPLAY);
+    if (popupDisplayHistory.length) {
+        renderDisplayHistory();
+        popupDisplayHistory.forEach((_, idx) => {
+            const el     = document.getElementById('aiResponse');
+            const aiDivs = el.querySelectorAll('.ai-response');
+            if (aiDivs[idx]) renderPopupMermaid(aiDivs[idx]);
+        });
+    }
+}
+
+function setAiButtonState(state) {
+    const btn = document.getElementById('aiSendBtn');
+    if (state === 'send') {
+        btn.innerHTML = '<i class="fas fa-paper-plane" style="font-size:12px;"></i><span>전송</span>';
+    } else {
+        btn.innerHTML = '<i class="fas fa-stop-circle" style="font-size:12px;"></i><span>중지</span>';
+    }
+}
+
+// ── 팝업 아바타 ────────────────────────────────────────────────────────────────
+const AI_AVATAR_MAP = {
+    maltese:     '/tutil/AI/malAI.png',
+    simileland:  '/tutil/AI/similelandAI.png',
+    homersimpson:'/tutil/AI/homersimpsonAI.png',
+    silicagel:   '/tutil/AI/silicagelAI.png',
+    ruru:        '/tutil/AI/ruruAI.png',
+};
+const AI_AVATAR_SRC = AI_AVATAR_MAP[skin] || '/tutil/AI/wooriAI.png';
+
+function applyAiAvatar() {
+    const d = document.querySelector('#aiPopup .ai-avatar');
+    if (!d) return;
+    d.style.background = 'none';
+    d.innerHTML = `<img src="${AI_AVATAR_SRC}" alt="AI"
+        style="width:135%;height:135%;object-fit:cover;border-radius:50%;">`;
+}
+
+// ── 이벤트 리스너 & 초기화 ────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', function () {
+
+    loadPopupHistory();
+
+    // 초기화 버튼
+    document.getElementById('aiResetBtn').addEventListener('click', function () {
+        if (!confirm('대화 내용을 초기화할까요?')) return;
+        popupHistory = []; popupImages = []; popupThumbs = [];
+        popupDisplayHistory = []; currentStreamEl = null;
+        savePopupHistory();
+        document.getElementById('aiResponse').innerHTML = '';
+        updatePopupImagePreview();
+    });
+
+    // 닫기 버튼
+    document.getElementById('aiPopupClose').addEventListener('click', function () {
+        document.getElementById('aiPopup').style.display = 'none';
+    });
+
+    // Enter 전송 (Shift+Enter 줄바꿈)
+    document.getElementById('aiPrompt').addEventListener('keydown', function (e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            if (!isAiRequesting) document.getElementById('aiSendBtn').click();
+        }
+    });
+
+    // Ctrl+V 이미지 붙여넣기
+    document.getElementById('aiPrompt').addEventListener('paste', function (e) {
+        const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+        const files = [];
+        for (const item of items) {
+            if (item.type.startsWith('image/')) { const f = item.getAsFile(); if (f) files.push(f); }
+        }
+        if (files.length > 0) { e.preventDefault(); popupProcessFiles(files); }
+    });
+
+    // 이미지 첨부 버튼
+    document.getElementById('aiAttachBtn').addEventListener('click', function () {
+        if (popupImages.length >= MAX_POPUP_IMAGES) {
+            alert(`이미지는 최대 ${MAX_POPUP_IMAGES}장까지 첨부할 수 있습니다.`); return;
+        }
+        document.getElementById('aiFileInput').click();
+    });
+    document.getElementById('aiFileInput').addEventListener('change', function (e) {
+        popupProcessFiles(e.target.files); this.value = '';
+    });
+
+    // ── 전송 버튼 ─────────────────────────────────────────────────────────────
+    document.getElementById('aiSendBtn').addEventListener('click', async function () {
+        if (isAiRequesting) {
+            if (aiAbortController) aiAbortController.abort();
+            return;
+        }
+
+        lastUserPrompt = document.getElementById('aiPrompt').value.trim();
+        if (!lastUserPrompt && popupImages.length === 0) return;
+
+        isAiRequesting    = true;
+        setAiButtonState('stop');
+        aiAbortController = new AbortController();
+
+        const userMsg = { role: 'user', content: lastUserPrompt };
+        if (popupImages.length > 0) userMsg.images = [...popupImages];
+        popupHistory.push(userMsg);
+        if (popupHistory.length > MAX_POPUP_HISTORY) popupHistory = popupHistory.slice(-MAX_POPUP_HISTORY);
+
+        // 마지막 메시지에만 현재 화면 내용 첨부
+        const pageContent = (document.getElementById('content')?.innerText || '').trim();
+        const pageContext  = pageContent
+            ? `[현재화면]\n${pageContent}\n[현재화면 종료]\n\n[질문]\n${lastUserPrompt}`
+            : lastUserPrompt;
+        const sendMessages = [
+            ...popupHistory.slice(0, -1),
+            { ...userMsg, content: pageContext },
+        ];
+
+        document.getElementById('aiPrompt').value = '';
+        lastUserThumbs = [...popupThumbs];
+        popupImages = []; popupThumbs = [];
+        updatePopupImagePreview();
+        document.getElementById('aiPrompt').focus();
+        pushUserMessage(lastUserPrompt, lastUserThumbs);
+        updateCurrentResponse('응답을 불러오는 중...', true);
+
+        let accumulated   = '';
+        isImageGenerating = false;
+
+        try {
+            const response = await fetch('/ai/chat/stream', {
+                method:  'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body:    JSON.stringify({ sessionId: POPUP_SESSION_ID, skin: skin, messages: sendMessages }),
+                signal:  aiAbortController.signal,
+            });
+
+            if (response.status === 429) throw new Error('요청이 너무 많습니다. 잠시 후 다시 시도해주세요.');
+            if (!response.ok)            throw new Error('서버 오류: ' + response.status);
+
+            const reader  = response.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = '';
+
+            outer: while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split('\n');
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.startsWith('data:')) continue;
+                    const raw = line.slice(5).trim();
+                    if (!raw) continue;
+                    try {
+                        const data = JSON.parse(raw);
+                        if (data.token !== undefined) {
+                            if (!isImageGenerating) {
+                                accumulated += data.token;
+                                updateCurrentResponse(accumulated, false);
+                            }
+                        }
+                        if (data.imageGenerating !== undefined) {
+                            isImageGenerating = true;
+                            updateCurrentResponse('🎨 ' + data.imageGenerating, true);
+                        }
+                        if (data.fullContent !== undefined) {
+                            isImageGenerating = false;
+                            if (data.imageUrl) {
+                                const comment = accumulated.trim();
+                                const imgHtml = (comment ? renderPopupText(comment) + '<br><br>' : '')
+                                    + `<img src="${data.imageUrl}" alt="생성 이미지"
+                                        style="max-width:100%;border-radius:8px;cursor:zoom-in;margin-top:6px;"
+                                        onclick="openPopupImgModal('${data.imageUrl}')">`;
+                                updateCurrentResponse(imgHtml, true);
+                                popupHistory.push({
+                                    role: 'assistant',
+                                    content: (comment ? comment + '\n\n' : '') + '[AI_IMAGE:' + data.imageUrl + ']',
+                                });
+                            } else {
+                                const finalText = data.fullContent || accumulated;
+                                updateCurrentResponse(finalText, false);
+                                popupHistory.push({ role: 'assistant', content: finalText });
+                            }
+                            if (popupHistory.length > MAX_POPUP_HISTORY) popupHistory = popupHistory.slice(-MAX_POPUP_HISTORY);
+                            savePopupHistory();
+                            break outer;
+                        }
+                        if (data.message && data.fullContent === undefined)
+                            updateCurrentResponse('⚠️ ' + data.message, true);
+                    } catch (_) {}
+                }
+            }
+
+        } catch (e) {
+            if (e.name === 'AbortError') {
+                if (accumulated) {
+                    updateCurrentResponse(accumulated + '\n\n[중단됨]', false);
+                    popupHistory.push({ role: 'assistant', content: accumulated });
+                    savePopupHistory();
+                } else {
+                    updateCurrentResponse('요청이 중지되었습니다.', true);
+                }
+            } else {
+                popupHistory.push({ role: 'assistant', content: '[이미지 생성 실패]' });
+                savePopupHistory();
+                const retryBtn = `<button onclick="document.getElementById('aiSendBtn').click()"
+                    style="margin-top:6px;font-size:11px;padding:3px 10px;border-radius:6px;
+                    border:1px solid #e74c3c;background:#fff0f0;color:#e74c3c;cursor:pointer;">
+                    <i class="fas fa-redo-alt" style="margin-right:3px;"></i>다시 시도</button>`;
+                updateCurrentResponse('⚠️ 이미지 생성에 실패했어요. 다시 요청해 주세요.<br>' + retryBtn, true);
+            }
+        } finally {
+            isAiRequesting    = false;
+            isImageGenerating = false;
+            setAiButtonState('send');
+        }
+    });
+
+    // ── AI 버튼 (팝업 열기) ───────────────────────────────────────────────────
+    document.getElementById('aiBtn').onclick = function () {
+        document.getElementById('aiPopup').style.display = 'block';
+        applyAiAvatar();
+        setAiButtonState('send');
+        isAiRequesting    = false;
+        aiAbortController = null;
+        restorePopupDisplay();
+    };
+
+}); // DOMContentLoaded 끝

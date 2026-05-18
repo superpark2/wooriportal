@@ -1,0 +1,20 @@
+package com.mrpark.dev.wooriportal.log;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+
+public interface LogRepository extends JpaRepository<LogEntity, Long> {
+
+    // 최근 로그 조회
+    @Query("SELECT l FROM LogEntity l ORDER BY l.createdAt DESC")
+    Page<LogEntity> findAllByOrderByCreatedAtDesc(Pageable pageable);
+
+    // 모든 로그 조회
+    Page<LogEntity> findAll(Pageable pageable);
+    
+    // 특정 PC의 로그 조회
+    @Query("SELECT l FROM LogEntity l WHERE l.pcInfo.pcInfoNum = :pcInfoNum ORDER BY l.createdAt DESC")
+    Page<LogEntity> findByPcInfoNumOrderByCreatedAtDesc(Long pcInfoNum, Pageable pageable);
+} 
