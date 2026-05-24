@@ -60,7 +60,7 @@ public class BoardService {
                 SalesEntity sales = (boardDTO.getBoardNum() == null)
                         ? new SalesEntity()
                         : salesRepository.findById(boardDTO.getBoardNum())
-                                .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
+                        .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
                 applyBoard(sales, boardDTO, group, category);
                 salesRepository.save(sales);
                 num = sales.getBoardNum();
@@ -71,7 +71,7 @@ public class BoardService {
                 ManagementEntity management = (boardDTO.getBoardNum() == null)
                         ? new ManagementEntity()
                         : managementRepository.findById(boardDTO.getBoardNum())
-                                .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
+                        .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
                 applyBoard(management, boardDTO, group, category);
                 managementRepository.save(management);
                 num = management.getBoardNum();
@@ -82,7 +82,7 @@ public class BoardService {
                 FacilityEntity facility = (boardDTO.getBoardNum() == null)
                         ? new FacilityEntity()
                         : facilityRepository.findById(boardDTO.getBoardNum())
-                                .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
+                        .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
                 applyBoard(facility, boardDTO, group, category);
                 facilityRepository.save(facility);
                 num = facility.getBoardNum();
@@ -93,7 +93,7 @@ public class BoardService {
                 PersonalEntity personal = (boardDTO.getBoardNum() == null)
                         ? new PersonalEntity()
                         : personalRepository.findById(boardDTO.getBoardNum())
-                                .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
+                        .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
                 applyBoard(personal, boardDTO, group, category);
                 personalRepository.save(personal);
                 num = personal.getBoardNum();
@@ -104,7 +104,7 @@ public class BoardService {
                 CommonEntity common = (boardDTO.getBoardNum() == null)
                         ? new CommonEntity()
                         : commonRepository.findById(boardDTO.getBoardNum())
-                                .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
+                        .orElseThrow(() -> new RuntimeException(group + " " + category + "에 존재하지 않는 게시글"));
                 applyBoard(common, boardDTO, group, category);
                 commonRepository.save(common);
                 num = common.getBoardNum();
@@ -148,42 +148,59 @@ public class BoardService {
         return dto;
     }
 
-    public void deleteBoard(String group, Long num) {
-        String content = switch (group) {
+    @Transactional
+    public void deleteBoard(String group, Long num, Long requestMemberNum) {
+        record BoardData(String content, Long ownerNum) {}
+
+        BoardData data = switch (group) {
             case "sales" -> {
-                String c = salesRepository.findById(num)
-                        .orElseThrow(() -> new RuntimeException("지울 글이 없음.")).getBoardContent();
-                salesRepository.deleteById(num);
-                yield c;
+                SalesEntity e = salesRepository.findById(num)
+                        .orElseThrow(() -> new RuntimeException("지울 글이 없음."));
+                Long owner = e.getMember() != null ? e.getMember().getMemberNum() : null;
+                yield new BoardData(e.getBoardContent(), owner);
             }
             case "management" -> {
-                String c = managementRepository.findById(num)
-                        .orElseThrow(() -> new RuntimeException("지울 글이 없음.")).getBoardContent();
-                managementRepository.deleteById(num);
-                yield c;
+                ManagementEntity e = managementRepository.findById(num)
+                        .orElseThrow(() -> new RuntimeException("지울 글이 없음."));
+                Long owner = e.getMember() != null ? e.getMember().getMemberNum() : null;
+                yield new BoardData(e.getBoardContent(), owner);
             }
             case "facility" -> {
-                String c = facilityRepository.findById(num)
-                        .orElseThrow(() -> new RuntimeException("지울 글이 없음.")).getBoardContent();
-                facilityRepository.deleteById(num);
-                yield c;
+                FacilityEntity e = facilityRepository.findById(num)
+                        .orElseThrow(() -> new RuntimeException("지울 글이 없음."));
+                Long owner = e.getMember() != null ? e.getMember().getMemberNum() : null;
+                yield new BoardData(e.getBoardContent(), owner);
             }
             case "personal" -> {
-                String c = personalRepository.findById(num)
-                        .orElseThrow(() -> new RuntimeException("지울 글이 없음.")).getBoardContent();
-                personalRepository.deleteById(num);
-                yield c;
+                PersonalEntity e = personalRepository.findById(num)
+                        .orElseThrow(() -> new RuntimeException("지울 글이 없음."));
+                Long owner = e.getMember() != null ? e.getMember().getMemberNum() : null;
+                yield new BoardData(e.getBoardContent(), owner);
             }
             case "common" -> {
-                String c = commonRepository.findById(num)
-                        .orElseThrow(() -> new RuntimeException("지울 글이 없음.")).getBoardContent();
-                commonRepository.deleteById(num);
-                yield c;
+                CommonEntity e = commonRepository.findById(num)
+                        .orElseThrow(() -> new RuntimeException("지울 글이 없음."));
+                Long owner = e.getMember() != null ? e.getMember().getMemberNum() : null;
+                yield new BoardData(e.getBoardContent(), owner);
             }
-            // 버그수정: default 케이스 추가 (기존 코드에서 누락)
             default -> throw new IllegalArgumentException("알 수 없는 그룹: " + group);
         };
-        imageService.deleteImage(content);
+
+        // 소유권 검증: DB에서 읽은 실제 작성자와 비교
+        if (!requestMemberNum.equals(data.ownerNum())) {
+            throw new org.springframework.security.access.AccessDeniedException("삭제 권한이 없습니다.");
+        }
+
+        // 소유권 확인 후 삭제
+        switch (group) {
+            case "sales"      -> salesRepository.deleteById(num);
+            case "management" -> managementRepository.deleteById(num);
+            case "facility"   -> facilityRepository.deleteById(num);
+            case "personal"   -> personalRepository.deleteById(num);
+            case "common"     -> commonRepository.deleteById(num);
+        }
+
+        imageService.deleteImage(data.content());
         fileService.deleteFile(group, num);
     }
 }

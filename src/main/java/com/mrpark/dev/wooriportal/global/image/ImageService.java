@@ -70,7 +70,7 @@ public class ImageService {
         List<ImageEntity> existingImages = imageRepository.findByBoardNumAndDivisionGroup(num, group);
         for (ImageEntity img : existingImages) {
             if (!content.contains(img.getImagePath())) {
-                new File(img.getImagePath()).delete();
+                new File(System.getProperty("user.dir"), img.getImagePath()).delete();
                 imageRepository.delete(img);
             }
         }

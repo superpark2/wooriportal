@@ -1,10 +1,10 @@
 package com.mrpark.dev.wooriportal.ai.mcp.tools.websearch;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mrpark.dev.wooriportal.ai.AiHandler;
 import com.mrpark.dev.wooriportal.ai.mcp.McpTool;
 import com.mrpark.dev.wooriportal.ai.mcp.dto.ToolDefinitionDTO;
-import com.mrpark.dev.wooriportal.ai.mcp.tools.websearch.dto.WebSearchToolArgumentDTO;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -17,20 +17,19 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 /**
- * MCP 도구: 웹 검색 (DuckDuckGo).
+ * MCP 도구: 웹 검색 (SearXNG 로컬 인스턴스).
  *
- * execute() 는 검색 결과를 SSE token 이벤트로 직접 스트리밍한다.
- * AiService 가 결과를 받아 LLM에 다시 넘기는 2-turn 방식 대신,
- * 검색 결과를 바로 사용자에게 전달하는 단순 모드로 동작한다.
- *
- * (필요 시 AiService 콜백 방식으로 확장 가능)
+ * execute() 는 no-op. AiService 가 fetchSearchResult() 를 직접 호출한다.
  */
 @Component
 public class WebSearchTool implements McpTool {
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    /** SearXNG 로컬 주소 */
+    private static final String SEARXNG_URL = "http://localhost:4499";
 
     @Override
     public String getName() {
@@ -60,165 +59,72 @@ public class WebSearchTool implements McpTool {
                 .build();
     }
 
+    /** no-op: AiService 가 web_search 를 직접 처리한다. */
     @Override
     public void execute(String argumentsJson, String sessionId,
                         AiHandler.SessionContext ctx, SseEmitter emitter) {
-        try {
-            WebSearchToolArgumentDTO args = MAPPER.readValue(argumentsJson, WebSearchToolArgumentDTO.class);
-            String query = args.getQuery();
-
-            sendToken(emitter, "🔍 웹에서 검색하고 있어요...\n");
-
-            if (ctx.isCancelled()) return;
-
-            List<String> results = search(query);
-
-            if (results.isEmpty()) {
-                sendToken(emitter, "검색 결과를 찾지 못했어요.\n");
-            } else {
-                StringBuilder sb = new StringBuilder();
-                for (int i = 0; i < results.size(); i++) {
-                    sb.append(i + 1).append(". ").append(results.get(i)).append("\n");
-                }
-                sendToken(emitter, sb.toString());
-            }
-
-            emitter.send(SseEmitter.event().name("done")
-                    .data("{\"fullContent\":" + MAPPER.writeValueAsString(
-                            results.isEmpty() ? "검색 결과 없음" : String.join("\n", results)
-                    ) + "}"));
-            emitter.complete();
-
-        } catch (Exception e) {
-            System.err.println("[WebSearchTool] 오류: " + e.getMessage());
-            sendError(emitter, "검색 중 오류가 발생했습니다.");
-        }
+        System.out.println("[WebSearchTool] execute() 직접 호출됨 — AiService 라우팅 확인 필요. sid=" + sessionId);
     }
 
-    // ── 검색 로직 ─────────────────────────────────────────────────
-
-    private List<String> search(String query) {
-        List<String> results = new ArrayList<>(searchJson(query));
-        if (results.size() < 3) {
-            results.addAll(searchHtml(query, 5 - results.size()));
-        }
-        return results;
-    }
-
-    private List<String> searchJson(String query) {
-        List<String> results = new ArrayList<>();
-        try {
-            String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url     = "https://api.duckduckgo.com/?q=" + encoded
-                    + "&format=json&no_redirect=1&no_html=1&skip_disambig=1&kl=kr-ko";
-
-            HttpURLConnection conn = openGet(url);
-            if (conn.getResponseCode() != 200) return results;
-
-            String body = readBody(conn);
-            JsonNode root = MAPPER.readTree(body);
-
-            String answer       = root.path("Answer").asText("").trim();
-            String abstractText = root.path("AbstractText").asText("").trim();
-            String abstractUrl  = root.path("AbstractURL").asText("").trim();
-
-            if (!answer.isEmpty())       results.add("즉답: " + answer);
-            if (!abstractText.isEmpty()) results.add(abstractText
-                    + (abstractUrl.isEmpty() ? "" : " (출처: " + abstractUrl + ")"));
-
-            JsonNode topics = root.path("RelatedTopics");
-            if (topics.isArray()) {
-                for (JsonNode topic : topics) {
-                    String text = topic.path("Text").asText("").trim();
-                    String url2 = topic.path("FirstURL").asText("").trim();
-                    if (!text.isEmpty()) {
-                        results.add(text + (url2.isEmpty() ? "" : " (" + url2 + ")"));
-                    }
-                    if (results.size() >= 5) break;
-                }
-            }
-        } catch (Exception e) {
-            System.err.println("[WebSearchTool] JSON 검색 오류: " + e.getMessage());
-        }
-        return results;
-    }
-
-    private List<String> searchHtml(String query, int max) {
-        List<String> results = new ArrayList<>();
-        try {
-            String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
-            String url     = "https://html.duckduckgo.com/html/?q=" + encoded + "&kl=kr-ko";
-
-            HttpURLConnection conn = openGet(url);
-            conn.setRequestProperty("User-Agent",
-                    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36");
-            conn.setRequestProperty("Accept-Language", "ko-KR,ko;q=0.9,en;q=0.8");
-            if (conn.getResponseCode() != 200) return results;
-
-            String html = readBody(conn);
-            Pattern titlePat   = Pattern.compile("class=\"result__a\"[^>]*>(.*?)</a>",   Pattern.DOTALL);
-            Pattern snippetPat = Pattern.compile("class=\"result__snippet\"[^>]*>(.*?)</a>", Pattern.DOTALL);
-
-            List<String> titles   = extractAll(titlePat,   html);
-            List<String> snippets = extractAll(snippetPat, html);
-
-            int count = Math.min(max, Math.min(titles.size(), snippets.size()));
-            for (int i = 0; i < count; i++) {
-                results.add(titles.get(i) + ": " + snippets.get(i));
-            }
-        } catch (Exception e) {
-            System.err.println("[WebSearchTool] HTML 검색 오류: " + e.getMessage());
-        }
-        return results;
-    }
-
-    // ── HTTP 유틸 ─────────────────────────────────────────────────
-
-    private HttpURLConnection openGet(String url) throws Exception {
-        HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
-        conn.setConnectTimeout(8_000);
-        conn.setReadTimeout(12_000);
-        return conn;
-    }
-
-    private String readBody(HttpURLConnection conn) throws Exception {
+    /**
+     * 검색 실행 후 결과 문자열 반환.
+     * AiService 에서 직접 호출한다.
+     */
+    public String fetchSearchResult(String query) {
+        List<String> results = searchSearXNG(query, 5);
+        if (results.isEmpty()) return "";
         StringBuilder sb = new StringBuilder();
-        try (BufferedReader br = new BufferedReader(
-                new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
-            String line;
-            while ((line = br.readLine()) != null) sb.append(line);
+        for (int i = 0; i < results.size(); i++) {
+            sb.append(i + 1).append(". ").append(results.get(i)).append("\n");
         }
-        return sb.toString();
+        return sb.toString().trim();
     }
 
-    private List<String> extractAll(Pattern pattern, String input) {
-        List<String> list = new ArrayList<>();
-        Matcher m = pattern.matcher(input);
-        while (m.find()) list.add(stripHtml(m.group(1)));
-        return list;
-    }
+    // ── SearXNG 검색 ──────────────────────────────────────────────
 
-    private String stripHtml(String html) {
-        return html.replaceAll("<[^>]+>", "")
-                .replaceAll("&amp;", "&").replaceAll("&lt;", "<")
-                .replaceAll("&gt;", ">").replaceAll("&quot;", "\"")
-                .replaceAll("&#39;", "'").replaceAll("&nbsp;", " ").trim();
-    }
-
-    // ── SSE 유틸 ──────────────────────────────────────────────────
-
-    private void sendToken(SseEmitter emitter, String text) {
+    private List<String> searchSearXNG(String query, int max) {
+        List<String> results = new ArrayList<>();
         try {
-            emitter.send(SseEmitter.event().name("token")
-                    .data("{\"token\":" + MAPPER.writeValueAsString(text) + "}"));
-        } catch (Exception ignored) {}
-    }
+            String encoded = URLEncoder.encode(query, StandardCharsets.UTF_8);
+            String url = SEARXNG_URL + "/search?q=" + encoded + "&format=json&language=ko-KR";
 
-    private void sendError(SseEmitter emitter, String message) {
-        try {
-            emitter.send(SseEmitter.event().name("error")
-                    .data("{\"message\":\"" + message + "\"}"));
-            emitter.complete();
-        } catch (Exception ignored) {}
+            HttpURLConnection conn = (HttpURLConnection) URI.create(url).toURL().openConnection();
+            conn.setConnectTimeout(5_000);
+            conn.setReadTimeout(8_000);
+            conn.setRequestProperty("Accept", "application/json");
+
+            int status = conn.getResponseCode();
+            if (status != 200) {
+                System.err.println("[WebSearchTool] SearXNG HTTP 상태: " + status);
+                return results;
+            }
+
+            String body = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))
+                    .lines().reduce("", String::concat);
+
+            JsonNode root = MAPPER.readTree(body);
+            JsonNode hits = root.path("results");
+
+            if (hits.isArray()) {
+                for (JsonNode hit : hits) {
+                    String title   = hit.path("title").asText("").trim();
+                    String content = hit.path("content").asText("").trim();
+                    String hitUrl  = hit.path("url").asText("").trim();
+
+                    if (!title.isEmpty() && !content.isEmpty()) {
+                        results.add(title + ": " + content
+                                + (hitUrl.isEmpty() ? "" : " (" + hitUrl + ")"));
+                    }
+                    if (results.size() >= max) break;
+                }
+            }
+
+            System.out.println("[WebSearchTool] SearXNG 결과: " + results.size() + "건");
+
+        } catch (Exception e) {
+            System.err.println("[WebSearchTool] SearXNG 검색 오류: " + e.getMessage());
+        }
+        return results;
     }
 }

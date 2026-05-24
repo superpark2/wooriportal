@@ -5,272 +5,595 @@
 <head>
     <meta charset="UTF-8">
     <title>𝓦𝓸𝓸𝓻𝓲</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="/style/skin/default/common/utilities/weather.css">
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --glass: rgba(255,255,255,0.13);
+            --glass-border: rgba(255,255,255,0.22);
+            --card-shadow: 0 8px 40px rgba(0,0,0,0.28);
+            --radius: 22px;
+        }
+
+        /* 레이아웃 기본 색상 강제 흰색 */
+        #weather-root, #weather-root * { color: #ffffff; }
+        #weather-root h1,
+        #weather-root h2,
+        #weather-root h3,
+        #weather-root h4,
+        #weather-root p,
+        #weather-root span,
+        #weather-root div { color: inherit; }
+
+        body { font-family: 'Noto Sans KR', sans-serif; }
+
+        #weather-root {
+            min-height: 100vh;
+            background: linear-gradient(160deg, #1b4f8a 0%, #4fa3e0 60%, #a8d8f0 100%);
+            padding: 36px 20px 60px;
+            transition: background 1.2s ease;
+        }
+
+        /* ── Header ── */
+        .wx-header { text-align:center; margin-bottom:28px; animation: fadeDown .7s ease both; }
+        .wx-header h1 {
+            font-family:'DM Serif Display',serif;
+            font-size:2.2rem;
+            color:#ffffff !important;
+            text-shadow:0 2px 16px rgba(0,0,0,.4);
+        }
+        .wx-header p { font-size:.78rem; color:rgba(255,255,255,.6) !important; margin-top:4px; letter-spacing:.06em; }
+
+        /* ── City select ── */
+        .city-select-wrap { display:flex; justify-content:center; margin-bottom:24px; animation: fadeDown .8s ease both; }
+        #city-select {
+            background:rgba(255,255,255,.12); border:1.5px solid rgba(255,255,255,.25);
+            backdrop-filter:blur(16px); color:#fff !important;
+            padding:9px 22px; border-radius:50px;
+            font-size:.95rem; font-family:'Noto Sans KR',sans-serif;
+            cursor:pointer; outline:none; -webkit-appearance:none;
+            transition:border-color .25s;
+        }
+        #city-select option { background:#2a4a70; color:#fff; }
+        #city-select:focus { border-color:rgba(244,199,106,.8); }
+
+        /* ══════════════════════════════
+           메인 카드
+        ══════════════════════════════ */
+        #main-card { max-width:640px; margin:0 auto 28px; animation: slideUp .7s ease both; }
+
+        .main-card {
+            background:var(--glass); border:1.5px solid var(--glass-border);
+            backdrop-filter:blur(24px); border-radius:var(--radius);
+            padding:28px 32px; box-shadow:var(--card-shadow);
+            display:flex; align-items:center; gap:28px;
+        }
+        .main-sky-icon {
+            flex-shrink:0; width:220px; height:140px;
+            position:relative; border-radius:14px; overflow:hidden;
+        }
+        .main-sky-icon img.bg  { width:100%; height:100%; object-fit:cover; }
+        .main-sky-icon img.ovr {
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%);
+            width:72%; height:72%; object-fit:contain;
+            filter:drop-shadow(0 4px 10px rgba(0,0,0,.5));
+            z-index:2;
+            animation:floatIcon 3.5s ease-in-out infinite;
+        }
+        .main-info { flex:1; }
+        .main-city { font-size:1.05rem; font-weight:700; margin-bottom:3px; }
+        .main-time { font-size:.76rem; color:rgba(255,255,255,.55) !important; margin-bottom:10px; }
+        .main-desc { font-size:.85rem; color:rgba(255,255,255,.65) !important; line-height:1.7; }
+        .main-temp {
+            font-family:'DM Serif Display',serif; font-size:5.5rem; line-height:1;
+            text-shadow:0 2px 16px rgba(0,0,0,.3); margin-bottom:8px;
+        }
+        @keyframes floatIcon {
+            0%,100% { transform:translate(-50%,-50%) translateY(0); }
+            50%      { transform:translate(-50%,-50%) translateY(-8px); }
+        }
+
+        /* ══════════════════════════════
+           3일 꺾은선 그래프 (아이콘 포인트 + 맑음/0%)
+        ══════════════════════════════ */
+        .chart-card {
+            max-width:900px; margin:0 auto 28px;
+            background:var(--glass); border:1.5px solid var(--glass-border);
+            backdrop-filter:blur(24px); border-radius:var(--radius);
+            padding:20px 18px 14px; box-shadow:var(--card-shadow);
+            animation: slideUp .75s .1s ease both;
+        }
+        .chart-card-title {
+            font-size:.72rem; font-weight:500; letter-spacing:.1em;
+            text-transform:uppercase; color:rgba(255,255,255,.5) !important;
+            margin-bottom:12px;
+        }
+        .chart-wrap { position:relative; width:100%; overflow-x:auto; overflow-y:visible; }
+        .chart-inner { position:relative; min-width:100%; }
+        #chart-svg { display:block; overflow:visible; }
+
+        /* 아이콘 + 라벨 레이어 */
+        .chart-icon-layer { position:absolute; top:0; left:0; pointer-events:none; }
+        .ci-group { position:absolute; display:flex; flex-direction:column; align-items:center; }
+        .ci-temp {
+            font-family:'DM Serif Display',serif; font-size:11px;
+            color:#fff !important;
+            text-shadow:0 1px 4px rgba(0,0,0,.6);
+            margin-bottom:2px; white-space:nowrap;
+            transform:translateX(-50%);
+        }
+        .ci-icon { width:34px; height:34px; transform:translateX(-50%); }
+        .ci-icon img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 2px 5px rgba(0,0,0,.4)); }
+        .ci-sub {
+            font-size:9px; color:rgba(255,255,255,.55) !important;
+            text-align:center; line-height:1.4;
+            transform:translateX(-50%);
+            white-space:nowrap; margin-top:2px;
+        }
+
+        /* 시간 라벨 행 */
+        .chart-time-row { position:relative; }
+        .chart-time-label {
+            position:absolute; font-size:9px;
+            color:rgba(255,255,255,.38) !important;
+            transform:translateX(-50%); top:0; white-space:nowrap;
+        }
+
+        /* ══════════════════════════════
+           일별 미니 꺾은선 (하단)
+        ══════════════════════════════ */
+        .daily-section { max-width:900px; margin:0 auto; animation: slideUp .8s .2s ease both; }
+        .daily-row {
+            display:flex; align-items:center; gap:12px;
+            background:var(--glass); border:1.5px solid var(--glass-border);
+            backdrop-filter:blur(18px); border-radius:16px;
+            margin-bottom:10px; padding:10px 16px;
+            box-shadow:0 4px 16px rgba(0,0,0,.15);
+        }
+        .daily-label {
+            flex-shrink:0; width:64px;
+            font-size:.78rem; font-weight:700;
+            color:rgba(255,255,255,.7) !important; line-height:1.4;
+        }
+        .daily-label .dl-temp {
+            font-family:'DM Serif Display',serif;
+            font-size:.85rem; color:#fff !important;
+            display:block; margin-top:2px;
+        }
+        .daily-mini-chart { flex:1; position:relative; height:56px; overflow:visible; }
+        .daily-mini-chart svg { overflow:visible; display:block; }
+        .daily-mini-layer { position:absolute; top:0; left:0; pointer-events:none; width:100%; height:100%; }
+        .dmi-group { position:absolute; display:flex; flex-direction:column; align-items:center; }
+        .dmi-icon { width:26px; height:26px; transform:translateX(-50%); }
+        .dmi-icon img { width:100%; height:100%; object-fit:contain; filter:drop-shadow(0 1px 3px rgba(0,0,0,.4)); }
+        .dmi-temp { font-size:9px; color:rgba(255,255,255,.7) !important; transform:translateX(-50%); margin-top:1px; white-space:nowrap; }
+
+        /* Skeleton */
+        .skeleton {
+            background:linear-gradient(90deg,rgba(255,255,255,.07) 25%,rgba(255,255,255,.15) 50%,rgba(255,255,255,.07) 75%);
+            background-size:200% 100%; animation:shimmer 1.4s infinite;
+            border-radius:12px; height:120px;
+        }
+        @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+        @keyframes fadeDown { from{opacity:0;transform:translateY(-12px)} to{opacity:1;transform:translateY(0)} }
+        @keyframes slideUp  { from{opacity:0;transform:translateY(20px)}  to{opacity:1;transform:translateY(0)} }
+    </style>
 </head>
 <body>
 <div layout:fragment="content">
-<h1>📅 도시별 3일치 날씨 예보</h1>
+    <div id="weather-root">
 
-<label for="city-select">도시 선택:</label>
-<select id="city-select">
-    <option value="seoul">서울</option>
-    <option value="incheon">인천</option>
-    <option value="busan">부산</option>
-    <option value="daegu">대구</option>
-    <option value="gwangju">광주</option>
-    <option value="daejeon">대전</option>
-    <option value="ulsan">울산</option>
-    <option value="suwon">수원</option>
-    <option value="cheongju">청주</option>
-    <option value="jeonju">전주</option>
-    <option value="chuncheon">춘천</option>
-    <option value="gangneung">강릉</option>
-    <option value="jeju">제주</option>
-</select>
+        <div class="wx-header">
+            <h1>🌤 날씨 예보</h1>
+            <p>도시별 3일 예보 · 기상청 단기예보</p>
+        </div>
 
-<div id="main-card">현재 기온 정보를 불러오는 중...</div>
-<div id="forecast-container">예보 정보를 불러오는 중...</div>
+        <div class="city-select-wrap">
+            <select id="city-select">
+                <option value="seoul">서울</option>
+                <option value="incheon">인천</option>
+                <option value="busan">부산</option>
+                <option value="daegu">대구</option>
+                <option value="gwangju">광주</option>
+                <option value="daejeon">대전</option>
+                <option value="ulsan">울산</option>
+                <option value="suwon">수원</option>
+                <option value="cheongju">청주</option>
+                <option value="jeonju">전주</option>
+                <option value="chuncheon">춘천</option>
+                <option value="gangneung">강릉</option>
+                <option value="jeju">제주</option>
+            </select>
+        </div>
 
-<div id="status"></div>
+        <!-- 히어로 메인카드 -->
+        <div id="main-card"><div class="skeleton"></div></div>
+
+        <!-- 3일 꺾은선 그래프 -->
+        <div class="chart-card">
+            <div class="chart-card-title">📈 기온 변화 (3일)</div>
+            <div class="chart-wrap">
+                <div class="chart-inner" id="chart-inner">
+                    <svg id="chart-svg"></svg>
+                    <div class="chart-icon-layer" id="chart-icon-layer"></div>
+                </div>
+                <div class="chart-time-row" id="chart-time-row" style="position:relative;height:18px;"></div>
+            </div>
+        </div>
+
+        <!-- 일별 미니 꺾은선 -->
+        <div class="daily-section" id="forecast-container">
+            <div class="skeleton"></div>
+        </div>
+
+    </div>
 </div>
 
 <div layout:fragment="script">
-<script>
+    <script>
+        const select     = document.getElementById('city-select');
+        const mainCardEl = document.getElementById('main-card');
+        const container  = document.getElementById('forecast-container');
 
-    const select = document.getElementById('city-select');
-    const mainCard = document.getElementById('main-card');
-    const container = document.getElementById('forecast-container');
+        const cityCoords = {
+            seoul:{name:'서울',nx:60,ny:127}, incheon:{name:'인천',nx:55,ny:124},
+            busan:{name:'부산',nx:98,ny:76},  daegu:{name:'대구',nx:89,ny:90},
+            gwangju:{name:'광주',nx:58,ny:74},daejeon:{name:'대전',nx:67,ny:100},
+            ulsan:{name:'울산',nx:102,ny:84}, suwon:{name:'수원',nx:60,ny:121},
+            cheongju:{name:'청주',nx:69,ny:106},jeonju:{name:'전주',nx:63,ny:89},
+            chuncheon:{name:'춘천',nx:73,ny:134},gangneung:{name:'강릉',nx:92,ny:131},
+            jeju:{name:'제주',nx:52,ny:38}
+        };
 
+        const skyMap     = {'1':'맑음','3':'구름 많음','4':'흐림'};
+        const skyImgMap  = {'1':'weather/background/GOOD.png','3':'weather/background/HELL.png','4':'weather/background/BAD.png'};
+        const nightBgImg = 'weather/background/NIGHT.png';
+        const ptyImgMap  = {'0':'weather/SUN.png','1':'weather/RAIN.png','2':'weather/RAINSNOW.png','3':'weather/SNOW.png','4':'weather/RAIN.png'};
 
-    const cityCoords = {
-        seoul: { name: '서울', nx: 60, ny: 127 },
-        incheon: { name: '인천', nx: 55, ny: 124 },
-        busan: { name: '부산', nx: 98, ny: 76 },
-        daegu: { name: '대구', nx: 89, ny: 90 },
-        gwangju: { name: '광주', nx: 58, ny: 74 },
-        daejeon: { name: '대전', nx: 67, ny: 100 },
-        ulsan: { name: '울산', nx: 102, ny: 84 },
-        suwon: { name: '수원', nx: 60, ny: 121 },
-        cheongju: { name: '청주', nx: 69, ny: 106 },
-        jeonju: { name: '전주', nx: 63, ny: 89 },
-        chuncheon: { name: '춘천', nx: 73, ny: 134 },
-        gangneung: { name: '강릉', nx: 92, ny: 131 },
-        jeju: { name: '제주', nx: 52, ny: 38 }
-    };
+        const bgGradients = {
+            '1':'linear-gradient(160deg,#1b4f8a 0%,#4fa3e0 60%,#a8d8f0 100%)',
+            '3':'linear-gradient(160deg,#2c3e55 0%,#6b7f99 60%,#aab5c3 100%)',
+            '4':'linear-gradient(160deg,#1a2030 0%,#4a5568 60%,#718096 100%)'
+        };
+        const nightGrad = 'linear-gradient(160deg,#0d1b3e 0%,#1a2f5e 60%,#2a4080 100%)';
 
-    const categoryMap = {
-        TMP: '기온(℃)',
-        POP: '강수확률(%)',
-        SKY: '하늘상태',
-        PTY: '강수형태'
-    };
-
-    const skyMap = { '1': '맑음', '3': '구름 많음', '4': '흐림' };
-    const ptyMap = { '0': '없음', '1': '비', '2': '비/눈', '3': '눈', '4': '소나기' };
-
-
-    const skyImgMap = {
-        '1': 'weather/background/GOOD.png',     // 맑음
-        '3': 'weather/background/HELL.png',    // 구름 많음
-        '4': 'weather/background/BAD.png'   // 흐림
-    };
-
-    const nightSkyImg = 'weather/background/NIGHT.png';
-
-    const ptyImgMap = {
-        '0': 'weather/SUN.png',      // 없음
-        '1': 'weather/RAIN.png',      // 비
-        '2': 'weather/RAINSNOW.png', // 비/눈
-        '3': 'weather/SNOW.png',      // 눈
-        '4': 'weather/RAIN.png'     // 소나기
-    };
-
-    select.addEventListener('change', () => {
-        const selected = select.value;
-        const { nx, ny, name } = cityCoords[selected];
-        fetchForecast(nx, ny, name);
-    });
-
-    function getBaseTime() {
-        const now = new Date();
-        const hour = now.getHours();
-        const baseHours = [2, 5, 8, 11, 14, 17, 20, 23];
-        let selected = baseHours[0];
-        for (let i = 0; i < baseHours.length; i++) {
-            if (hour >= baseHours[i]) selected = baseHours[i];
+        function isNight(h) { return h >= 20 || h < 5; }
+        function getIcon(pty, sky, h) {
+            if (pty !== '0') return ptyImgMap[pty] || ptyImgMap['0'];
+            return isNight(h) ? 'weather/MOON.png' : 'weather/SUN.png';
         }
-        return String(selected).padStart(2, '0') + '00';
-    }
+        function getBaseTime() {
+            const h = new Date().getHours();
+            const b = [2,5,8,11,14,17,20,23]; let s=b[0];
+            for(const x of b){if(h>=x)s=x;}
+            return String(s).padStart(2,'0')+'00';
+        }
 
-    function fetchForecast(nx, ny, cityName) {
-        mainCard.innerHTML = '현재 기온 정보를 불러오는 중...';
-        container.innerHTML = '예보 정보를 불러오는 중...';
+        /* ─── SVG 베지어 경로 계산 ─── */
+        function bezierPath(xs, ys) {
+            let d = `M ${xs[0]} ${ys[0]}`;
+            for(let i=1;i<xs.length;i++){
+                const cpx=(xs[i-1]+xs[i])/2;
+                d+=` C ${cpx} ${ys[i-1]}, ${cpx} ${ys[i]}, ${xs[i]} ${ys[i]}`;
+            }
+            return d;
+        }
 
-        const now = new Date();
-        const yyyy = now.getFullYear();
-        const mm = String(now.getMonth() + 1).padStart(2, '0');
-        const dd = String(now.getDate()).padStart(2, '0');
-        const base_date = `${yyyy}${mm}${dd}`;
-        const base_time = getBaseTime();
+        /* ─── 3일 메인 꺾은선 (아이콘 + 맑음/0%) ─── */
+        function drawIconChart(sorted) {
+            const pts   = sorted.filter((_,i)=>i%3===0).slice(0,24);
+            if(pts.length<2) return;
+            const temps = pts.map(d=>parseFloat(d.data.TMP));
+            const minT  = Math.min(...temps)-3, maxT=Math.max(...temps)+3, range=maxT-minT||1;
 
-        const serviceKey = 'wje5hA%2Bnn3R5RgOMpkRjQoneVn2py4RGqQmFJCCZS2IjYEetSvm7HP%2FngICVZN7%2FB0Mj2ig7Xp2oep7%2B4kcrSQ%3D%3D';
-        const url = `https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?` +
-            `serviceKey=${serviceKey}&pageNo=1&numOfRows=1000&dataType=JSON` +
-            `&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}`;
+            const PAD_L=20, PAD_R=20;
+            const ICON_H=34, TEMP_H=14, SUB_H=28; // sub = 맑음\n0% 두 줄
+            const LINE_TOP=TEMP_H+ICON_H/2;       // 아이콘 중심 기준으로 선 그림
+            const CHART_H=TEMP_H+ICON_H+SUB_H+12; // 전체 높이
+            const STEP=Math.max(68, Math.floor((Math.min(window.innerWidth,900)-40-PAD_L-PAD_R)/(pts.length-1)));
+            const W=PAD_L+STEP*(pts.length-1)+PAD_R;
 
-        fetch(url)
-            .then(res => res.json())
-            .then(data => {
-                const items = data.response.body.items.item;
-                const grouped = {};
+            const chartInner=document.getElementById('chart-inner');
+            const svg       =document.getElementById('chart-svg');
+            const iconLayer =document.getElementById('chart-icon-layer');
+            const timeRow   =document.getElementById('chart-time-row');
 
-                items.forEach(item => {
-                    const date = item.fcstDate;
-                    const time = item.fcstTime;
-                    const key = `${date}-${time}`;
-                    if (!grouped[key]) grouped[key] = { date, time, data: {} };
-                    grouped[key].data[item.category] = item.fcstValue;
-                });
+            chartInner.style.width=W+'px';
+            iconLayer.style.width=W+'px';
+            iconLayer.style.height=CHART_H+'px';
+            timeRow.style.width=W+'px';
+            svg.setAttribute('width',W); svg.setAttribute('height',CHART_H);
+            svg.setAttribute('viewBox',`0 0 ${W} ${CHART_H}`);
+            svg.innerHTML=''; iconLayer.innerHTML=''; timeRow.innerHTML='';
 
-                const sorted = Object.values(grouped).sort((a, b) => a.date + a.time > b.date + b.time ? 1 : -1);
+            const xOf=i=>PAD_L+i*STEP;
+            // 아이콘 중심 y: TEMP_H + 아이콘반 = 고정 구역, 실제 온도값에 따라 위아래
+            const lineAreaH = ICON_H;
+            const yOf=t=>TEMP_H+ICON_H/2 + (1-(t-minT)/range)*(CHART_H-TEMP_H-ICON_H-SUB_H-8);
 
-                const nowStr = `${String(now.getHours()).padStart(2, '0')}00`;
-                const today = `${yyyy}${mm}${dd}`;
-                const current = sorted.find(f => f.date === today && f.time >= nowStr) || sorted[0];
+            const xs=pts.map((_,i)=>xOf(i));
+            const ys=pts.map(d=>yOf(parseFloat(d.data.TMP)));
 
-                const currentData = current.data;
-                const currentTime = `${current.time.slice(0, 2)}시`;
-                const currentHour = parseInt(current.time.slice(0, 2));
+            // 그리드
+            for(let g=0;g<=3;g++){
+                const y=TEMP_H+ICON_H/2+(g/3)*(CHART_H-TEMP_H-ICON_H-SUB_H-8);
+                const el=document.createElementNS('http://www.w3.org/2000/svg','line');
+                el.setAttribute('x1',PAD_L);el.setAttribute('x2',W-PAD_R);
+                el.setAttribute('y1',y);el.setAttribute('y2',y);
+                el.setAttribute('stroke','rgba(255,255,255,0.07)');el.setAttribute('stroke-width','1');
+                svg.appendChild(el);
+            }
 
-                let currentSkyImg;
-                if (currentData.SKY === '1' && (currentHour >= 20 || currentHour < 5)) {
-                    currentSkyImg = nightSkyImg;
-                } else {
-                    currentSkyImg = skyImgMap[currentData.SKY] || 'images/default.png';
-                }
+            // 그라디언트 채움
+            const defs=document.createElementNS('http://www.w3.org/2000/svg','defs');
+            const grad=document.createElementNS('http://www.w3.org/2000/svg','linearGradient');
+            grad.setAttribute('id','lg3'); grad.setAttribute('x1','0');grad.setAttribute('y1','0');
+            grad.setAttribute('x2','0');grad.setAttribute('y2','1');
+            const s1=document.createElementNS('http://www.w3.org/2000/svg','stop');
+            s1.setAttribute('offset','0%');s1.setAttribute('stop-color','rgba(244,199,106,0.3)');
+            const s2=document.createElementNS('http://www.w3.org/2000/svg','stop');
+            s2.setAttribute('offset','100%');s2.setAttribute('stop-color','rgba(244,199,106,0)');
+            grad.appendChild(s1);grad.appendChild(s2);defs.appendChild(grad);svg.appendChild(defs);
 
-                let currentPtyImg = ptyImgMap[currentData.PTY] || 'images/default.png';
+            const fillD=bezierPath(xs,ys)+` L ${xs[xs.length-1]} ${CHART_H} L ${xs[0]} ${CHART_H} Z`;
+            const area=document.createElementNS('http://www.w3.org/2000/svg','path');
+            area.setAttribute('d',fillD);area.setAttribute('fill','url(#lg3)');svg.appendChild(area);
 
-                if ((currentHour >= 20 || currentHour < 5) && currentData.PTY === '0') {
-                    currentPtyImg = 'weather/MOON.png';
-                }
+            const lineEl=document.createElementNS('http://www.w3.org/2000/svg','path');
+            lineEl.setAttribute('d',bezierPath(xs,ys));
+            lineEl.setAttribute('fill','none');lineEl.setAttribute('stroke','rgba(244,199,106,0.65)');
+            lineEl.setAttribute('stroke-width','1.8');svg.appendChild(lineEl);
 
-                mainCard.innerHTML = `
-                                      <div class="main-card">
-                                        <h2>${cityName} 현재 (${currentTime}) 기준</h2>
-                                        <div>
-                                        <div class="value">${currentData.TMP}℃</div>
-                                <div style="width:245px; height:137px; position: relative;">
-                                    <img src="${currentSkyImg}" style="width:245px;height:137px;object-fit:cover;">
-                                    <img src="${currentPtyImg}" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); max-width: 70%; max-height: 70%;z-index: 9999;
-                                    object-fit: contain">
-                                </div>
-                                        <div>강수확률: ${currentData.POP}%</div>
-                                      </div>
-                                      </div>
-                                    `;
+            // 아이콘 그룹 (기온 위, 아이콘, 맑음/강수확률 아래)
+            pts.forEach((pt,i)=>{
+                const x=xs[i], y=ys[i];
+                const h=parseInt(pt.time.slice(0,2));
+                const icon=getIcon(pt.data.PTY,pt.data.SKY,h);
+                const skyLabel=skyMap[pt.data.SKY]||'';
+                const pop=pt.data.POP+'%';
 
-                container.innerHTML = '';
-                let currentDate = '';
-                let rowDiv = null;
+                const g=document.createElement('div');
+                g.className='ci-group';
+                g.style.left=x+'px';
+                g.style.top=(y-ICON_H/2-TEMP_H)+'px';
 
-                sorted.forEach(entry => {
-                    if (entry.date !== currentDate) {
-                        currentDate = entry.date;
-                        const dayDiv = document.createElement('div');
-                        dayDiv.className = 'forecast-day';
+                g.innerHTML=`
+                <div class="ci-temp">${temps[i]}°</div>
+                <div class="ci-icon"><img src="${icon}" alt=""></div>
+                <div class="ci-sub">${skyLabel}<br>${pop}</div>`;
+                iconLayer.appendChild(g);
 
-                        const dayTemps = sorted
-                            .filter(e => e.date === currentDate)
-                            .map(e => parseFloat(e.data.TMP));
-                        const maxTemp = Math.max(...dayTemps);
-                        const minTemp = Math.min(...dayTemps);
-
-                        dayDiv.innerHTML = `<h3>${entry.date.slice(0,4)}-${entry.date.slice(4,6)}-${entry.date.slice(6,8)} (최고 ${maxTemp}℃ / 최저 ${minTemp}℃)</h3>`;
-
-                        rowDiv = document.createElement('div');
-                        rowDiv.className = 'forecast-row';
-                        dayDiv.appendChild(rowDiv);
-                        container.appendChild(dayDiv);
-                    }
-
-                    const itemDiv = document.createElement('div');
-                    itemDiv.className = 'forecast-item';
-
-                    const time = `${entry.time.slice(0,2)}시`;
-                    const data = entry.data;
-
-                    const ptyImg = ptyImgMap[data.PTY] || 'images/default.png';
-
-                    itemDiv.innerHTML = `
-                        <div class="pty-icon" style="text-align:center;  margin-bottom:5px; width:100%; height:60px;">
-                            <img src="${ptyImg}" style="max-width:100%; max-height:100%; object-fit: contain">
-                        </div>
-                        <div class="time">${time}</div>
-                        <div class="desc">
-                            <div>기온: ${data.TMP}℃</div>
-                            <div>강수확률: ${data.POP}%</div>
-                            <div>하늘상태: ${skyMap[data.SKY] || data.SKY}</div>
-                        </div>
-                    `;
-                    rowDiv.appendChild(itemDiv);
-
-
-                    let desc = '';
-                    for (const cat of ['TMP', 'POP', 'SKY', 'PTY']) {
-                        if (data[cat]) {
-                            if (cat === 'PTY') {
-                                const ptyImg = ptyImgMap[data.PTY] || 'images/default.png';
-                                desc += `<div>${categoryMap[cat]}: <img src="${ptyImg}" style="width:24px;height:24px;vertical-align:middle;"></div>`;
-                            } else {
-                                let val = data[cat];
-                                if (cat === 'SKY') val = skyMap[val] || val;
-                                desc += `<div>${categoryMap[cat]}: ${val}</div>`;
-                            }
-                        }
-                    }
-
-                });
-            })
-            .catch(err => {
-                mainCard.innerHTML = '현재 기온 정보를 불러오지 못했습니다.';
-                container.innerHTML = '예보 정보를 불러오지 못했습니다.';
+                // 시간 라벨
+                const tl=document.createElement('div');
+                tl.className='chart-time-label';
+                tl.style.left=x+'px';
+                tl.textContent=String(h).padStart(2,'0')+'시';
+                timeRow.appendChild(tl);
             });
-    }
-
-    (async function () {
-        try {
-            const res = await fetch("https://ipapi.co/json/");
-            const ipData = await res.json();
-
-            let matchedKey = null;
-
-            for (const key in cityCoords) {
-                if (key.toLowerCase() === ipData.region.toLowerCase()) {
-                    matchedKey = key;
-                    break;
-                }
-            }
-
-            if (matchedKey) {
-                const { nx, ny, name } = cityCoords[matchedKey];
-                document.getElementById("city-select").value = matchedKey;
-                fetchForecast(nx, ny, name);
-            } else {
-                document.getElementById("city-select").value = "incheon";
-                const { nx, ny, name } = cityCoords["incheon"];
-                fetchForecast(nx, ny, name);
-            }
-        } catch (e) {
-            document.getElementById("city-select").value = "incheon";
-            const { nx, ny, name } = cityCoords["incheon"];
-            fetchForecast(nx, ny, name);
         }
-    })();
 
+        /* ─── 일별 미니 꺾은선 ─── */
+        function drawDailyMini(dayEntries, rowEl) {
+            const pts = dayEntries.filter((_,i) => i % 3 === 0);
+            if (pts.length < 2) return null;
 
-</script>
+            const temps = pts.map(d => parseFloat(d.data.TMP));
+            const minT  = Math.min(...temps) - 2;
+            const maxT  = Math.max(...temps) + 2;
+            const range = maxT - minT || 1;
+
+            // 레이아웃 상수 (픽셀)
+            const ICON   = 22;   // 아이콘 크기
+            const TEMP_H = 13;   // 기온 라벨 높이 (아이콘 위)
+            const TIME_H = 14;   // 시간 라벨 높이 (아이콘 아래)
+            const LINE_H = 24;   // 꺾은선이 움직이는 수직 범위
+            const TOP    = TEMP_H + ICON / 2;          // 아이콘 중심 최소 y
+            const TOTAL  = TOP + LINE_H + ICON / 2 + TIME_H; // 전체 높이
+
+            const STEP = 52;
+            const PAD  = 16;
+            const W    = PAD + STEP * (pts.length - 1) + PAD;
+
+            // y좌표: SVG 픽셀 = HTML 픽셀 (viewBox 없이 고정)
+            const xOf = i => PAD + i * STEP;
+            const yOf = t => TOP + (1 - (t - minT) / range) * LINE_H;
+
+            const xs = pts.map((_, i) => xOf(i));
+            const ys = pts.map(d => yOf(parseFloat(d.data.TMP)));
+
+            // 래퍼: overflow-x scroll
+            const wrap = document.createElement('div');
+            wrap.style.cssText = 'flex:1; overflow-x:auto; overflow-y:visible; scrollbar-width:none;';
+
+            const inner = document.createElement('div');
+            inner.style.cssText = `position:relative; width:${W}px; height:${TOTAL}px;`;
+
+            // SVG — 고정 픽셀 (viewBox 없음 → 1px=1px)
+            const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+            svg.setAttribute('width', W);
+            svg.setAttribute('height', TOTAL);
+            svg.style.cssText = 'position:absolute;top:0;left:0;overflow:visible;';
+
+            // 그라디언트
+            const gid = 'g' + Math.random().toString(36).slice(2,7);
+            svg.innerHTML = `
+            <defs>
+                <linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stop-color="rgba(255,255,255,0.2)"/>
+                    <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
+                </linearGradient>
+            </defs>`;
+
+            // 채움 + 선
+            const bp = bezierPath(xs, ys);
+            const fillEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+            fillEl.setAttribute('d', bp + ` L ${xs[xs.length-1]} ${TOTAL} L ${xs[0]} ${TOTAL} Z`);
+            fillEl.setAttribute('fill', `url(#${gid})`);
+            svg.appendChild(fillEl);
+
+            const lineEl = document.createElementNS('http://www.w3.org/2000/svg','path');
+            lineEl.setAttribute('d', bp);
+            lineEl.setAttribute('fill', 'none');
+            lineEl.setAttribute('stroke', 'rgba(255,255,255,0.6)');
+            lineEl.setAttribute('stroke-width', '1.5');
+            svg.appendChild(lineEl);
+
+            inner.appendChild(svg);
+
+            // 아이콘 + 기온 + 시간 — 같은 좌표계(px)로 배치
+            pts.forEach((pt, i) => {
+                const x = xs[i];
+                const cy = ys[i]; // 아이콘 중심 y
+                const h  = parseInt(pt.time.slice(0, 2));
+                const icon = getIcon(pt.data.PTY, pt.data.SKY, h);
+
+                // 기온 라벨 (아이콘 위)
+                const tempEl = document.createElement('div');
+                tempEl.style.cssText = `
+                position:absolute;
+                left:${x}px; top:${cy - ICON/2 - TEMP_H}px;
+                transform:translateX(-50%);
+                font-size:9px; font-family:'DM Serif Display',serif;
+                color:rgba(255,255,255,.8); white-space:nowrap;
+                text-shadow:0 1px 3px rgba(0,0,0,.5);`;
+                tempEl.textContent = temps[i] + '°';
+                inner.appendChild(tempEl);
+
+                // 아이콘
+                const iconEl = document.createElement('div');
+                iconEl.style.cssText = `
+                position:absolute;
+                left:${x - ICON/2}px; top:${cy - ICON/2}px;
+                width:${ICON}px; height:${ICON}px;`;
+                iconEl.innerHTML = `<img src="${icon}" style="width:100%;height:100%;object-fit:contain;filter:drop-shadow(0 1px 4px rgba(0,0,0,.5));">`;
+                inner.appendChild(iconEl);
+
+                // 시간 라벨 (아이콘 아래)
+                const timeEl = document.createElement('div');
+                timeEl.style.cssText = `
+                position:absolute;
+                left:${x}px; top:${cy + ICON/2 + 2}px;
+                transform:translateX(-50%);
+                font-size:9px; color:rgba(255,255,255,.4);
+                white-space:nowrap;`;
+                timeEl.textContent = String(h).padStart(2,'0') + '시';
+                inner.appendChild(timeEl);
+            });
+
+            wrap.appendChild(inner);
+            return wrap;
+        }
+
+        /* ─── fetch ─── */
+        function fetchForecast(nx, ny, cityName) {
+            mainCardEl.innerHTML='<div class="skeleton"></div>';
+            container.innerHTML='<div class="skeleton"></div>';
+
+            const now=new Date();
+            const yyyy=now.getFullYear();
+            const mm=String(now.getMonth()+1).padStart(2,'0');
+            const dd=String(now.getDate()).padStart(2,'0');
+            const base_date=`${yyyy}${mm}${dd}`, base_time=getBaseTime();
+
+            const svcKey='wje5hA%2Bnn3R5RgOMpkRjQoneVn2py4RGqQmFJCCZS2IjYEetSvm7HP%2FngICVZN7%2FB0Mj2ig7Xp2oep7%2B4kcrSQ%3D%3D';
+            const url=`https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getVilageFcst?serviceKey=${svcKey}&pageNo=1&numOfRows=1000&dataType=JSON&base_date=${base_date}&base_time=${base_time}&nx=${nx}&ny=${ny}`;
+
+            fetch(url).then(r=>r.json()).then(data=>{
+                const grouped={};
+                data.response.body.items.item.forEach(item=>{
+                    const k=`${item.fcstDate}-${item.fcstTime}`;
+                    if(!grouped[k]) grouped[k]={date:item.fcstDate,time:item.fcstTime,data:{}};
+                    grouped[k].data[item.category]=item.fcstValue;
+                });
+                const sorted=Object.values(grouped).sort((a,b)=>a.date+a.time>b.date+b.time?1:-1);
+
+                const nowStr=String(now.getHours()).padStart(2,'0')+'00';
+                const today=`${yyyy}${mm}${dd}`;
+                const cur=sorted.find(f=>f.date===today&&f.time>=nowStr)||sorted[0];
+                const cd=cur.data;
+                const curH=parseInt(cur.time.slice(0,2));
+                const night=isNight(curH);
+
+                // 배경
+                document.getElementById('weather-root').style.background=
+                    night?nightGrad:(bgGradients[cd.SKY]||bgGradients['1']);
+
+                // 메인카드
+                const bgImg=(cd.SKY==='1'&&night)?nightBgImg:(skyImgMap[cd.SKY]||'');
+                const ovrIcon=getIcon(cd.PTY,cd.SKY,curH);
+                mainCardEl.innerHTML=`
+                <div class="main-card">
+                    <div class="main-sky-icon">
+                        ${bgImg?`<img class="bg" src="${bgImg}" alt="">`:''}
+                        <img class="ovr" src="${ovrIcon}" alt="">
+                    </div>
+                    <div class="main-info">
+                        <div class="main-temp">${cd.TMP}°</div>
+                        <div class="main-city">${cityName}</div>
+                        <div class="main-time">${cur.time.slice(0,2)}시 기준</div>
+                        <div class="main-desc">${skyMap[cd.SKY]||''} &nbsp;·&nbsp; 강수확률 ${cd.POP}%</div>
+                    </div>
+                </div>`;
+
+                // 3일 차트
+                window._lastSorted=sorted;
+                setTimeout(()=>drawIconChart(sorted),60);
+
+                // 일별 미니 꺾은선
+                container.innerHTML='';
+                const byDate={};
+                sorted.forEach(e=>{
+                    if(!byDate[e.date]) byDate[e.date]=[];
+                    byDate[e.date].push(e);
+                });
+
+                Object.entries(byDate).forEach(([date,entries])=>{
+                    const temps=entries.map(e=>parseFloat(e.data.TMP));
+                    const maxT=Math.max(...temps), minT=Math.min(...temps);
+                    const yr=date.slice(0,4),mo=date.slice(4,6),dy=date.slice(6,8);
+                    const dayLabel=new Date(`${yr}-${mo}-${dy}`).toLocaleDateString('ko-KR',{month:'short',day:'numeric',weekday:'short'});
+
+                    const row=document.createElement('div');
+                    row.className='daily-row';
+                    row.innerHTML=`
+                    <div class="daily-label">
+                        ${dayLabel}
+                        <span class="dl-temp">${maxT}° / ${minT}°</span>
+                    </div>`;
+
+                    const mini=drawDailyMini(entries, row);
+                    if(mini) row.appendChild(mini);
+                    container.appendChild(row);
+                });
+
+            }).catch(()=>{
+                mainCardEl.innerHTML='<div style="padding:24px;opacity:.6;text-align:center;">데이터를 불러올 수 없습니다.</div>';
+                container.innerHTML='';
+            });
+        }
+
+        select.addEventListener('change',()=>{
+            const{nx,ny,name}=cityCoords[select.value];
+            fetchForecast(nx,ny,name);
+        });
+        window.addEventListener('resize',()=>{ if(window._lastSorted) drawIconChart(window._lastSorted); });
+
+        (async function(){
+            try{
+                const ip=await(await fetch('https://ipapi.co/json/')).json();
+                let key=null;
+                for(const k in cityCoords){if(k.toLowerCase()===(ip.region||'').toLowerCase()){key=k;break;}}
+                select.value=key||'seoul';
+            }catch(_){select.value='seoul';}
+            const{nx,ny,name}=cityCoords[select.value];
+            fetchForecast(nx,ny,name);
+        })();
+    </script>
 </div>
-
 </body>
 </html>

@@ -1,6 +1,7 @@
 package com.mrpark.dev.wooriportal.global.file;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -9,6 +10,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.List;
 
+@Log4j2
 @RequiredArgsConstructor
 @Service
 public class FileService {
@@ -92,8 +94,17 @@ public class FileService {
     @Transactional
     public void deleteFile(String group, Long boardNum) {
         String base = basePath();
-        fileRepository.findByBoardNumAndDivisionGroup(boardNum, group)
-                .forEach(f -> new File(base, f.getFilePath()).delete());
+        List<FileEntity> files = fileRepository.findByBoardNumAndDivisionGroup(boardNum, group);
+
+        // DB 먼저 삭제 (트랜잭션 보호 범위 안) → 실패 시 롤백되어 파일도 보존됨
         fileRepository.deleteByBoardNumAndDivisionGroup(boardNum, group);
+
+        // DB 삭제 성공 후 디스크 삭제
+        files.forEach(f -> {
+            boolean deleted = new File(base, f.getFilePath()).delete();
+            if (!deleted) {
+                log.warn("첨부파일 삭제 실패 (이미 없거나 권한 문제): {}", f.getFilePath());
+            }
+        });
     }
 }

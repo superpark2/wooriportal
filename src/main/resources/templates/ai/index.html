@@ -1125,7 +1125,7 @@
                                     + '[AI_IMAGE:' + data.imageUrl + ']';
                                 aiHistory.push({ role: 'assistant', content: histContent });
                             } else {
-                                finalizeStreamingBubble(loadingId, accumulatedText, receivedSearch, true);
+                                finalizeStreamingBubble(loadingId, data.fullContent, receivedSearch, true);
                                 aiHistory.push({ role: 'assistant', content: data.fullContent });
                             }
 

@@ -5,6 +5,10 @@ import com.mrpark.dev.wooriportal.ai.dto.ChatRequestDTO;
 import com.mrpark.dev.wooriportal.ai.dto.OllamaRequestDTO;
 import com.mrpark.dev.wooriportal.ai.dto.OllamaResponseDTO;
 import com.mrpark.dev.wooriportal.ai.mcp.McpToolRegistry;
+import com.mrpark.dev.wooriportal.ai.mcp.tools.embedding.EmbeddingTool;
+import com.mrpark.dev.wooriportal.ai.mcp.tools.embedding.EmbeddingToolArgumentDTO;
+import com.mrpark.dev.wooriportal.ai.mcp.tools.websearch.WebSearchTool;
+import com.mrpark.dev.wooriportal.ai.mcp.tools.websearch.dto.WebSearchToolArgumentDTO;
 import jakarta.annotation.PostConstruct;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
@@ -39,7 +43,9 @@ public class AiService {
 
     private final AiHandler        aiHandler;
     private final AiSessionStore   sessionStore;
-    private final McpToolRegistry mcpToolRegistry;
+    private final McpToolRegistry  mcpToolRegistry;
+    private final WebSearchTool    webSearchTool;
+    private final EmbeddingTool    embeddingTool;
 
     @Value("${ollama.api.url}")
     private String ollamaApiUrl;
@@ -61,6 +67,9 @@ public class AiService {
     private final Map<String, Deque<OllamaRequestDTO.MessageDTO>> sessionMemory
             = new ConcurrentHashMap<>();
 
+    /** 세션별 최신 페이지 컨텍스트 (layout 팝업 AI 전용) */
+    private final Map<String, String> pageContextStore = new ConcurrentHashMap<>();
+
     @PostConstruct
     public void init() {
         loadSystemPrompt();
@@ -75,18 +84,28 @@ public class AiService {
         String skin      = request.getSkin();
 
         ctx.setRegenerate(request.isRegenerate());
-        String userMessage     = extractLastUserMessage(request);
-        List<String> attached  = extractAttachedImages(request);
+
+        // layout 팝업: 페이지 컨텐츠와 질문 분리
+        String[] parsed    = splitPageContext(request);
+        String pageContext = parsed[0];   // "[화면 컨텐츠 영역]" 앞부분 (없으면 "")
+        String userMessage = parsed[1];   // 실제 질문
+
+        List<String> attached = extractAttachedImages(request);
 
         // 신규 첨부 이미지 → 세션에 저장
         if (!attached.isEmpty()) {
             sessionStore.putAllImages(sessionId, attached);
         }
 
-        // 메모리에 유저 메시지 추가
+        // 페이지 컨텐츠 세션 저장 (매 요청마다 최신으로 갱신)
+        if (!pageContext.isEmpty()) {
+            pageContextStore.put(sessionId, pageContext);
+        }
+
+        // 메모리에는 질문만 저장 (컨텐츠는 buildMessages에서 system으로 주입)
         String memContent = userMessage
                 + (attached.isEmpty() ? "" : " [이미지 " + attached.size() + "장 첨부]");
-        addToMemory(sessionId, "user", memContent, null);
+        addToMemory(sessionId, "user", memContent, attached.isEmpty() ? null : attached);
 
         // Ollama 스트리밍 호출
         streamOllama(sessionId, userMessage, List.of(), skin, ctx, ctx.getEmitter());
@@ -94,6 +113,7 @@ public class AiService {
 
     public void clearSession(String sessionId) {
         sessionMemory.remove(sessionId);
+        pageContextStore.remove(sessionId);
         sessionStore.clearSession(sessionId);
     }
 
@@ -161,7 +181,19 @@ public class AiService {
 
                 System.out.println("[AiService] tool_calls 수신: " + toolName);
 
-                // 메모리에 assistant tool_call 기록
+                // web_search: 2-turn (검색 → 결과를 메모리에 추가 → LLM 합성)
+                if ("web_search".equals(toolName)) {
+                    handleWebSearch(toolArgs, sessionId, skin, ctx, emitter);
+                    return;
+                }
+
+                // rag_search: 2-turn (내부 지식 검색 → 결과 주입 → LLM 합성)
+                if ("rag_search".equals(toolName)) {
+                    handleRagSearch(toolArgs, sessionId, skin, ctx, emitter);
+                    return;
+                }
+
+                // 이미지/엑셀 등 나머지 도구: 도구가 SSE를 직접 완결
                 addToMemory(sessionId, "assistant", "이미지 작업을 수행했습니다.", null);
 
                 boolean executed = mcpToolRegistry.execute(
@@ -186,6 +218,73 @@ public class AiService {
         } catch (Exception e) {
             if (!ctx.isCancelled()) {
                 System.err.println("[AiService] 스트리밍 오류: " + e.getMessage());
+                sendError(emitter, "AI 서버와 통신 중 오류가 발생했습니다.");
+            }
+        }
+    }
+
+    /**
+     * 2nd Ollama 호출 (웹 검색 결과 합성 전용).
+     *
+     * tool_call 분기 없이 텍스트 스트리밍만 수행한다.
+     * 검색 결과 주입 후 LLM이 또 web_search 를 호출해 무한 루프에 빠지는 것을 방지한다.
+     */
+    private void streamOllamaFinal(String sessionId, String skin,
+                                   AiHandler.SessionContext ctx, SseEmitter emitter) {
+        try {
+            OllamaRequestDTO ollamaRequest = buildOllamaRequest(sessionId, skin);
+
+            HttpURLConnection conn = openOllamaConn();
+            ctx.setActiveConn(conn);
+
+            try (OutputStream os = conn.getOutputStream()) {
+                os.write(mapper.writeValueAsBytes(ollamaRequest));
+            }
+
+            StringBuilder fullText = new StringBuilder();
+
+            try (BufferedReader reader = new BufferedReader(
+                    new InputStreamReader(conn.getInputStream(), StandardCharsets.UTF_8))) {
+
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    if (ctx.isCancelled()) return;
+                    if (line.isBlank()) continue;
+
+                    OllamaResponseDTO response = parseResponse(line);
+                    if (response == null) continue;
+
+                    // tool_call 무시 — 검색 결과를 이미 받았으므로 텍스트만 처리
+                    if (response.hasToolCalls()) {
+                        System.out.println("[AiService] streamOllamaFinal: tool_call 무시");
+                        continue;
+                    }
+
+                    String token = response.getMessage() != null
+                            ? response.getMessage().getContent() : "";
+                    if (token != null && !token.isEmpty()) {
+                        fullText.append(token);
+                        sendToken(emitter, token);
+                    }
+
+                    if (response.isDone()) break;
+                }
+            }
+
+            if (ctx.isCancelled()) return;
+
+            String finalContent = fullText.toString().trim();
+            addToMemory(sessionId, "assistant", finalContent, null);
+
+            emitter.send(SseEmitter.event().name("done")
+                    .data("{\"fullContent\":" + mapper.writeValueAsString(finalContent) + "}"));
+            emitter.complete();
+            aiHandler.markVramLoaded(AiHandler.SessionType.CHAT);
+            ctx.complete();
+
+        } catch (Exception e) {
+            if (!ctx.isCancelled()) {
+                System.err.println("[AiService] streamOllamaFinal 오류: " + e.getMessage());
                 sendError(emitter, "AI 서버와 통신 중 오류가 발생했습니다.");
             }
         }
@@ -232,6 +331,15 @@ public class AiService {
 
         if (!attached.isEmpty() || lastGenB64 != null) {
             messages.add(buildImageStatusMessage(attached, lastGenB64));
+        }
+
+        // 페이지 컨텐츠 주입 (layout 팝업 전용 — 시스템 프롬프트 바로 앞)
+        String pageContext = pageContextStore.get(sessionId);
+        if (pageContext != null && !pageContext.isBlank()) {
+            messages.add(OllamaRequestDTO.MessageDTO.builder()
+                    .role("system")
+                    .content("[화면 컨텐츠 영역]\n" + pageContext + "\n[/화면 컨텐츠 영역]")
+                    .build());
         }
 
         // 시스템 프롬프트
@@ -303,17 +411,29 @@ public class AiService {
     //  유틸
     // ══════════════════════════════════════════════════════════════
 
-    private String extractLastUserMessage(ChatRequestDTO request) {
-        if (request.getMessages() == null) return "";
+    /**
+     * layout 팝업 AI 메시지 파싱.
+     *
+     * 전송 형식: "{페이지 컨텐츠}\n[질문]\n{사용자 질문}"
+     *
+     * @return [0] = 페이지 컨텍스트 (없으면 ""), [1] = 실제 질문
+     */
+    private String[] splitPageContext(ChatRequestDTO request) {
+        if (request.getMessages() == null) return new String[]{"", ""};
         for (int i = request.getMessages().size() - 1; i >= 0; i--) {
             OllamaRequestDTO.MessageDTO msg = request.getMessages().get(i);
             if ("user".equals(msg.getRole())) {
                 String content = msg.getContent().trim();
                 int idx = content.indexOf("[질문]\n");
-                return idx != -1 ? content.substring(idx + "[질문]\n".length()).trim() : content;
+                if (idx != -1) {
+                    String pageContext = content.substring(0, idx).trim();
+                    String question    = content.substring(idx + "[질문]\n".length()).trim();
+                    return new String[]{pageContext, question};
+                }
+                return new String[]{"", content};
             }
         }
-        return "";
+        return new String[]{"", ""};
     }
 
     private List<String> extractAttachedImages(ChatRequestDTO request) {
@@ -372,6 +492,107 @@ public class AiService {
             emitter.send(SseEmitter.event().name("token")
                     .data("{\"token\":" + mapper.writeValueAsString(text) + "}"));
         } catch (Exception ignored) {}
+    }
+
+    /**
+     * web_search 2-turn 처리.
+     *
+     * 1) "검색 중..." 토큰 전송
+     * 2) 별도 스레드에서 DuckDuckGo 검색 (메인 SSE 스레드 블로킹 방지)
+     * 3) 검색 결과를 tool 역할 메시지로 메모리에 추가
+     * 4) 2nd Ollama 호출 → LLM이 결과를 합성해 최종 답변 스트리밍
+     */
+    private void handleWebSearch(String toolArgs, String sessionId, String skin,
+                                 AiHandler.SessionContext ctx, SseEmitter emitter) {
+        try {
+            WebSearchToolArgumentDTO args =
+                    mapper.readValue(toolArgs, WebSearchToolArgumentDTO.class);
+            String query = args.getQuery();
+
+            sendToken(emitter, "🔍 웹에서 검색하고 있어요...\n");
+
+            // 별도 스레드에서 검색 — SSE 스레드 블로킹 방지
+            final String[] resultHolder = {""};
+            Thread searchThread = new Thread(() ->
+                    resultHolder[0] = webSearchTool.fetchSearchResult(query), "web-search");
+            searchThread.start();
+            searchThread.join(10_000);  // 최대 10초 대기
+            searchThread.interrupt();
+
+            if (ctx.isCancelled()) return;
+
+            String searchResult = resultHolder[0];
+            String toolContent  = searchResult.isBlank()
+                    ? "검색 결과를 찾지 못했습니다."
+                    : "검색 결과:\n" + searchResult;
+
+            System.out.println("[AiService] 검색 완료. query=" + query
+                    + " resultLen=" + searchResult.length());
+
+            // 검색 결과를 user 메시지로 주입 (tool role은 Ollama가 무시할 수 있음)
+            String injectedUser = "[검색 결과]\n" + toolContent
+                    + "\n\n위 검색 결과를 바탕으로 사용자 질문에 답변해줘.";
+            addToMemory(sessionId, "user", injectedUser, null);
+
+            // 2nd Ollama 호출: tool_call 분기 없이 텍스트만 스트리밍
+            streamOllamaFinal(sessionId, skin, ctx, emitter);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (!ctx.isCancelled()) sendError(emitter, "검색이 중단되었습니다.");
+        } catch (Exception e) {
+            System.err.println("[AiService] handleWebSearch 오류: " + e.getMessage());
+            if (!ctx.isCancelled()) sendError(emitter, "검색 중 오류가 발생했습니다.");
+        }
+    }
+
+    /**
+     * rag_search 2-turn 처리 (handleWebSearch와 동일한 패턴).
+     *
+     * 1) "검색 중..." 토큰 전송
+     * 2) EmbeddingTool.fetchContext() 로 유사 문서 조회
+     * 3) 결과를 user 메시지로 메모리에 주입
+     * 4) 2nd Ollama 호출 → LLM이 컨텍스트를 바탕으로 최종 답변 스트리밍
+     */
+    private void handleRagSearch(String toolArgs, String sessionId, String skin,
+                                  AiHandler.SessionContext ctx, SseEmitter emitter) {
+        try {
+            EmbeddingToolArgumentDTO args =
+                    mapper.readValue(toolArgs, EmbeddingToolArgumentDTO.class);
+            String query = args.getQuery();
+
+            sendToken(emitter, "📚 내부 문서에서 검색하고 있어요...\n");
+
+            final String[] resultHolder = {""};
+            Thread searchThread = new Thread(
+                    () -> resultHolder[0] = embeddingTool.fetchContext(query), "rag-search");
+            searchThread.start();
+            searchThread.join(15_000);
+            searchThread.interrupt();
+
+            if (ctx.isCancelled()) return;
+
+            String context    = resultHolder[0];
+            String toolContent = context.isBlank()
+                    ? "관련 내부 문서를 찾지 못했습니다."
+                    : "내부 문서 검색 결과:\n" + context;
+
+            System.out.println("[AiService] RAG 검색 완료. query=" + query
+                    + " resultLen=" + context.length());
+
+            String injectedUser = "[내부 문서 검색 결과]\n" + toolContent
+                    + "\n\n위 내용을 참고하여 사용자 질문에 답변해줘.";
+            addToMemory(sessionId, "user", injectedUser, null);
+
+            streamOllamaFinal(sessionId, skin, ctx, emitter);
+
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            if (!ctx.isCancelled()) sendError(emitter, "검색이 중단되었습니다.");
+        } catch (Exception e) {
+            System.err.println("[AiService] handleRagSearch 오류: " + e.getMessage());
+            if (!ctx.isCancelled()) sendError(emitter, "내부 문서 검색 중 오류가 발생했습니다.");
+        }
     }
 
     private void sendError(SseEmitter emitter, String msg) {

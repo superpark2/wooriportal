@@ -24,10 +24,10 @@ import java.util.zip.ZipOutputStream;
 @Service
 public class FileManagerService {
 
-    @Value("D:/WebStorage")
+    @Value("${filemanager.rootPath}")
     private String rootPath;
 
-    @Value("${filemanager.password:2004}")
+    @Value("${filemanager.password}")
     private String lockPassword;
 
     // 숨김 폴더 목록

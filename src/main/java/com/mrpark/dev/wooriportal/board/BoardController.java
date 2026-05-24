@@ -117,10 +117,8 @@ public class BoardController {
     public String delete(@PathVariable String group,
                          @PathVariable String category,
                          @PathVariable Long num,
-                         @RequestParam Long writerNum,
                          @AuthenticationPrincipal CustomUserDetails user) {
-        if (!user.getMemberNum().equals(writerNum)) return "redirect:/";
-        boardService.deleteBoard(group, num);
+        boardService.deleteBoard(group, num, user.getMemberNum());
         return "redirect:/" + group + "/" + category + "/list";
     }
 }

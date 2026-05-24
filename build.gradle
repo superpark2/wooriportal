@@ -64,6 +64,9 @@ dependencies {
     //
     implementation 'org.json:json:20240303'
 
+    // 임베딩
+    implementation 'com.pgvector:pgvector:0.1.4'
+
 }
 
 tasks.named('test') {

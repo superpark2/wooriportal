@@ -1,0 +1,462 @@
+<!DOCTYPE html>
+<html lang="ko"
+      xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <title>AI 임베딩 관리</title>
+    <style>
+        .table td.content {
+            max-width: 250px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+<div class="content" layout:fragment="content">
+    <!-- 현재 위치 -->
+    <nav aria-label="breadcrumb" class="mb-2">
+        <ol class="breadcrumb mb-0">
+            <li class="breadcrumb-item">AI 관리</li>
+            <li class="breadcrumb-item active">임베딩 관리</li>
+        </ol>
+    </nav>
+    <!-- 현재 위치 끝 -->
+    <div class="mb-9">
+        <!-- 현재 페이지 상단 정보 -->
+        <div class="row align-items-center justify-content-between g-3 mb-4">
+            <div class="col-auto">
+                <h2 class="mb-0">AI 임베딩 관리</h2>
+            </div>
+            <div class="col-auto">
+                <div class="row g-3">
+                    <div class="col-auto">
+                        <button class="btn btn-phoenix-primary btn-newData" type="button">
+                            <span class="fa-solid fa-plus me-2"></span>
+                            신규
+                        </button>
+                    </div>
+                    <div class="col-auto">
+                        <button class="btn btn-phoenix-danger btn-multiDelete" type="button">
+                            <span class="fa-solid fa-trash-can me-2"></span>
+                            삭제
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <hr>
+        <!-- 현재 페이지 상단 정보 끝 -->
+        <!-- 작업영역 -->
+        <div id="dataTable">
+            <!-- 검색 및 컨트롤 기능 -->
+            <div class="row justify-content-end gx-0 gy-3 align-items-center mb-3">
+                <div class="col-auto me-auto">
+                    <div class="d-flex align-items-center">
+                        <div class="d-flex align-items-center me-2">
+                            <span class="fs--1 text-1000" id="totalCount">All (0)</span>
+                        </div>
+                        <select class="form-select form-select-sm" id="pageItemCount" style="width: 80px;">
+                            <option value="10" selected>10</option>
+                            <option value="20">20</option>
+                            <option value="50">50</option>
+                            <option value="100">100</option>
+                            <option value="200">200</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="col-auto">
+                    <div class="search-box">
+                        <form onsubmit="return false;">
+                            <input class="form-control search-input search" type="search" placeholder="검색..." aria-label="Search" />
+                            <span class="fas fa-search search-box-icon"></span>
+                        </form>
+                    </div>
+                </div>
+            </div>
+            <!-- 검색 기능 끝 -->
+
+            <!-- 목록 -->
+            <div class="table-responsive scrollbar mx-n4 px-4 mx-lg-n6 px-lg-6 bg-white border-top border-bottom border-200 position-relative top-1">
+                <table class="table table-sm fs--1 mb-0">
+                    <thead>
+                    <tr>
+                        <th class="white-space-nowrap fs--1 ps-0 align-middle" style="width: 3%;">
+                            <div class="form-check mb-0 fs-0">
+                                <input class="form-check-input" data-bulk-select='{"body":"table-body"}' id="checkbox-bulk-select" type="checkbox"/>
+                            </div>
+                        </th>
+                        <th class="sort white-space-nowrap align-middle" data-sort="id" scope="col" style="width:5%;">ID</th>
+                        <th class="sort white-space-nowrap align-middle" data-sort="category" scope="col" style="width:10%;">종류</th>
+                        <th class="sort white-space-nowrap align-middle" data-sort="title" scope="col" style="width:25%;">제목</th>
+                        <th class="sort white-space-nowrap align-middle" data-sort="content" scope="col">내용</th>
+                        <th class="white-space-nowrap align-middle text-end" scope="col" style="width:10%;">수정</th>
+                        <th class="align-middle" scope="col"></th>
+                    </tr>
+                    </thead>
+                    <tbody class="list" id="table-body">
+                    <!-- phoenix.js 자동 초기화 방지용 더미 행 (실제 데이터 로드 후 덮어써짐) -->
+                    <tr style="display:none;">
+                        <td class="id"></td>
+                        <td class="category"></td>
+                        <td class="title"></td>
+                        <td class="content"></td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+            <!-- 페이지 번호 (List.js용) -->
+            <div class="d-flex justify-content-center mt-3">
+                <ul class="mb-0 pagination"></ul>
+            </div>
+            <!-- 페이지 번호 끝-->
+        </div>
+        <!-- 작업영역 끝 -->
+    </div>
+
+    <!-- Offcanvas -->
+    <div class="offcanvas offcanvas-end bg-body" data-bs-scroll="true" data-bs-backdrop="false" tabindex="-1" id="docOffcanvas" aria-labelledby="offcanvasLabel">
+        <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="offcanvasLabel"></h5>
+            <button type="button" class="btn-close text-reset" data-bs-dismiss="offcanvas" aria-label="Close"></button>
+        </div>
+        <div class="offcanvas-body">
+            <form id="docForm">
+                <input type="hidden" id="docId">
+                <div class="mb-3">
+                    <label class="form-label" for="fileUpload">파일 업로드 (선택)</label>
+                    <input class="form-control" id="fileUpload" type="file" accept=".pdf,.xlsx,.txt">
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="docCategory">종류</label>
+                    <input class="form-control" id="docCategory" type="text" placeholder="종류를 입력하세요" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="docTitle">제목</label>
+                    <input class="form-control" id="docTitle" type="text" placeholder="문서 제목을 입력하세요" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label" for="docContent">내용</label>
+                    <textarea class="form-control" id="docContent" rows="10" placeholder="임베딩할 내용을 입력하거나 파일을 업로드하세요" required></textarea>
+                </div>
+                <div class="row g-2">
+                    <div class="col-6">
+                        <button class="btn btn-phoenix-primary w-100" type="button" id="save-btn">저장</button>
+                    </div>
+                    <div class="col-3">
+                        <button class="btn btn-phoenix-danger w-100" type="button" id="delete-btn">삭제</button>
+                    </div>
+                    <div class="col-3">
+                        <button type="button" class="btn btn-phoenix-secondary w-100" data-bs-dismiss="offcanvas">닫기</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+
+</div>
+<th:block layout:fragment="script">
+    <!-- SweetAlert2, List.js (jQuery 불필요) -->
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/list.js/2.3.1/list.min.js"></script>
+    <script>
+        // ── 유틸 ──────────────────────────────────────────────────
+        const el  = id  => document.getElementById(id);
+        const qs  = sel => document.querySelector(sel);
+        const qsa = sel => document.querySelectorAll(sel);
+
+        function showAlert(message, icon = 'info') {
+            return Swal.fire({ text: message, icon, confirmButtonText: '확인', timer: 2500, timerProgressBar: true });
+        }
+        function showConfirm(message) {
+            return Swal.fire({ text: message, icon: 'question', showCancelButton: true, confirmButtonText: '확인', cancelButtonText: '취소' });
+        }
+
+        function getCheckedIds() {
+            return [...qsa('#dataTable input[data-bulk-select-row]:checked')]
+                .map(cb => { try { return JSON.parse(cb.dataset.bulkSelectRow).pid; } catch { return null; } })
+                .filter(id => id !== null);
+        }
+
+        // ── 로딩 오버레이 ─────────────────────────────────────────
+        function showLoading(message = '로딩 중...') {
+            let overlay = el('loadingOverlay');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'loadingOverlay';
+                overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,.5);z-index:1055;display:flex;align-items:center;justify-content:center;';
+                overlay.innerHTML = `<div class="text-center">
+                    <div class="spinner-border text-light" role="status"><span class="visually-hidden">Loading...</span></div>
+                    <p class="mt-2 text-light"></p>
+                </div>`;
+                document.body.appendChild(overlay);
+            }
+            overlay.querySelector('p').textContent = message;
+            overlay.style.display = 'flex';
+        }
+        function hideLoading() {
+            const overlay = el('loadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+        }
+
+        // ── 행 하이라이트 ─────────────────────────────────────────
+        function clearRowHighlight() {
+            qsa('#table-body tr').forEach(tr => {
+                tr.style.backgroundColor = '';
+                tr.style.fontWeight = '';
+            });
+        }
+
+        // ── Offcanvas ─────────────────────────────────────────────
+        const docOffcanvasEl = el('docOffcanvas');
+        const docOffcanvas   = new bootstrap.Offcanvas(docOffcanvasEl);
+
+        docOffcanvasEl.addEventListener('hide.bs.offcanvas', clearRowHighlight);
+
+        document.addEventListener('mousedown', e => {
+            if (!docOffcanvasEl.classList.contains('show')) return;
+            if (docOffcanvasEl.contains(e.target)) return;
+            if (e.target.closest('.btn-newData'))    return;
+            if (e.target.closest('#table-body tr'))  return;
+            if (e.target.closest('.swal2-container')) return;
+            docOffcanvas.hide();
+        });
+
+        // ── 전체 선택 체크박스 ────────────────────────────────────
+        el('checkbox-bulk-select').addEventListener('change', function () {
+            qsa('#table-body input[type="checkbox"]')
+                .forEach(cb => { cb.checked = this.checked; });
+        });
+
+        // ── 목록 로드 (List.js) ───────────────────────────────────
+        let list;
+
+        async function loadDocuments() {
+            showLoading();
+            try {
+                const data = await fetch('/ai/docs').then(r => r.json());
+
+                el('totalCount').textContent = `All (${data.length})`;
+                const pageSize = parseInt(el('pageItemCount').value) || 10;
+
+                const options = {
+                    valueNames: ['id', 'category', 'title', 'content'],
+                    page: pageSize,
+                    pagination: {
+                        paginationClass: 'pagination',
+                        innerWindow: 1, outerWindow: 1, left: 0, right: 0,
+                        item: v => `<li class="page-item"><a class="page-link" href="#">${v.page}</a></li>`
+                    },
+                    item: v => `<tr>
+                        <td class="fs--1 align-middle ps-0">
+                            <div class="form-check mb-0 fs-0">
+                                <input class="form-check-input" type="checkbox" data-bulk-select-row='{"pid":${v.id}}'/>
+                            </div>
+                        </td>
+                        <td class="id align-middle">${v.id}</td>
+                        <td class="category align-middle">${v.category || ''}</td>
+                        <td class="title align-middle">${v.title}</td>
+                        <td class="content align-middle" title="${v.content}">${v.content}</td>
+                        <td class="align-middle text-end">
+                            <button class="btn btn-sm btn-phoenix-secondary btn-edit" data-doc-id="${v.id}">
+                                <span class="fas fa-edit"></span>
+                            </button>
+                        </td>
+                        <td class="align-middle"></td>
+                    </tr>`
+                };
+
+                if (list) {
+                    list.clear();
+                    list.add(data);
+                    list.page = pageSize;
+                    list.update();
+                } else {
+                    list = new List('dataTable', options, data);
+                }
+
+                list.on('updated', l => {
+                    el('totalCount').textContent = `All (${l.matchingItems.length})`;
+                });
+
+            } catch (e) {
+                console.error('문서 로딩 실패:', e);
+                showAlert('데이터 로딩에 실패했습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        }
+
+        el('pageItemCount').addEventListener('change', function () {
+            if (list) { list.page = parseInt(this.value); list.update(); }
+        });
+
+        // ── 이벤트 위임: 행 클릭 / 수정 버튼 ────────────────────
+        el('dataTable').addEventListener('click', e => {
+            // 수정 버튼
+            const editBtn = e.target.closest('.btn-edit');
+            if (editBtn) {
+                e.stopPropagation();
+                const docId = editBtn.dataset.docId;
+                const item  = list.get('id', docId)[0];
+                const doc   = item.values();
+                el('docId').value       = doc.id;
+                el('docCategory').value = doc.category;
+                el('docTitle').value    = doc.title;
+                el('docContent').value  = doc.content;
+                el('offcanvasLabel').textContent = '문서 수정';
+                el('delete-btn').style.display = '';
+                docOffcanvas.show();
+                return;
+            }
+
+            // 행 클릭 → 수정 패널 열기
+            const row = e.target.closest('#table-body tr');
+            if (row) {
+                if (e.target.matches('input[type="checkbox"]') || e.target.closest('input[type="checkbox"]')) {
+                    return;
+                }
+                e.stopPropagation();
+                clearRowHighlight();
+                row.style.backgroundColor = 'var(--phoenix-gray-100)';
+                row.style.fontWeight = 'bold';
+                row.querySelector('.btn-edit')?.click();
+            }
+        });
+
+        // ── 신규 버튼 ─────────────────────────────────────────────
+        qs('.btn-newData').addEventListener('click', e => {
+            e.stopPropagation();
+            el('docForm').reset();
+            el('docId').value = '';
+            el('offcanvasLabel').textContent = '새 문서 추가';
+            el('delete-btn').style.display = 'none';
+            clearRowHighlight();
+            docOffcanvas.show();
+        });
+
+        // ── 파일 업로드 ───────────────────────────────────────────
+        el('fileUpload').addEventListener('change', async function () {
+            const file = this.files[0];
+            if (!file) return;
+            const formData = new FormData();
+            formData.append('file', file);
+            showLoading('파일 분석 중...');
+            try {
+                const res = await fetch('/ai/parse-file', { method: 'POST', body: formData });
+                if (!res.ok) {
+                    const err = await res.json();
+                    throw new Error(err.error || '파일 분석에 실패했습니다.');
+                }
+                const data = await res.json();
+                el('docContent').value = data.content;
+                el('docTitle').value   = file.name.replace(/\.[^.]+$/, '');
+            } catch (e) {
+                showAlert(e.message, 'error');
+            } finally {
+                hideLoading();
+                this.value = '';
+            }
+        });
+
+        // ── 저장 버튼 ─────────────────────────────────────────────
+        el('save-btn').addEventListener('click', async () => {
+            const id       = el('docId').value;
+            const category = el('docCategory').value;
+            const title    = el('docTitle').value;
+            const content  = el('docContent').value;
+
+            if (!category || !title || !content) {
+                showAlert('종류, 제목, 내용을 모두 입력해주세요.', 'warning');
+                return;
+            }
+
+            showLoading('벡터화 작업 중...');
+            try {
+                const MAX_LENGTH = 8000;
+                if (id) {
+                    await fetch('/ai/add-doc', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ id: parseInt(id), category, title, content })
+                    });
+                } else {
+                    const chunks = [];
+                    for (let i = 0; i < content.length; i += MAX_LENGTH)
+                        chunks.push(content.slice(i, i + MAX_LENGTH));
+
+                    await Promise.all(chunks.map((chunk, i) => fetch('/ai/add-doc', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ category, title: chunks.length > 1 ? `${title} (${i + 1})` : title, content: chunk })
+                    })));
+                }
+                docOffcanvas.hide();
+                showAlert('문서가 성공적으로 저장되었습니다.', 'success');
+                await loadDocuments();
+            } catch {
+                showAlert('저장에 실패했습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // ── 삭제 버튼 (단건) ──────────────────────────────────────
+        el('delete-btn').addEventListener('click', async () => {
+            const id = el('docId').value;
+            if (!id) { showAlert('삭제할 문서를 선택해주세요.'); return; }
+
+            const result = await showConfirm('정말로 이 문서를 삭제하시겠습니까?');
+            if (!result.isConfirmed) return;
+
+            showLoading();
+            try {
+                await fetch('/ai/delete-doc', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                });
+                docOffcanvas.hide();
+                showAlert('문서가 삭제되었습니다.', 'success');
+                await loadDocuments();
+            } catch {
+                showAlert('삭제 중 오류가 발생했습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // ── 다중 삭제 버튼 ────────────────────────────────────────
+        qs('.btn-multiDelete').addEventListener('click', async () => {
+            const ids = getCheckedIds();
+            if (ids.length === 0) { showAlert('선택된 항목이 없습니다.'); return; }
+
+            const result = await showConfirm(`선택한 ${ids.length}개의 문서를 삭제하시겠습니까?`);
+            if (!result.isConfirmed) return;
+
+            showLoading();
+            try {
+                await Promise.all(ids.map(id => fetch('/ai/delete-doc', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ id })
+                })));
+                showAlert('선택한 문서가 삭제되었습니다.', 'success');
+                await loadDocuments();
+            } catch {
+                showAlert('삭제 중 오류가 발생했습니다.', 'error');
+            } finally {
+                hideLoading();
+            }
+        });
+
+        // ── 초기 로드 ─────────────────────────────────────────────
+        document.addEventListener('DOMContentLoaded', loadDocuments);
+    </script>
+</th:block>
+</body>
+</html>
