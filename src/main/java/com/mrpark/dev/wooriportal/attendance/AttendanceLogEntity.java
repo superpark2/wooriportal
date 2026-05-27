@@ -16,8 +16,8 @@ public class AttendanceLogEntity {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** 카드번호 (마스킹, e.g. 944116******8172) */
-    @Column(name = "card_num", nullable = false, length = 30)
+    /** 카드번호 (더 이상 사용 안 함 — 하위 호환을 위해 nullable 유지) */
+    @Column(name = "card_num", nullable = true, length = 30)
     private String cardNum;
 
     /** 학생 이름 */

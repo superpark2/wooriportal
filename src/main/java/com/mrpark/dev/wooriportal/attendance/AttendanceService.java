@@ -20,6 +20,8 @@ public class AttendanceService {
 
     // ═══════════════════════════════════════════════════════════
     // 오토잇 수신 처리 — 항상 INSERT (덮어쓰기 없음)
+    // ─ 4필드: name||course||checkIn||checkOut
+    // ─ 5필드: cardNum(무시)||name||course||checkIn||checkOut
     // ═══════════════════════════════════════════════════════════
 
     @Transactional
@@ -32,41 +34,56 @@ public class AttendanceService {
             String data = rawLine.substring(colonIdx + 2).trim();
 
             String[] parts = data.split("\\|\\|");
-            if (parts.length < 5) return;
 
-            String cardNum    = parts[0].trim();
-            String name       = parts[1].trim();
-            String courseName = resolveCourseName(parts[2].trim());
-            String checkIn    = parts[3].trim();
-            String checkOut   = parts[4].trim();
-            LocalDate today   = LocalDate.now();
+            String name, courseName, checkIn, checkOut;
 
-            boolean isExit = !"0000".equals(checkOut);
+            if (parts.length >= 5) {
+                // 5필드 형식: cardNum(무시) || name || course || checkIn || checkOut
+                name       = parts[1].trim();
+                courseName = resolveCourseName(parts[2].trim());
+                checkIn    = parts[3].trim();
+                checkOut   = parts[4].trim();
+            } else if (parts.length == 4) {
+                // 4필드 형식: name || course || checkIn || checkOut
+                name       = parts[0].trim();
+                courseName = resolveCourseName(parts[1].trim());
+                checkIn    = parts[2].trim();
+                checkOut   = parts[3].trim();
+            } else {
+                log.warn("[출결] 파싱 불가 (필드 수 {}): {}", parts.length, rawLine);
+                return;
+            }
 
-            // ── 중복 체크: 동일 이벤트가 이미 DB에 있으면 skip (파일 재전송 대응) ──
+            if (name.isBlank() || courseName.isBlank()) return;
+
+            LocalDate today  = LocalDate.now();
+            boolean   isExit = !"0000".equals(checkOut) && !checkOut.isBlank();
+
+            // ── 중복 체크 ──────────────────────────────────────
             if (isExit) {
-                if (repository.existsDuplicateExit(cardNum, courseName, today, checkIn, checkOut)) {
-                    log.debug("[출결] 중복 skip — 퇴실: {} / {} / {}→{}", name, courseName, checkIn, checkOut);
+                if (repository.existsDuplicateExit(name, courseName, today, checkOut)) {
+                    log.debug("[출결] 중복 skip — 퇴실: {} / {} / {}", name, courseName, checkOut);
                     return;
                 }
             } else {
-                if (repository.existsDuplicateEntry(cardNum, courseName, today, checkIn)) {
+                if (repository.existsDuplicateEntry(name, courseName, today, checkIn)) {
                     log.debug("[출결] 중복 skip — 입실: {} / {} / {}", name, courseName, checkIn);
                     return;
                 }
             }
 
             AttendanceLogEntity e = new AttendanceLogEntity();
-            e.setCardNum(cardNum);
             e.setStudentName(name);
             e.setCourseName(courseName);
-            e.setCheckIn(checkIn);
             e.setAttendanceDate(today);
 
             if (isExit) {
+                // 퇴실 이벤트: checkIn이 "0000"이면 null로 저장 (집계 시 오염 방지)
+                e.setCheckIn("0000".equals(checkIn) ? null : checkIn);
                 e.setCheckOut(checkOut);
-                log.info("[출결] 퇴실 기록: {} / {} / {}→{}", name, courseName, checkIn, checkOut);
+                log.info("[출결] 퇴실 기록: {} / {} / {}", name, courseName, checkOut);
             } else {
+                e.setCheckIn(checkIn);
                 log.info("[출결] 입실 기록: {} / {} / {}", name, courseName, checkIn);
             }
 
@@ -75,6 +92,38 @@ public class AttendanceService {
         } catch (Exception ex) {
             log.error("[출결] 파싱 오류 - 원본: {}", rawLine, ex);
         }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // 수동 입력 처리 (QR / 비컨)
+    // ═══════════════════════════════════════════════════════════
+
+    @Transactional
+    public void processManual(ManualAttendanceRequest req) {
+        String time = req.getTime() == null ? "" : req.getTime().replace(":", "");
+        if (time.isBlank()) {
+            // 기본값: 현재 시간
+            java.time.LocalTime now = java.time.LocalTime.now();
+            time = String.format("%02d%02d", now.getHour(), now.getMinute());
+        }
+
+        LocalDate today = LocalDate.now();
+        boolean isExit  = "EXIT".equalsIgnoreCase(req.getType());
+
+        AttendanceLogEntity e = new AttendanceLogEntity();
+        e.setStudentName(req.getStudentName().trim());
+        e.setCourseName(req.getCourseName().trim());
+        e.setAttendanceDate(today);
+
+        if (isExit) {
+            e.setCheckOut(time);
+            log.info("[수동] 퇴실: {} / {} / {}", req.getStudentName(), req.getCourseName(), time);
+        } else {
+            e.setCheckIn(time);
+            log.info("[수동] 입실: {} / {} / {}", req.getStudentName(), req.getCourseName(), time);
+        }
+
+        repository.save(e);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -98,29 +147,26 @@ public class AttendanceService {
             List<StudentEntity> students =
                     studentRepository.findByCourseIdAndActiveTrueOrderByStudentNameAsc(course.getId());
 
-            // 당일 전체 로그 → 카드번호 / 이름별로 그룹핑 (다중 레코드 대응)
-            Map<String, List<AttendanceLogEntity>> byCard = new HashMap<>();
+            // 당일 전체 로그 → 학생 이름별 그룹핑
             Map<String, List<AttendanceLogEntity>> byName = new HashMap<>();
             repository.findByCourseNameAndAttendanceDate(course.getCourseName(), date)
-                      .forEach(log -> {
-                          if (log.getCardNum() != null)
-                              byCard.computeIfAbsent(log.getCardNum(), k -> new ArrayList<>()).add(log);
-                          byName.computeIfAbsent(log.getStudentName(), k -> new ArrayList<>()).add(log);
-                      });
+                      .forEach(l -> byName.computeIfAbsent(l.getStudentName(), k -> new ArrayList<>()).add(l));
 
             List<CourseAttendanceDTO.StudentAttendanceItem> items = new ArrayList<>();
             for (StudentEntity student : students) {
-                List<AttendanceLogEntity> logs = null;
-                if (student.getCardNum() != null) logs = byCard.get(student.getCardNum());
-                if (logs == null || logs.isEmpty()) logs = byName.get(student.getStudentName());
-                if (logs == null) logs = Collections.emptyList();
+                List<AttendanceLogEntity> logs =
+                        byName.getOrDefault(student.getStudentName(), Collections.emptyList());
 
-                // 집계: 가장 이른 입실 / 가장 늦은 퇴실
-                String effectiveCheckIn  = logs.stream()
-                        .map(AttendanceLogEntity::getCheckIn).filter(Objects::nonNull)
+                // 집계: 유효한 가장 이른 입실 / 가장 늦은 퇴실
+                // "0000" 은 퇴실 이벤트의 더미값이므로 제외
+                String effectiveCheckIn = logs.stream()
+                        .map(AttendanceLogEntity::getCheckIn)
+                        .filter(Objects::nonNull)
+                        .filter(t -> !"0000".equals(t))
                         .min(Comparator.naturalOrder()).orElse(null);
                 String effectiveCheckOut = logs.stream()
-                        .map(AttendanceLogEntity::getCheckOut).filter(Objects::nonNull)
+                        .map(AttendanceLogEntity::getCheckOut)
+                        .filter(Objects::nonNull)
                         .max(Comparator.naturalOrder()).orElse(null);
 
                 AttendanceLogEntity agg = null;
@@ -131,9 +177,16 @@ public class AttendanceService {
                 }
 
                 AttendanceStatus status = calcStatus(agg, course);
+
+                // 표시 이름: 생년월일이 있으면 "홍길동 (990101)" 형식
+                String displayName = student.getStudentName();
+                if (student.getBirthPrefix() != null && !student.getBirthPrefix().isBlank()) {
+                    displayName += " (" + student.getBirthPrefix() + ")";
+                }
+
                 items.add(new CourseAttendanceDTO.StudentAttendanceItem(
                         student.getId(),
-                        student.getStudentName(),
+                        displayName,
                         formatTime(effectiveCheckIn),
                         formatTime(effectiveCheckOut),
                         status.name(),
@@ -155,21 +208,12 @@ public class AttendanceService {
     }
 
     /** 학생 당일 기록 전체 (이름 클릭 모달용) */
-    public List<AttendanceLogDTO> getStudentLog(String courseName, LocalDate date,
-                                                String studentName, String cardNum) {
-        List<AttendanceLogEntity> logs;
-        if (cardNum != null && !cardNum.isBlank()) {
-            logs = repository.findByCourseNameAndAttendanceDateAndCardNumOrderByCreatedAtAsc(
-                    courseName, date, cardNum);
-            if (logs.isEmpty()) {
-                logs = repository.findByCourseNameAndAttendanceDateAndStudentNameOrderByCreatedAtAsc(
-                        courseName, date, studentName);
-            }
-        } else {
-            logs = repository.findByCourseNameAndAttendanceDateAndStudentNameOrderByCreatedAtAsc(
-                    courseName, date, studentName);
-        }
-        return logs.stream().map(AttendanceLogDTO::from).collect(Collectors.toList());
+    public List<AttendanceLogDTO> getStudentLog(String courseName, LocalDate date, String studentName) {
+        // 이름에 "(생년월일)" 접미어가 붙어있을 수 있으므로 괄호 앞까지만 추출
+        String pureName = studentName.replaceAll("\\s*\\(.*\\)\\s*$", "").trim();
+        return repository.findByCourseNameAndAttendanceDateAndStudentNameOrderByCreatedAtAsc(
+                        courseName, date, pureName)
+                .stream().map(AttendanceLogDTO::from).collect(Collectors.toList());
     }
 
     /** 날짜별 원시 로그 (구형 호환) */
@@ -226,7 +270,8 @@ public class AttendanceService {
         StudentEntity e = new StudentEntity();
         e.setCourse(course);
         e.setStudentName(dto.getStudentName());
-        e.setCardNum(dto.getCardNum() != null && !dto.getCardNum().isBlank() ? dto.getCardNum() : null);
+        e.setBirthPrefix(dto.getBirthPrefix() != null && !dto.getBirthPrefix().isBlank()
+                ? dto.getBirthPrefix().trim() : null);
         e.setActive(true);
         return StudentDTO.from(studentRepository.save(e));
     }
@@ -236,7 +281,8 @@ public class AttendanceService {
         StudentEntity e = studentRepository.findById(id)
                 .orElseThrow(() -> new NoSuchElementException("Student not found: " + id));
         e.setStudentName(dto.getStudentName());
-        e.setCardNum(dto.getCardNum() != null && !dto.getCardNum().isBlank() ? dto.getCardNum() : null);
+        e.setBirthPrefix(dto.getBirthPrefix() != null && !dto.getBirthPrefix().isBlank()
+                ? dto.getBirthPrefix().trim() : null);
         e.setActive(dto.isActive());
         return StudentDTO.from(studentRepository.save(e));
     }
@@ -248,10 +294,6 @@ public class AttendanceService {
         e.setActive(false);
         studentRepository.save(e);
     }
-
-    // ═══════════════════════════════════════════════════════════
-    // 내부 유틸리티
-    // ═══════════════════════════════════════════════════════════
 
     // ═══════════════════════════════════════════════════════════
     // 과정명 정규화 매칭
@@ -318,6 +360,10 @@ public class AttendanceService {
         return dp[m][n];
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // 내부 유틸리티
+    // ═══════════════════════════════════════════════════════════
+
     private AttendanceStatus calcStatus(AttendanceLogEntity log, CourseEntity course) {
         if (log == null) return AttendanceStatus.ABSENT;
 
@@ -336,10 +382,10 @@ public class AttendanceService {
         boolean isEarlyLeave = hasExited && coTime != null && !coTime.isBlank()
                                && checkOut.compareTo(coTime) < 0;
 
-        if (!isLate && !hasExited)                return AttendanceStatus.PRESENT;
+        if (!isLate && !hasExited)                 return AttendanceStatus.PRESENT;
         if (!isLate && hasExited && !isEarlyLeave) return AttendanceStatus.EXITED;
         if (!isLate && hasExited && isEarlyLeave)  return AttendanceStatus.EARLY_LEAVE;
-        if (isLate  && !hasExited)                return AttendanceStatus.LATE;
+        if (isLate  && !hasExited)                 return AttendanceStatus.LATE;
         if (isLate  && hasExited && !isEarlyLeave) return AttendanceStatus.LATE_EXITED;
         return AttendanceStatus.LATE_EARLY_LEAVE;
     }
@@ -360,7 +406,7 @@ public class AttendanceService {
     private String statusLabel(AttendanceStatus s) {
         return switch (s) {
             case ABSENT           -> "미출석";
-            case PRESENT          -> "재원중";
+            case PRESENT          -> "출석";       // ← "재원중" 에서 변경
             case EXITED           -> "퇴실";
             case LATE             -> "지각";
             case LATE_EXITED      -> "지각·퇴실";

@@ -100,6 +100,9 @@
         <div class="att-pulse"></div>
         <span class="att-live-txt">실시간</span>
         <span class="att-updated" id="lastUpdated">-</span>
+        <button class="att-manage-btn" style="background:#10b981" onclick="openManualModal()">
+            <i class="fas fa-plus"></i> 수동 입력
+        </button>
         <a href="/coolapi/manage" class="att-manage-btn">
             <i class="fas fa-cog"></i> 과정/학생 관리
         </a>
@@ -244,6 +247,62 @@ function esc(str) {
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
+/* ── 수동 입력 모달 ── */
+let _manCourses = [];
+
+async function openManualModal() {
+    const res = await fetch(`/coolapi/attendance/data?date=${dateInput.value}`);
+    _manCourses = await res.json();
+
+    const sel = document.getElementById('manCourse');
+    sel.innerHTML = '<option value="">과정 선택...</option>' +
+        _manCourses.map(c => `<option value="${esc(c.courseName)}">${esc(c.courseName)}</option>`).join('');
+    document.getElementById('manStudent').innerHTML = '<option value="">학생 선택...</option>';
+
+    // 기본 시간: 현재
+    const now = new Date();
+    document.getElementById('manTime').value =
+        String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+
+    document.getElementById('manModal').classList.add('open');
+}
+
+function onManCourseChange() {
+    const name = document.getElementById('manCourse').value;
+    const course = _manCourses.find(c => c.courseName === name);
+    const sel = document.getElementById('manStudent');
+    if (!course) { sel.innerHTML = '<option value="">학생 선택...</option>'; return; }
+    sel.innerHTML = '<option value="">학생 선택...</option>' +
+        (course.students || []).map(s =>
+            `<option value="${esc(s.studentName)}">${esc(s.studentName)}</option>`
+        ).join('');
+}
+
+async function submitManual() {
+    const courseName  = document.getElementById('manCourse').value;
+    const studentName = document.getElementById('manStudent').value;
+    const type        = document.querySelector('input[name="manType"]:checked')?.value;
+    const time        = document.getElementById('manTime').value;
+
+    if (!courseName || !studentName || !type) {
+        alert('과정, 학생, 유형을 선택하세요.');
+        return;
+    }
+
+    const res = await fetch('/coolapi/attendance/manual', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ courseName, studentName, type, time: time.replace(':', '') })
+    });
+
+    if (res.ok) {
+        document.getElementById('manModal').classList.remove('open');
+        fetchData();
+    } else {
+        alert('저장 실패');
+    }
+}
+
 /* 모달 body 주입 */
 document.body.insertAdjacentHTML('beforeend', `
 <div id="attLogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
@@ -263,9 +322,63 @@ document.body.insertAdjacentHTML('beforeend', `
 document.getElementById('attLogModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
 });
+
+/* 수동 입력 모달 주입 */
+document.body.insertAdjacentHTML('beforeend', `
+<div id="manModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:min(400px,94vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:16px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+      <div style="font-weight:700;font-size:1rem;color:#111">수동 출결 입력 <span style="font-size:.75rem;color:#888;font-weight:400">QR / 비컨</span></div>
+      <button onclick="document.getElementById('manModal').classList.remove('open')"
+              style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa">✕</button>
+    </div>
+    <div style="padding:18px">
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">과정 *</label>
+        <select id="manCourse" onchange="onManCourseChange()"
+                style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
+          <option value="">과정 선택...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">학생 *</label>
+        <select id="manStudent"
+                style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
+          <option value="">학생 선택...</option>
+        </select>
+      </div>
+      <div style="margin-bottom:12px">
+        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:8px">유형 *</label>
+        <div style="display:flex;gap:16px">
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem">
+            <input type="radio" name="manType" value="ENTRY" checked> 입실
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem">
+            <input type="radio" name="manType" value="EXIT"> 퇴실
+          </label>
+        </div>
+      </div>
+      <div style="margin-bottom:18px">
+        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">시간 <span style="font-weight:400;color:#aaa">(비워두면 현재 시간)</span></label>
+        <input type="time" id="manTime"
+               style="padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:8px">
+        <button onclick="document.getElementById('manModal').classList.remove('open')"
+                style="padding:8px 16px;border-radius:8px;font-size:.87rem;font-weight:600;background:#f1f1f1;color:#555;border:1.5px solid #ddd;cursor:pointer">취소</button>
+        <button onclick="submitManual()"
+                style="padding:8px 22px;border-radius:8px;font-size:.87rem;font-weight:700;background:#10b981;color:#fff;border:none;cursor:pointer">저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+`);
+document.getElementById('manModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+});
 /* open 클래스 → flex 전환 */
 const _attStyle = document.createElement('style');
-_attStyle.textContent = '#attLogModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
+_attStyle.textContent = '#attLogModal.open{display:flex!important} #manModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
 document.head.appendChild(_attStyle);
 </script>
 </div>

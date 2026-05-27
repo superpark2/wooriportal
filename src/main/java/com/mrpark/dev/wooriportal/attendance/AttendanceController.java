@@ -25,6 +25,17 @@ public class AttendanceController {
         return ResponseEntity.ok("OK");
     }
 
+    // ── 수동 입력 (QR / 비컨) ───────────────────────────────────
+    @PostMapping("/attendance/manual")
+    @ResponseBody
+    public ResponseEntity<String> manual(@RequestBody ManualAttendanceRequest req) {
+        if (req.getCourseName() == null || req.getStudentName() == null || req.getType() == null) {
+            return ResponseEntity.badRequest().body("MISSING_FIELDS");
+        }
+        attendanceService.processManual(req);
+        return ResponseEntity.ok("OK");
+    }
+
     // ── 출결 현황 뷰 ─────────────────────────────────────────────
     @GetMapping("/view")
     public String view() {
@@ -47,11 +58,10 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceLogDTO>> getStudentLog(
             @RequestParam String courseName,
             @RequestParam String studentName,
-            @RequestParam(required = false) String cardNum,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         LocalDate target = (date != null) ? date : LocalDate.now();
-        return ResponseEntity.ok(attendanceService.getStudentLog(courseName, target, studentName, cardNum));
+        return ResponseEntity.ok(attendanceService.getStudentLog(courseName, target, studentName));
     }
 
     /** 원시 로그 목록 (구형 API 호환) */

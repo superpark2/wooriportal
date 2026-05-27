@@ -328,16 +328,18 @@ Func _MonitorLogFile()
 EndFunc
 
 ; ================= [ 라인 처리 상태머신 ] =================
-;  "출결저장 처리" → 버퍼링
-;  "출결전송 처리 : 정상" → 버퍼된 라인 전송
-;  기타 출결전송 처리(에러 등) → 버퍼 폐기
+;  "출결저장 처리" 또는 "퇴실저장 처리" → 버퍼링
+;  "출결전송 처리 : 정상" 또는 "퇴실전송 처리 : 정상" → 버퍼된 라인 전송
+;  전송 비정상 → 버퍼 폐기
 Func _ProcessLine($sLine)
-    If StringInStr($sLine, "출결저장 처리") Then
+    ; ── 저장 이벤트: 입실 또는 퇴실 ──────────────────────────
+    If StringInStr($sLine, "저장 처리") And StringInStr($sLine, " : ") Then
         $sPendingLine = $sLine
         $iReadCount  += 1
         _UpdateStats()
 
-    ElseIf StringInStr($sLine, "출결전송 처리") Then
+    ; ── 전송 결과 ──────────────────────────────────────────────
+    ElseIf StringInStr($sLine, "전송 처리") Then
         If StringInStr($sLine, "정상") And $sPendingLine <> "" Then
             _LogWrite("[전송] " & $sPendingLine)
             If _SendToApi($sPendingLine) Then
@@ -345,7 +347,7 @@ Func _ProcessLine($sLine)
                 _UpdateStats()
             EndIf
         ElseIf Not StringInStr($sLine, "정상") And $sPendingLine <> "" Then
-            _LogWrite("[폐기] 출결전송 비정상 → " & $sPendingLine)
+            _LogWrite("[폐기] 전송 비정상 → " & $sPendingLine)
         EndIf
         $sPendingLine = ""
     EndIf

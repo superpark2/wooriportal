@@ -168,8 +168,9 @@ document.body.insertAdjacentHTML('beforeend', `
       <input class="f-input" id="sName" placeholder="학생 이름">
     </div>
     <div class="f-row">
-      <label>카드번호 <span style="font-weight:400;color:#999">(선택 — HRD 마스킹 포함)</span></label>
-      <input class="f-input" id="sCard" placeholder="944116******8172">
+      <label>생년월일 앞자리 <span style="font-weight:400;color:#999">(선택)</span></label>
+      <input class="f-input" id="sBirth" placeholder="예: 990101" maxlength="8">
+      <p style="margin:4px 0 0;font-size:.75rem;color:#aaa">동명 2인일 경우에만 생년월일 기재하여 구분.</p>
     </div>
     <div class="f-row" id="sActiveRow" style="display:none">
       <label style="flex-direction:row;display:flex;align-items:center;gap:6px;font-weight:400">
@@ -244,9 +245,9 @@ async function renderStudents(courseId) {
     }
     el.innerHTML = list.map(s => {
         const cls  = s.active ? '' : ' student-inactive';
-        const card = s.cardNum
-            ? `<span class="student-card">${esc(s.cardNum)}</span>`
-            : `<span class="student-card" style="opacity:.4">카드번호 미등록</span>`;
+        const card = s.birthPrefix
+            ? `<span class="student-card">${esc(s.birthPrefix)}</span>`
+            : `<span class="student-card" style="opacity:.4">—</span>`;
         return `<div class="student-row${cls}">
             <span class="student-name">${esc(s.studentName)}</span>
             ${card}
@@ -320,7 +321,7 @@ function openStudentModal(courseId, student = null) {
     document.getElementById('sCourseId').value = courseId;
     document.getElementById('sId').value       = student?.id ?? '';
     document.getElementById('sName').value     = student?.studentName ?? '';
-    document.getElementById('sCard').value     = student?.cardNum ?? '';
+    document.getElementById('sBirth').value    = student?.birthPrefix ?? '';
     document.getElementById('sActive').checked = student?.active ?? true;
     document.getElementById('sActiveRow').style.display = student ? '' : 'none';
     document.getElementById('mStudentTitle').textContent = student ? '학생 수정' : '학생 추가';
@@ -344,8 +345,8 @@ async function saveStudent() {
 
     const dto = {
         studentName: name,
-        cardNum: document.getElementById('sCard').value.trim() || null,
-        active:  document.getElementById('sActive').checked,
+        birthPrefix: document.getElementById('sBirth').value.trim() || null,
+        active:      document.getElementById('sActive').checked,
     };
     if (id) {
         await fetch(`/coolapi/students/${id}`, { method: 'PUT',

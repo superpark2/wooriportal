@@ -21,9 +21,12 @@ public class StudentEntity {
     @Column(name = "student_name", nullable = false, length = 50)
     private String studentName;
 
-    /** HRD 카드번호 (마스킹 포함, null 가능 → 이름 매칭으로 대체) */
-    @Column(name = "card_num", length = 30)
-    private String cardNum;
+    /**
+     * 생년월일 앞자리 (선택 — 동명 2인 구분용)
+     * 예) "990101"
+     */
+    @Column(name = "birth_prefix", length = 10)
+    private String birthPrefix;
 
     @Column(name = "active", nullable = false)
     private boolean active = true;

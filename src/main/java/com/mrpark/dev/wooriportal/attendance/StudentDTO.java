@@ -10,7 +10,8 @@ public class StudentDTO {
     private Long id;
     private Long courseId;
     private String studentName;
-    private String cardNum;
+    /** 생년월일 앞자리 (선택 — 동명 2인 구분용) */
+    private String birthPrefix;
     private boolean active;
 
     public static StudentDTO from(StudentEntity e) {
@@ -18,7 +19,7 @@ public class StudentDTO {
         dto.setId(e.getId());
         dto.setCourseId(e.getCourse().getId());
         dto.setStudentName(e.getStudentName());
-        dto.setCardNum(e.getCardNum());
+        dto.setBirthPrefix(e.getBirthPrefix());
         dto.setActive(e.isActive());
         return dto;
     }

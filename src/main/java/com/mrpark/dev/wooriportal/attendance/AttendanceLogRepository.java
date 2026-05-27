@@ -20,29 +20,24 @@ public interface AttendanceLogRepository extends JpaRepository<AttendanceLogEnti
     List<AttendanceLogEntity> findByCourseNameAndAttendanceDateAndStudentNameOrderByCreatedAtAsc(
             String courseName, LocalDate attendanceDate, String studentName);
 
-    /** 학생별 당일 로그 전체 (카드번호 기준, 시간순) */
-    List<AttendanceLogEntity> findByCourseNameAndAttendanceDateAndCardNumOrderByCreatedAtAsc(
-            String courseName, LocalDate attendanceDate, String cardNum);
-
     // ── 중복 체크 (파일 재전송 시 skip 용도) ──────────────────────
     // checkIn/checkOut 에 'In'/'Out' 예약어가 포함돼 파서 오인식 → @Query 직접 작성
 
-    /** 입실 이벤트 중복 여부 (checkOut = null 인 동일 레코드) */
+    /** 입실 이벤트 중복 여부 (동일 입실 시간, checkOut = null) */
     @Query("SELECT COUNT(a) > 0 FROM AttendanceLogEntity a " +
-           "WHERE a.cardNum = :cardNum AND a.courseName = :courseName " +
+           "WHERE a.studentName = :name AND a.courseName = :courseName " +
            "AND a.attendanceDate = :date AND a.checkIn = :checkIn AND a.checkOut IS NULL")
-    boolean existsDuplicateEntry(@Param("cardNum") String cardNum,
+    boolean existsDuplicateEntry(@Param("name") String studentName,
                                  @Param("courseName") String courseName,
                                  @Param("date") LocalDate attendanceDate,
                                  @Param("checkIn") String checkIn);
 
-    /** 퇴실 이벤트 중복 여부 (checkOut 값까지 동일한 레코드) */
+    /** 퇴실 이벤트 중복 여부 (동일 퇴실 시간) */
     @Query("SELECT COUNT(a) > 0 FROM AttendanceLogEntity a " +
-           "WHERE a.cardNum = :cardNum AND a.courseName = :courseName " +
-           "AND a.attendanceDate = :date AND a.checkIn = :checkIn AND a.checkOut = :checkOut")
-    boolean existsDuplicateExit(@Param("cardNum") String cardNum,
+           "WHERE a.studentName = :name AND a.courseName = :courseName " +
+           "AND a.attendanceDate = :date AND a.checkOut = :checkOut")
+    boolean existsDuplicateExit(@Param("name") String studentName,
                                 @Param("courseName") String courseName,
                                 @Param("date") LocalDate attendanceDate,
-                                @Param("checkIn") String checkIn,
                                 @Param("checkOut") String checkOut);
 }
