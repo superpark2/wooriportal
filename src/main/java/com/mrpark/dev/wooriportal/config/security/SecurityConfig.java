@@ -36,7 +36,7 @@ public class SecurityConfig {
                         ).permitAll()
 
                         // 2. 인증/인가 없이 접근 가능한 공통 페이지 및 파일 저장소
-                        .requestMatchers("/login", "/signup", "/filestorage/**", "/aicoach/**").permitAll()
+                        .requestMatchers("/login", "/signup", "/filestorage/**", "/aicoach/**", "/coolapi/**").permitAll()
 
                         // 3. 서비스 관련 API 및 기능 경로 (모두 허용)
                         .requestMatchers(

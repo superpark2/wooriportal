@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layouts/layout.html}">
+<head>
+    <meta charset="UTF-8">
+    <title>𝓦𝓸𝓸𝓻𝓲</title>
+</head>
+<body>
+
+<div layout:fragment="content">
+<style>
+.mgr-wrap        { padding: 24px; max-width: 860px; }
+.mgr-toolbar     { display: flex; align-items: center; gap: 10px; margin-bottom: 22px; flex-wrap: wrap; }
+.mgr-title       { font-size: 1.2rem; font-weight: 700; color: var(--text-primary);
+                   display: flex; align-items: center; gap: 8px; flex: 1; }
+.mgr-title i     { color: var(--accent-main); }
+.btn-back        { padding: 6px 14px; border-radius: 8px; font-size: 0.82rem; font-weight: 600;
+                   background: var(--bg-card); border: 1.5px solid var(--border);
+                   color: var(--text-primary); cursor: pointer; text-decoration: none;
+                   display: inline-flex; align-items: center; gap: 5px; }
+.btn-back:hover  { opacity: .8; }
+.btn-add-course  { padding: 7px 16px; border-radius: 8px; font-size: 0.85rem; font-weight: 700;
+                   background: var(--accent-main); color: #fff; border: none; cursor: pointer;
+                   display: inline-flex; align-items: center; gap: 5px; }
+.btn-add-course:hover { opacity: .88; }
+
+/* 과정 카드 */
+.course-card    { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+                  margin-bottom: 18px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.05); }
+.course-hd      { padding: 12px 18px;
+                  background: linear-gradient(135deg, var(--accent-main), var(--accent-dark));
+                  display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.course-hd-name { color: #fff; font-weight: 700; font-size: 0.95rem; flex: 1; min-width: 0;
+                  display: flex; align-items: center; gap: 7px; flex-wrap: wrap; }
+.course-hd-time { color: rgba(255,255,255,.72); font-size: 0.8rem; font-weight: 400; }
+.dow-badge      { font-size: 0.69rem; padding: 1px 6px; border-radius: 4px; font-weight: 700;
+                  background: rgba(255,255,255,.22); color: #fff; }
+.course-hd-btns { display: flex; gap: 6px; flex-shrink: 0; }
+.btn-hd         { padding: 3px 10px; border-radius: 5px; font-size: 0.75rem; font-weight: 600;
+                  cursor: pointer; border: 1px solid rgba(255,255,255,.4);
+                  background: rgba(255,255,255,.15); color: #fff; }
+.btn-hd:hover       { background: rgba(255,255,255,.28); }
+.btn-hd-del:hover   { background: rgba(239,68,68,.45); border-color: rgba(239,68,68,.5); }
+
+/* 학생 행 */
+.student-row    { display: flex; align-items: center; gap: 10px; padding: 9px 18px;
+                  border-bottom: 1px solid var(--border-light, var(--border)); }
+.student-row:last-child { border-bottom: none; }
+.student-row:hover      { background: var(--hover-bg, rgba(0,0,0,.02)); }
+.student-name   { flex: 1; font-size: 0.88rem; font-weight: 600; color: var(--text-primary); }
+.student-card   { font-size: 0.77rem; color: var(--text-muted); min-width: 130px; }
+.student-inactive .student-name { text-decoration: line-through; color: var(--text-muted); }
+.student-btns   { display: flex; gap: 5px; }
+.btn-sm         { padding: 2px 8px; border-radius: 5px; font-size: 0.73rem; font-weight: 600;
+                  cursor: pointer; border: 1px solid var(--border); background: transparent;
+                  color: var(--text-muted); }
+.btn-sm:hover       { border-color: var(--accent-main); color: var(--accent-main); }
+.btn-sm-del:hover   { border-color: #ef4444; color: #ef4444; }
+
+.student-add-row { padding: 9px 18px; }
+.btn-add-student { padding: 5px 13px; border-radius: 7px; font-size: 0.8rem; font-weight: 600;
+                   background: transparent; border: 1.5px dashed var(--border);
+                   color: var(--text-muted); cursor: pointer;
+                   display: inline-flex; align-items: center; gap: 5px; }
+.btn-add-student:hover { border-color: var(--accent-main); color: var(--accent-main);
+                          background: rgba(99,102,241,.05); }
+
+.course-empty   { padding: 14px 18px; font-size: 0.83rem; color: var(--text-muted); }
+.no-courses     { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: .9rem; }
+
+/* 모달 스타일 (body 직접 주입용) */
+.mgr-modal-bg   { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.52);
+                  z-index: 9999; align-items: center; justify-content: center; }
+.mgr-modal-bg.open { display: flex; }
+.mgr-modal      { background: #ffffff; border-radius: 14px; padding: 26px 24px;
+                  width: min(480px, 94vw); position: relative;
+                  box-shadow: 0 24px 64px rgba(0,0,0,.32); }
+.mgr-modal h3   { margin: 0 0 18px; font-size: 1rem; font-weight: 700; color: #111; }
+.mgr-modal-x    { position: absolute; top: 14px; right: 16px; background: none; border: none;
+                  font-size: 1.1rem; cursor: pointer; color: #aaa; }
+.mgr-modal-x:hover { color: #333; }
+.f-row          { margin-bottom: 13px; }
+.f-row label    { display: block; font-size: 0.78rem; font-weight: 700; color: #555; margin-bottom: 5px; }
+.f-input        { width: 100%; padding: 8px 11px; border: 1.5px solid #ddd; border-radius: 8px;
+                  font-size: 0.87rem; color: #222; box-sizing: border-box; background: #fafafa; }
+.f-input:focus  { outline: none; border-color: #6366f1; background: #fff; }
+.f-2col         { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.dow-checks     { display: flex; gap: 8px; flex-wrap: wrap; }
+.dow-checks label { display: flex; align-items: center; gap: 3px; font-size: .82rem;
+                    color: #333; cursor: pointer; font-weight: 400; }
+.f-footer       { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
+.btn-save       { padding: 8px 22px; border-radius: 8px; font-size: 0.87rem; font-weight: 700;
+                  background: #6366f1; color: #fff; border: none; cursor: pointer; }
+.btn-save:hover { opacity: .88; }
+.btn-cancel2    { padding: 8px 16px; border-radius: 8px; font-size: 0.87rem; font-weight: 600;
+                  background: #f1f1f1; color: #555; border: 1.5px solid #ddd; cursor: pointer; }
+.btn-cancel2:hover { background: #e5e5e5; }
+</style>
+
+<div class="mgr-wrap">
+    <div class="mgr-toolbar">
+        <div class="mgr-title"><i class="fas fa-cog"></i> 과정 / 학생 관리</div>
+        <a href="/coolapi/view" class="btn-back"><i class="fas fa-arrow-left"></i> 출결 현황</a>
+        <button class="btn-add-course" onclick="openCourseModal()"><i class="fas fa-plus"></i> 과정 추가</button>
+    </div>
+    <div id="courseContainer">
+        <div class="no-courses">불러오는 중...</div>
+    </div>
+</div>
+</div>
+
+<div layout:fragment="script">
+<script>
+const DOW = {'1':'월','2':'화','3':'수','4':'목','5':'금','6':'토','7':'일'};
+let _courses = [];
+
+/* ── 모달 HTML을 body에 직접 주입 ── */
+document.body.insertAdjacentHTML('beforeend', `
+<div class="mgr-modal-bg" id="mCourse">
+  <div class="mgr-modal">
+    <button class="mgr-modal-x" onclick="closeModal('mCourse')">✕</button>
+    <h3 id="mCourseTitle">과정 추가</h3>
+    <input type="hidden" id="cId">
+    <div class="f-row">
+      <label>과정명 *</label>
+      <input class="f-input" id="cName" placeholder="과정명을 입력하세요">
+    </div>
+    <div class="f-row">
+      <label>수업 요일 *</label>
+      <div class="dow-checks">
+        <label><input type="checkbox" value="1"> 월</label>
+        <label><input type="checkbox" value="2"> 화</label>
+        <label><input type="checkbox" value="3"> 수</label>
+        <label><input type="checkbox" value="4"> 목</label>
+        <label><input type="checkbox" value="5"> 금</label>
+        <label><input type="checkbox" value="6"> 토</label>
+        <label><input type="checkbox" value="7"> 일</label>
+      </div>
+    </div>
+    <div class="f-2col">
+      <div class="f-row"><label>시작일</label><input class="f-input" type="date" id="cStart"></div>
+      <div class="f-row"><label>종료일</label><input class="f-input" type="date" id="cEnd"></div>
+    </div>
+    <div class="f-2col">
+      <div class="f-row"><label>입실 기준 시간</label><input class="f-input" type="time" id="cCiTime"></div>
+      <div class="f-row"><label>퇴실 기준 시간</label><input class="f-input" type="time" id="cCoTime"></div>
+    </div>
+    <div class="f-row">
+      <label>지각 유예 (분)</label>
+      <input class="f-input" type="number" id="cGrace" value="0" min="0" max="120" style="max-width:110px">
+    </div>
+    <div class="f-footer">
+      <button class="btn-cancel2" onclick="closeModal('mCourse')">취소</button>
+      <button class="btn-save" onclick="saveCourse()">저장</button>
+    </div>
+  </div>
+</div>
+
+<div class="mgr-modal-bg" id="mStudent">
+  <div class="mgr-modal">
+    <button class="mgr-modal-x" onclick="closeModal('mStudent')">✕</button>
+    <h3 id="mStudentTitle">학생 추가</h3>
+    <input type="hidden" id="sId">
+    <input type="hidden" id="sCourseId">
+    <div class="f-row">
+      <label>이름 *</label>
+      <input class="f-input" id="sName" placeholder="학생 이름">
+    </div>
+    <div class="f-row">
+      <label>카드번호 <span style="font-weight:400;color:#999">(선택 — HRD 마스킹 포함)</span></label>
+      <input class="f-input" id="sCard" placeholder="944116******8172">
+    </div>
+    <div class="f-row" id="sActiveRow" style="display:none">
+      <label style="flex-direction:row;display:flex;align-items:center;gap:6px;font-weight:400">
+        <input type="checkbox" id="sActive"> 활성 상태
+      </label>
+    </div>
+    <div class="f-footer">
+      <button class="btn-cancel2" onclick="closeModal('mStudent')">취소</button>
+      <button class="btn-save" onclick="saveStudent()">저장</button>
+    </div>
+  </div>
+</div>
+`);
+
+/* 오버레이 클릭 닫기 */
+['mCourse','mStudent'].forEach(id =>
+    document.getElementById(id).addEventListener('click', e => {
+        if (e.target.id === id) closeModal(id);
+    })
+);
+
+/* ══════ 과정 목록 ══════ */
+async function initCourses() {
+    const res  = await fetch('/coolapi/courses');
+    _courses   = await res.json();
+    const wrap = document.getElementById('courseContainer');
+
+    if (!_courses.length) {
+        wrap.innerHTML = '<div class="no-courses"><i class="fas fa-inbox" style="font-size:2rem;opacity:.25;display:block;margin-bottom:10px"></i>등록된 과정이 없습니다.</div>';
+        return;
+    }
+
+    wrap.innerHTML = _courses.map(renderCourseCard).join('');
+    _courses.forEach(c => renderStudents(c.id));
+}
+
+function renderCourseCard(c) {
+    const dows = (c.daysOfWeek || '').split(',').filter(Boolean)
+        .map(d => `<span class="dow-badge">${DOW[d] ?? d}</span>`).join('');
+    const time = (c.checkInTime || c.checkOutTime)
+        ? `<span class="course-hd-time">${c.checkInTime ?? '?'} ~ ${c.checkOutTime ?? '?'}</span>` : '';
+    const dim  = c.active ? '' : ' style="opacity:.5"';
+    return `<div class="course-card" id="cc-${c.id}"${dim}>
+        <div class="course-hd">
+            <div class="course-hd-name">
+                <i class="fas fa-chalkboard-teacher"></i>
+                ${esc(c.courseName)} ${time} ${dows}
+            </div>
+            <div class="course-hd-btns">
+                <button class="btn-hd" onclick="editCourse(${c.id})">수정</button>
+                <button class="btn-hd btn-hd-del" onclick="deleteCourse(${c.id})">비활성</button>
+            </div>
+        </div>
+        <div id="sl-${c.id}"><div class="course-empty">불러오는 중...</div></div>
+        <div class="student-add-row">
+            <button class="btn-add-student" onclick="openStudentModal(${c.id})">
+                <i class="fas fa-user-plus"></i> 학생 추가
+            </button>
+        </div>
+    </div>`;
+}
+
+async function renderStudents(courseId) {
+    const res  = await fetch(`/coolapi/courses/${courseId}/students`);
+    const list = await res.json();
+    const el   = document.getElementById(`sl-${courseId}`);
+    if (!el) return;
+
+    if (!list.length) {
+        el.innerHTML = '<div class="course-empty">등록된 학생이 없습니다.</div>';
+        return;
+    }
+    el.innerHTML = list.map(s => {
+        const cls  = s.active ? '' : ' student-inactive';
+        const card = s.cardNum
+            ? `<span class="student-card">${esc(s.cardNum)}</span>`
+            : `<span class="student-card" style="opacity:.4">카드번호 미등록</span>`;
+        return `<div class="student-row${cls}">
+            <span class="student-name">${esc(s.studentName)}</span>
+            ${card}
+            <div class="student-btns">
+                <button class="btn-sm" onclick="editStudent(${courseId},${s.id})">수정</button>
+                <button class="btn-sm btn-sm-del" onclick="deleteStudent(${courseId},${s.id})">제거</button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+/* ══════ 과정 CRUD ══════ */
+function openCourseModal(course = null) {
+    document.getElementById('cId').value    = course?.id ?? '';
+    document.getElementById('cName').value  = course?.courseName ?? '';
+    document.getElementById('cStart').value = course?.startDate ?? '';
+    document.getElementById('cEnd').value   = course?.endDate ?? '';
+    document.getElementById('cCiTime').value = course?.checkInTime ?? '';
+    document.getElementById('cCoTime').value = course?.checkOutTime ?? '';
+    document.getElementById('cGrace').value  = course?.lateGraceMinutes ?? 0;
+    document.getElementById('mCourseTitle').textContent = course ? '과정 수정' : '과정 추가';
+
+    const dows = (course?.daysOfWeek ?? '').split(',').filter(Boolean);
+    document.querySelectorAll('#mCourse .dow-checks input[type=checkbox]')
+            .forEach(cb => { cb.checked = dows.includes(cb.value); });
+
+    document.getElementById('mCourse').classList.add('open');
+    setTimeout(() => document.getElementById('cName').focus(), 50);
+}
+
+function editCourse(id) {
+    const c = _courses.find(x => x.id === id);
+    if (c) openCourseModal(c);
+}
+
+async function saveCourse() {
+    const id   = document.getElementById('cId').value;
+    const name = document.getElementById('cName').value.trim();
+    if (!name) { alert('과정명을 입력하세요.'); return; }
+
+    const dows = [...document.querySelectorAll('#mCourse .dow-checks input:checked')]
+                  .map(cb => cb.value).sort().join(',');
+    if (!dows) { alert('수업 요일을 선택하세요.'); return; }
+
+    const dto = {
+        courseName: name, daysOfWeek: dows,
+        startDate:  document.getElementById('cStart').value   || null,
+        endDate:    document.getElementById('cEnd').value     || null,
+        checkInTime:  document.getElementById('cCiTime').value || null,
+        checkOutTime: document.getElementById('cCoTime').value || null,
+        lateGraceMinutes: parseInt(document.getElementById('cGrace').value) || 0,
+        active: true,
+    };
+    await fetch(id ? `/coolapi/courses/${id}` : '/coolapi/courses', {
+        method: id ? 'PUT' : 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify(dto),
+    });
+    closeModal('mCourse');
+    initCourses();
+}
+
+async function deleteCourse(id) {
+    if (!confirm('해당 과정을 비활성화하시겠습니까?')) return;
+    await fetch(`/coolapi/courses/${id}`, { method: 'DELETE' });
+    initCourses();
+}
+
+/* ══════ 학생 CRUD ══════ */
+function openStudentModal(courseId, student = null) {
+    document.getElementById('sCourseId').value = courseId;
+    document.getElementById('sId').value       = student?.id ?? '';
+    document.getElementById('sName').value     = student?.studentName ?? '';
+    document.getElementById('sCard').value     = student?.cardNum ?? '';
+    document.getElementById('sActive').checked = student?.active ?? true;
+    document.getElementById('sActiveRow').style.display = student ? '' : 'none';
+    document.getElementById('mStudentTitle').textContent = student ? '학생 수정' : '학생 추가';
+
+    document.getElementById('mStudent').classList.add('open');
+    setTimeout(() => document.getElementById('sName').focus(), 50);
+}
+
+async function editStudent(courseId, studentId) {
+    const res  = await fetch(`/coolapi/courses/${courseId}/students`);
+    const list = await res.json();
+    const s    = list.find(x => x.id === studentId);
+    if (s) openStudentModal(courseId, s);
+}
+
+async function saveStudent() {
+    const courseId = document.getElementById('sCourseId').value;
+    const id       = document.getElementById('sId').value;
+    const name     = document.getElementById('sName').value.trim();
+    if (!name) { alert('이름을 입력하세요.'); return; }
+
+    const dto = {
+        studentName: name,
+        cardNum: document.getElementById('sCard').value.trim() || null,
+        active:  document.getElementById('sActive').checked,
+    };
+    if (id) {
+        await fetch(`/coolapi/students/${id}`, { method: 'PUT',
+            headers: {'Content-Type':'application/json'}, body: JSON.stringify(dto) });
+    } else {
+        await fetch(`/coolapi/courses/${courseId}/students`, { method: 'POST',
+            headers: {'Content-Type':'application/json'}, body: JSON.stringify(dto) });
+    }
+    closeModal('mStudent');
+    renderStudents(parseInt(courseId));
+}
+
+async function deleteStudent(courseId, id) {
+    if (!confirm('이 학생을 제거하시겠습니까?')) return;
+    await fetch(`/coolapi/students/${id}`, { method: 'DELETE' });
+    renderStudents(courseId);
+}
+
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+function esc(s) {
+    return String(s ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+        .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+initCourses();
+</script>
+</div>
+
+</body>
+</html>
