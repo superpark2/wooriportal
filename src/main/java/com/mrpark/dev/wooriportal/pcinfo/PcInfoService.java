@@ -129,13 +129,37 @@ public class PcInfoService {
     @Transactional
     public void pcInfoDelete(Long pcInfoNum) {
         pcInfoRepository.findById(pcInfoNum).ifPresent(entity -> {
-            logService.savePcLog(pcInfoNum, "PC 삭제");
-            // FK 참조 먼저 해제 (log, require 테이블의 pcinfo_num → null)
+            // 삭제 마커 로그 내용(태그 포함)을 삭제 전에 미리 구성
+            String deleteLog = buildDeleteLogContent(entity);
+
+            // 1) 기존 로그/요청의 FK 해제 (log, require 의 pcinfo_num → null)
+            //    삭제 전 별도 트랜잭션(REQUIRES_NEW) 로그 쓰기를 두면 같은 행에 대한
+            //    벌크 UPDATE와 경합해 MariaDB 1020(record has changed)이 발생하므로,
+            //    로그 쓰기는 삭제 이후 같은 트랜잭션에서 pc 참조 없이 수행한다.
             logRepository.detachPcInfo(pcInfoNum);
             requireRepository.detachPcInfo(pcInfoNum);
+
+            // 2) PC 삭제
             if (entity.getPcInfoImageMeta() != null) deleteLocalFileByMeta(entity.getPcInfoImageMeta());
             pcInfoRepository.deleteById(pcInfoNum);
+
+            // 3) 삭제 마커 로그 저장 (pcInfo=null, 텍스트로만 잔존)
+            logService.saveDetachedLog(deleteLog);
         });
+    }
+
+    /** "[건물] [실] [좌석] PC 삭제" 형태의 로그 내용 구성 */
+    private String buildDeleteLogContent(PcInfoEntity pc) {
+        String building = "미지정";
+        String room     = "미지정";
+        String seat     = pc.getPcInfoSeatNum() != null ? pc.getPcInfoSeatNum() : "미지정";
+        if (pc.getLocation() != null) {
+            room = pc.getLocation().getLocationName();
+            if (pc.getLocation().getLocationParent() != null) {
+                building = pc.getLocation().getLocationParent().getLocationName();
+            }
+        }
+        return "[" + building + "] [" + room + "] [" + seat + "] PC 삭제";
     }
 
     public PcInfoDTO getById(Long pcInfoNum) {

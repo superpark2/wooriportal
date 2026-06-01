@@ -57,6 +57,20 @@ public class LogService {
         sseService.sendLogNotification(finalContent);
     }
 
+    /**
+     * pc 참조 없이(pcInfo=null) 로그 본문만 저장. 호출자의 트랜잭션에 그대로 참여한다.
+     * PC 삭제처럼 대상 pc가 사라지는 흐름에서, 별도 트랜잭션(REQUIRES_NEW) 경합 없이
+     * 삭제 마커 로그를 남길 때 사용한다. content에 태그를 미리 포함시켜 전달할 것.
+     */
+    @Transactional
+    public void saveDetachedLog(String content) {
+        if (content == null || content.isBlank()) return;
+        LogEntity entity = new LogEntity();
+        entity.setContent(content);
+        logRepository.save(entity);
+        sseService.sendLogNotification(content);
+    }
+
     @Transactional(readOnly = true)
     public Page<LogDTO> getRecentLogs(Pageable pageable) {
         return logRepository.findAllByOrderByCreatedAtDesc(pageable).map(this::toDTO);
