@@ -22,10 +22,15 @@ public class CourseAttendanceDTO {
     public static class StudentAttendanceItem {
         private Long studentId;
         private String studentName;
-        private String checkIn;         // "HH:mm" or null
+        private String checkIn;         // "HH:mm" or null — 표시용(우선순위 적용된 유효값)
         private String checkOut;        // "HH:mm" or null
         private String status;          // AttendanceStatus.name()
         private String statusLabel;     // 한글 라벨
         private String colorClass;      // CSS 클래스명 (absent / present / exited / late)
+        // 방식별 상태 (버튼 사이클/표시 구분용) — "HH:mm" or null
+        private String qrIn;
+        private String qrOut;
+        private String bcIn;
+        private String bcOut;
     }
 }

@@ -43,7 +43,7 @@ public class AttendanceController {
         if (req.getCourseName() == null || req.getStudentName() == null) {
             return ResponseEntity.badRequest().body("MISSING_FIELDS");
         }
-        attendanceService.cancelAttendance(req.getCourseName(), req.getRound(), req.getStudentName());
+        attendanceService.cancelAttendance(req.getCourseName(), req.getRound(), req.getStudentName(), req.getMethod());
         return ResponseEntity.ok("OK");
     }
 

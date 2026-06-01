@@ -151,12 +151,22 @@ public class AttendanceService {
         repository.save(e);
     }
 
-    /** 취소 — 특정 학생의 당일 출결 기록 전체 삭제 */
+    /**
+     * 취소 — 특정 학생의 당일 출결 기록 삭제.
+     * method 가 QR/BEACON 이면 해당 방식만, 없으면(수정 교체) 전체 삭제.
+     */
     @Transactional
-    public void cancelAttendance(String courseName, Integer round, String studentName) {
+    public void cancelAttendance(String courseName, Integer round, String studentName, String method) {
         int r = round != null ? round : 0;
-        int deleted = repository.deleteStudentDay(studentName.trim(), courseName.trim(), r, LocalDate.now());
-        log.info("[취소] {} / {} / 회차 {} — {}건 삭제", studentName, courseName, r, deleted);
+        String m = method == null ? "" : method.trim().toUpperCase();
+        int deleted;
+        if ("QR".equals(m) || "BEACON".equals(m)) {
+            deleted = repository.deleteStudentDaySource(studentName.trim(), courseName.trim(), r, LocalDate.now(), m);
+            log.info("[취소:{}] {} / {} / 회차 {} — {}건 삭제", m, studentName, courseName, r, deleted);
+        } else {
+            deleted = repository.deleteStudentDay(studentName.trim(), courseName.trim(), r, LocalDate.now());
+            log.info("[취소] {} / {} / 회차 {} — {}건 삭제", studentName, courseName, r, deleted);
+        }
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -190,20 +200,20 @@ public class AttendanceService {
                 List<AttendanceLogEntity> logs =
                         byName.getOrDefault(student.getStudentName(), Collections.emptyList());
 
-                // 집계: 유효한 가장 이른 입실 / 가장 늦은 퇴실
-                // "0000" 은 퇴실 이벤트의 더미값이므로 제외
-                String effectiveCheckIn = logs.stream()
-                        .map(AttendanceLogEntity::getCheckIn)
-                        .filter(Objects::nonNull)
-                        .filter(t -> !"0000".equals(t))
-                        .min(Comparator.naturalOrder()).orElse(null);
-                String effectiveCheckOut = logs.stream()
-                        .map(AttendanceLogEntity::getCheckOut)
-                        .filter(Objects::nonNull)
-                        .max(Comparator.naturalOrder()).orElse(null);
+                // 방식별 입·퇴실 집계 ("0000"은 더미값이라 입실에서 제외)
+                String qrIn   = earliestIn(logs, "QR");
+                String qrOut  = latestOut(logs, "QR");
+                String bcIn   = earliestIn(logs, "BEACON");
+                String bcOut  = latestOut(logs, "BEACON");
+                String cardIn = earliestIn(logs, "CARD");   // HRD/MANUAL/null
+                String cardOut= latestOut(logs, "CARD");
+
+                // 표시 우선순위: QR → 비컨 → 카드(HRD)
+                String effectiveCheckIn  = firstNonNull(qrIn,  bcIn,  cardIn);
+                String effectiveCheckOut = firstNonNull(qrOut, bcOut, cardOut);
 
                 AttendanceLogEntity agg = null;
-                if (!logs.isEmpty()) {
+                if (effectiveCheckIn != null || effectiveCheckOut != null) {
                     agg = new AttendanceLogEntity();
                     agg.setCheckIn(effectiveCheckIn);
                     agg.setCheckOut(effectiveCheckOut);
@@ -224,7 +234,9 @@ public class AttendanceService {
                         formatTime(effectiveCheckOut),
                         status.name(),
                         statusLabel(status),
-                        colorClass(status)
+                        colorClass(status),
+                        formatTime(qrIn),  formatTime(qrOut),
+                        formatTime(bcIn),  formatTime(bcOut)
                 ));
             }
 
@@ -461,6 +473,33 @@ public class AttendanceService {
     static String formatTime(String hhmm) {
         if (hhmm == null || hhmm.length() != 4) return hhmm;
         return hhmm.substring(0, 2) + ":" + hhmm.substring(2);
+    }
+
+    // ── 방식(소스)별 입·퇴실 집계 헬퍼 ──────────────────────────
+    /** 로그의 소스 버킷 판정: "QR" / "BEACON" / "CARD"(HRD·MANUAL·null·기타) */
+    private static boolean inBucket(AttendanceLogEntity l, String bucket) {
+        String s = l.getSource();
+        if ("QR".equals(bucket))     return "QR".equalsIgnoreCase(s);
+        if ("BEACON".equals(bucket)) return "BEACON".equalsIgnoreCase(s);
+        return !"QR".equalsIgnoreCase(s) && !"BEACON".equalsIgnoreCase(s);  // CARD 버킷
+    }
+    /** 해당 버킷의 가장 이른 입실(HHMM, "0000" 제외) */
+    private static String earliestIn(List<AttendanceLogEntity> logs, String bucket) {
+        return logs.stream().filter(l -> inBucket(l, bucket))
+                .map(AttendanceLogEntity::getCheckIn)
+                .filter(Objects::nonNull).filter(t -> !"0000".equals(t))
+                .min(Comparator.naturalOrder()).orElse(null);
+    }
+    /** 해당 버킷의 가장 늦은 퇴실(HHMM) */
+    private static String latestOut(List<AttendanceLogEntity> logs, String bucket) {
+        return logs.stream().filter(l -> inBucket(l, bucket))
+                .map(AttendanceLogEntity::getCheckOut)
+                .filter(Objects::nonNull)
+                .max(Comparator.naturalOrder()).orElse(null);
+    }
+    private static String firstNonNull(String... vals) {
+        for (String v : vals) if (v != null) return v;
+        return null;
     }
 
     private String statusLabel(AttendanceStatus s) {

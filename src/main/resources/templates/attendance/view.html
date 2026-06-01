@@ -63,9 +63,10 @@
 .att-acts         { display: flex; gap: 3px; flex-shrink: 0; }
 .att-act          { border: none; border-radius: 6px; padding: 3px 7px; font-size: .68rem;
                     font-weight: 700; cursor: pointer; line-height: 1.25; white-space: nowrap; }
-.att-act-qr       { background: #eef2ff; color: #4f46e5; }
-.att-act-bc       { background: #ecfeff; color: #0891b2; }
-.att-act-x        { background: #fef2f2; color: #dc2626; }
+.att-act-qr       { background: #eef2ff; color: #4f46e5; }   /* QR 미기록(=출석 처리) */
+.att-act-bc       { background: #ecfeff; color: #0891b2; }   /* 비컨 미기록 */
+.att-act-in       { background: #22c55e; color: #fff; }      /* 출석 기록됨 → 누르면 퇴실 */
+.att-act-out      { background: #3b82f6; color: #fff; }      /* 퇴실 기록됨 → 누르면 취소 */
 .att-act:hover    { filter: brightness(.94); }
 
 /* LED 점 */
@@ -198,7 +199,6 @@ function render(courses) {
             for (const s of students) {
                 const cc   = s.colorClass;
                 const pure = pureName(s.studentName);
-                const nextType = s.checkIn ? 'EXIT' : 'ENTRY';   // 입실 전이면 입실, 후면 퇴실
                 const nameEl = (cc !== 'absent')
                     ? `<span class="att-name att-name-link" onclick="showLog(${s.studentId},'${esc(pure)}','${esc(course.courseName)}',${round})">${esc(s.studentName)}</span>`
                     : `<span class="att-name absent">${esc(s.studentName)}</span>`;
@@ -210,12 +210,8 @@ function render(courses) {
                     <span class="att-time ${s.checkOut ? 'has-val' : ''}">${s.checkOut ?? '-'}</span>
                     <span class="att-badge badge-${cc}">${esc(s.statusLabel)}</span>
                     <span class="att-acts">
-                        <button class="att-act att-act-qr" title="QR ${nextType === 'EXIT' ? '퇴실' : '입실'}"
-                            onclick="markAtt('${esc(pure)}','${esc(course.courseName)}',${round},'QR','${nextType}')">QR</button>
-                        <button class="att-act att-act-bc" title="비컨 ${nextType === 'EXIT' ? '퇴실' : '입실'}"
-                            onclick="markAtt('${esc(pure)}','${esc(course.courseName)}',${round},'BEACON','${nextType}')">비컨</button>
-                        <button class="att-act att-act-x" title="당일 출결 취소"
-                            onclick="cancelAtt('${esc(pure)}','${esc(course.courseName)}',${round})">✕</button>
+                        ${actBtn('QR', methodState(s.qrIn, s.qrOut), pure, course.courseName, round)}
+                        ${actBtn('BEACON', methodState(s.bcIn, s.bcOut), pure, course.courseName, round)}
                     </span>
                 </div>`;
             }
@@ -236,21 +232,62 @@ function daysLabel(dow) {
 /** 표시이름에서 "(생년월일)" 접미어 제거 → 서버 매칭용 순수 이름 */
 function pureName(n) { return String(n ?? '').replace(/\s*\(.*\)\s*$/, '').trim(); }
 
-/* ── 행 액션: QR / 비컨 출결, 취소 ── */
-async function markAtt(name, courseName, round, method, type) {
-    const res = await fetch('/coolapi/attendance/manual', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ courseName, round, studentName: name, type, method, time: '' })
-    });
-    if (res.ok) fetchData(); else alert('처리 실패');
+/* ── 행 액션: QR / 비컨 사이클 (없음→출석→퇴실→취소) ── */
+// 방식별 상태: 'NONE'(미기록) / 'IN'(출석만) / 'INOUT'(퇴실까지)
+function methodState(inT, outT) {
+    if (!inT && !outT) return 'NONE';
+    if (!outT)         return 'IN';
+    return 'INOUT';
 }
-async function cancelAtt(name, courseName, round) {
-    if (!confirm(`'${name}' 의 오늘 출결 기록을 취소(삭제)할까요?`)) return;
-    const res = await fetch('/coolapi/attendance/cancel', {
-        method: 'POST', headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ courseName, round, studentName: name })
-    });
-    if (res.ok) fetchData(); else alert('취소 실패');
+// 상태 → 다음에 할 동작
+function nextAction(state) {
+    return state === 'NONE' ? 'ENTRY' : (state === 'IN' ? 'EXIT' : 'CANCEL');
+}
+function actBtn(method, state, name, course, round) {
+    const m = (method === 'QR') ? 'QR' : '비컨';
+    let cls = 'att-act ', label = m, title;
+    if (state === 'NONE')       { cls += (method === 'QR' ? 'att-act-qr' : 'att-act-bc'); title = m + ' 출석 처리'; }
+    else if (state === 'IN')    { cls += 'att-act-in';  label = m + '·출'; title = m + ' 퇴실 (다시 누르면)'; }
+    else                        { cls += 'att-act-out'; label = m + '·퇴'; title = m + ' 취소 (다시 누르면)'; }
+    return `<button class="${cls}" title="${title}" onclick="actClick('${name}','${course}',${round},'${method}','${state}')">${label}</button>`;
+}
+
+let _act = {};
+function actClick(name, course, round, method, state) {
+    const action = nextAction(state);
+    _act = { name, course, round, method, action };
+    const mLabel = (method === 'QR') ? 'QR' : '비컨';
+    const tWrap  = document.getElementById('actTimeWrap');
+    if (action === 'CANCEL') {
+        document.getElementById('actMsg').innerHTML = `<b>${esc(name)}</b> 님의 <b>${mLabel}</b> 출결 기록을<br>취소(삭제)할까요?`;
+        tWrap.style.display = 'none';
+    } else {
+        const kind = (action === 'ENTRY') ? '출석(입실)' : '퇴실';
+        document.getElementById('actMsg').innerHTML = `<b>${esc(name)}</b> 님 — <b>${mLabel} ${kind}</b> 처리할까요?`;
+        tWrap.style.display = 'block';
+        const now = new Date();
+        document.getElementById('actTime').value =
+            String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
+    }
+    document.getElementById('actModal').classList.add('open');
+}
+async function actConfirm() {
+    const { name, course, round, method, action } = _act;
+    let res;
+    if (action === 'CANCEL') {
+        res = await fetch('/coolapi/attendance/cancel', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ courseName: course, round, studentName: name, method })
+        });
+    } else {
+        const time = document.getElementById('actTime').value;
+        res = await fetch('/coolapi/attendance/manual', {
+            method: 'POST', headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ courseName: course, round, studentName: name, type: action, method, time: time ? time.replace(':','') : '' })
+        });
+    }
+    document.getElementById('actModal').classList.remove('open');
+    if (res.ok) fetchData(); else alert('처리 실패');
 }
 
 /* ── 학생 기록 모달 ── */
@@ -359,9 +396,32 @@ document.body.insertAdjacentHTML('beforeend', `
 document.getElementById('attLogModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
 });
+
+/* QR/비컨 재확인 모달 주입 */
+document.body.insertAdjacentHTML('beforeend', `
+<div id="actModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;align-items:center;justify-content:center;">
+  <div style="background:#fff;border-radius:14px;width:min(320px,92vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
+    <div style="padding:18px 18px 6px;font-size:.92rem;color:#222;line-height:1.5" id="actMsg"></div>
+    <div id="actTimeWrap" style="padding:6px 18px 4px">
+      <label style="font-size:.74rem;font-weight:700;color:#555">시간 <span style="font-weight:400;color:#aaa">(수동 설정 가능)</span></label>
+      <input type="time" id="actTime" style="display:block;width:100%;margin-top:4px;padding:7px;border:1.5px solid #ddd;border-radius:8px;font-size:.9rem">
+    </div>
+    <div style="padding:14px 18px;display:flex;justify-content:flex-end;gap:8px">
+      <button onclick="document.getElementById('actModal').classList.remove('open')"
+              style="padding:8px 16px;border-radius:8px;font-size:.85rem;font-weight:600;background:#f1f1f1;color:#555;border:1.5px solid #ddd;cursor:pointer">취소</button>
+      <button onclick="actConfirm()"
+              style="padding:8px 20px;border-radius:8px;font-size:.85rem;font-weight:700;background:#4f46e5;color:#fff;border:none;cursor:pointer">확인</button>
+    </div>
+  </div>
+</div>
+`);
+document.getElementById('actModal').addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+});
+
 /* open 클래스 → flex 전환 */
 const _attStyle = document.createElement('style');
-_attStyle.textContent = '#attLogModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
+_attStyle.textContent = '#attLogModal.open{display:flex!important} #actModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
 document.head.appendChild(_attStyle);
 </script>
 </div>

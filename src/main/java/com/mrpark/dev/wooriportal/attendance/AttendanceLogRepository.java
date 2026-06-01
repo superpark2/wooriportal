@@ -56,7 +56,7 @@ public interface AttendanceLogRepository extends JpaRepository<AttendanceLogEnti
                                 @Param("date") LocalDate attendanceDate,
                                 @Param("checkOut") String checkOut);
 
-    /** 취소 — 특정 학생의 당일 기록 전체 삭제 (수동 취소용) */
+    /** 취소 — 특정 학생의 당일 기록 전체 삭제 (수정 교체용) */
     @Modifying
     @Query("DELETE FROM AttendanceLogEntity a " +
            "WHERE a.studentName = :name AND a.courseName = :courseName " +
@@ -65,4 +65,16 @@ public interface AttendanceLogRepository extends JpaRepository<AttendanceLogEnti
                          @Param("courseName") String courseName,
                          @Param("round") Integer round,
                          @Param("date") LocalDate attendanceDate);
+
+    /** 취소 — 특정 학생의 당일 기록 중 특정 방식(QR/BEACON)만 삭제 */
+    @Modifying
+    @Query("DELETE FROM AttendanceLogEntity a " +
+           "WHERE a.studentName = :name AND a.courseName = :courseName " +
+           "AND COALESCE(a.round, 0) = COALESCE(:round, 0) AND a.attendanceDate = :date " +
+           "AND a.source = :source")
+    int deleteStudentDaySource(@Param("name") String studentName,
+                               @Param("courseName") String courseName,
+                               @Param("round") Integer round,
+                               @Param("date") LocalDate attendanceDate,
+                               @Param("source") String source);
 }
