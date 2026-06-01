@@ -3,7 +3,6 @@ package com.mrpark.dev.wooriportal.global.util;
 import com.mrpark.dev.wooriportal.location.LocationEntity;
 import com.mrpark.dev.wooriportal.log.LogService;
 import com.mrpark.dev.wooriportal.pcinfo.PcInfoEntity;
-import jakarta.persistence.PreRemove;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.stereotype.Component;
@@ -30,16 +29,9 @@ public class LogUtil {
 
     // 버그수정: 빈 @PrePersist, @PreUpdate 메서드 제거 (PcInfoService에서 직접 처리)
 
-    @PreRemove
-    public void onPcRemove(Object entity) {
-        if (!(entity instanceof PcInfoEntity pc)) return;
-
-        String locationName = pc.getLocation() != null
-                ? buildLocationString(pc.getLocation()) : "미지정 위치";
-        String seatNum = pc.getPcInfoSeatNum() != null ? pc.getPcInfoSeatNum() : "미지정";
-        saveLogStatic(pc.getPcInfoNum(),
-                "PC 삭제됨 (이전 위치: " + locationName + ", 좌석: " + seatNum + ")");
-    }
+    // 버그수정: @PreRemove 로깅 제거.
+    // 삭제 직전에 pc를 참조하는 로그 row를 REQUIRES_NEW로 재삽입해 FK 제약 위반(500) 유발했음.
+    // PC 삭제 로그는 PcInfoService.pcInfoDelete()에서 명시적으로 기록하므로 중복이기도 함.
 
     public static void logPcRegistration(PcInfoEntity pc) {
         if (pc == null) return;

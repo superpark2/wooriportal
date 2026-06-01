@@ -416,29 +416,29 @@
                     pc.forEach(pc => {
                         html += `
                                     <tr>
-                                        <td class="col-image">${pc.pcInfoImageMeta ? `<div class="pc-image"><img class=\"pc-thumb\" src=\"${pc.pcInfoImageMeta}\" alt=\"PC\"></div>` : '—'}</td>
-                                        <td class="col-room">${pc.pcInfoSeatNum}</td>
-                                        <td class="col-cpu">${pc.pcInfoCpu}</td>
-                                        <td class="col-ram">${pc.pcInfoRam}</td>
-                                        <td class="col-storage">${pc.pcInfoStorage}</td>
-                                        <td class="col-vga">${pc.pcInfoVga}</td>
-                                        <td class="col-monitor">${pc.pcInfoMonitor}</td>
-                                        <td class="col-ip">${pc.pcInfoIp}</td>
+                                        <td class="col-image">${pc.pcInfoImageMeta ? `<div class="pc-image"><img class="pc-thumb" src="${escHtml(pc.pcInfoImageMeta)}" alt="PC"></div>` : '—'}</td>
+                                        <td class="col-room">${escHtml(pc.pcInfoSeatNum)}</td>
+                                        <td class="col-cpu">${escHtml(pc.pcInfoCpu)}</td>
+                                        <td class="col-ram">${escHtml(pc.pcInfoRam)}</td>
+                                        <td class="col-storage">${escHtml(pc.pcInfoStorage)}</td>
+                                        <td class="col-vga">${escHtml(pc.pcInfoVga)}</td>
+                                        <td class="col-monitor">${escHtml(pc.pcInfoMonitor)}</td>
+                                        <td class="col-ip">${escHtml(pc.pcInfoIp)}</td>
                                         <td class="col-actions">
-                                            <button class="btn btn-primary btn-edit" 
-                                                    data-pc-info-num="${pc.pcInfoNum}"
-                                                    data-pc-seat="${pc.pcInfoSeatNum}"
-                                                    data-pc-cpu="${pc.pcInfoCpu}"
-                                                    data-pc-ram="${pc.pcInfoRam}"
-                                                    data-pc-storage="${pc.pcInfoStorage}"
-                                                    data-pc-vga="${pc.pcInfoVga}"
-                                                    data-pc-monitor="${pc.pcInfoMonitor}"
-                                                    data-pc-ip="${pc.pcInfoIp}"
-                                                    data-pc-image="${pc.pcInfoImageMeta || ''}"
-                                                    data-pc-location="${pc.locationNum}"
-                                                    data-pc-building="${currentBuildingNum}">수정</button>
-                                            <button class="btn btn-danger btn-delete" 
-                                                    data-pc-info-num="${pc.pcInfoNum}">삭제</button>
+                                            <button class="btn btn-primary btn-edit"
+                                                    data-pc-info-num="${escHtml(pc.pcInfoNum)}"
+                                                    data-pc-seat="${escHtml(pc.pcInfoSeatNum)}"
+                                                    data-pc-cpu="${escHtml(pc.pcInfoCpu)}"
+                                                    data-pc-ram="${escHtml(pc.pcInfoRam)}"
+                                                    data-pc-storage="${escHtml(pc.pcInfoStorage)}"
+                                                    data-pc-vga="${escHtml(pc.pcInfoVga)}"
+                                                    data-pc-monitor="${escHtml(pc.pcInfoMonitor)}"
+                                                    data-pc-ip="${escHtml(pc.pcInfoIp)}"
+                                                    data-pc-image="${escHtml(pc.pcInfoImageMeta)}"
+                                                    data-pc-location="${escHtml(pc.locationNum)}"
+                                                    data-pc-building="${escHtml(currentBuildingNum)}">수정</button>
+                                            <button class="btn btn-danger btn-delete"
+                                                    data-pc-info-num="${escHtml(pc.pcInfoNum)}">삭제</button>
                                         </td>
                                     </tr>
                             `;
@@ -787,6 +787,11 @@
                 .catch(() => {});
         }
 
+        function escHtml(str) {
+            if (str == null) return '—';
+            return String(str).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;');
+        }
+
         function handleImagePreview(event, imgId, previewId) {
             const file = event.target.files[0];
             const previewImg = document.getElementById(imgId);
@@ -950,7 +955,6 @@
             }, true);
         }
 
-        f
     </script>
 </div>
 

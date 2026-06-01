@@ -5,6 +5,8 @@ import com.mrpark.dev.wooriportal.pcinfo.PcInfoEntity;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Table(name = "log")
@@ -23,6 +25,7 @@ public class LogEntity extends BaseEntity {
     // (BaseEntity를 상속하면 @CreatedDate로 자동 관리됨)
 
     @ManyToOne
-    @JoinColumn(name = "pcinfo_num")
+    @JoinColumn(name = "pcinfo_num", nullable = true)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private PcInfoEntity pcInfo;
 }

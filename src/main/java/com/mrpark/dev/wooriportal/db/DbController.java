@@ -1,6 +1,7 @@
 package com.mrpark.dev.wooriportal.db;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
@@ -20,6 +21,7 @@ import java.util.Map;
 
 @RequiredArgsConstructor
 @Controller
+@Log4j2
 @RequestMapping("/db")
 public class DbController {
 
@@ -44,8 +46,8 @@ public class DbController {
                 model.addAttribute("schemaNames", schemaNames);
                 model.addAttribute("currentView", "schemas");
             } catch (Exception e) {
-                model.addAttribute("error", "데이터베이스 스키마 목록을 불러오는 데 실패했습니다: " + e.getMessage());
-                e.printStackTrace();
+                model.addAttribute("error", "데이터베이스 스키마 목록을 불러오는 데 실패했습니다.");
+                log.error("스키마 목록 조회 실패", e);
             }
         } else {
             model.addAttribute("selectedSchema", selectedSchema);
@@ -67,8 +69,8 @@ public class DbController {
                 model.addAttribute("dbUsers", dbUsers);
 
             } catch (Exception e) {
-                model.addAttribute("error", "스키마 '" + selectedSchema + "' 정보를 불러오는 데 실패했습니다: " + e.getMessage());
-                e.printStackTrace();
+                model.addAttribute("error", "스키마 정보를 불러오는 데 실패했습니다.");
+                log.error("스키마 정보 조회 실패: schema={}", selectedSchema, e);
             }
 
             if ("data".equals(view) && selectedTable != null) {
@@ -83,9 +85,9 @@ public class DbController {
                 } catch (Exception e) {
                     String msg = e.getMessage() != null && e.getMessage().contains("1030")
                             ? "테이블스페이스 파일(.ibd)이 유실된 손상된 테이블입니다. DB 관리자에게 문의하세요."
-                            : "테이블 데이터를 불러올 수 없습니다: " + e.getMessage();
+                            : "테이블 데이터를 불러올 수 없습니다.";
                     model.addAttribute("tableError", msg);
-                    e.printStackTrace();
+                    log.error("테이블 데이터 조회 실패: schema={}, table={}", selectedSchema, selectedTable, e);
                 }
             }
         }
@@ -111,8 +113,8 @@ public class DbController {
             dbService.createSchema(schemaName);
             redirectAttributes.addFlashAttribute("success", "스키마 '" + schemaName + "'가 성공적으로 생성되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "스키마 생성 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "스키마 생성 중 오류가 발생했습니다.");
+            log.error("스키마 생성 실패: schema={}", schemaName, e);
         }
 
         return "redirect:/db";
@@ -137,8 +139,8 @@ public class DbController {
             dbService.dropSchema(schemaName);
             redirectAttributes.addFlashAttribute("success", "스키마 '" + schemaName + "'가 성공적으로 삭제되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "스키마 삭제 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "스키마 삭제 중 오류가 발생했습니다.");
+            log.error("스키마 삭제 실패: schema={}", schemaName, e);
         }
 
         return "redirect:/db";
@@ -167,8 +169,8 @@ public class DbController {
             redirectAttributes.addFlashAttribute("success",
                     "사용자 '" + newUser + "'@'" + newHost + "'가 성공적으로 생성되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "사용자 생성 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "사용자 생성 중 오류가 발생했습니다.");
+            log.error("DB 사용자 생성 실패: user={}, host={}", newUser, newHost, e);
         }
 
         return "redirect:/db?schema=" + targetSchema + "&view=admin";
@@ -196,8 +198,8 @@ public class DbController {
             redirectAttributes.addFlashAttribute("success",
                     "사용자 '" + targetUser + "'@'" + targetHost + "'가 성공적으로 삭제되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "사용자 삭제 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "사용자 삭제 중 오류가 발생했습니다.");
+            log.error("DB 사용자 삭제 실패: user={}, host={}", targetUser, targetHost, e);
         }
 
         return "redirect:/db?schema=" + targetSchema + "&view=admin";
@@ -229,8 +231,8 @@ public class DbController {
             redirectAttributes.addFlashAttribute("success",
                     "'" + targetUser + "'@'" + targetHost + "'의 " + privilege + " 권한을 " + verb + "했습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "권한 변경 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "권한 변경 중 오류가 발생했습니다.");
+            log.error("권한 변경 실패: user={}, host={}, privilege={}, action={}", targetUser, targetHost, privilege, action, e);
         }
 
         String redirectSchema = targetSchema.isEmpty() ? grantSchema : targetSchema;
@@ -259,8 +261,8 @@ public class DbController {
             dbService.deleteData(schema, table, pkColumn, pkValue);
             redirectAttributes.addFlashAttribute("success", "행이 성공적으로 삭제되었습니다.");
         } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("error", "행 삭제 중 오류가 발생했습니다: " + e.getMessage());
-            e.printStackTrace();
+            redirectAttributes.addFlashAttribute("error", "행 삭제 중 오류가 발생했습니다.");
+            log.error("행 삭제 실패: schema={}, table={}, pkColumn={}", schema, table, pkColumn, e);
         }
 
         return "redirect:/db?schema=" + schema + "&table=" + table;
@@ -301,7 +303,8 @@ public class DbController {
             dbService.restoreSchema(schemaName, is);
             return Map.of("ok", true);
         } catch (Exception e) {
-            return Map.of("ok", false, "message", "복원 실패: " + e.getMessage());
+            log.error("스키마 복원 실패: schema={}", schemaName, e);
+            return Map.of("ok", false, "message", "복원에 실패했습니다.");
         }
     }
 
@@ -331,9 +334,10 @@ public class DbController {
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)
                     .body(sqlData);
         } catch (Exception e) {
+            log.error("스키마 백업 실패: schema={}", schemaName, e);
             return ResponseEntity.internalServerError()
                     .contentType(MediaType.TEXT_PLAIN)
-                    .body(("백업 실패: " + e.getMessage()).getBytes(java.nio.charset.StandardCharsets.UTF_8));
+                    .body("백업에 실패했습니다.".getBytes(java.nio.charset.StandardCharsets.UTF_8));
         }
     }
 

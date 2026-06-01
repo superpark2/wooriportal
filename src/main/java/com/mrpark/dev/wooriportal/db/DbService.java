@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 @RequiredArgsConstructor
@@ -19,6 +21,45 @@ public class DbService {
 
     private final JdbcTemplate jdbcTemplate;
     private static final List<String> SYSTEM_SCHEMAS = Arrays.asList("information_schema", "mysql", "performance_schema", "sys");
+
+    // SQL 식별자(스키마/테이블/컬럼/사용자)에 허용되는 문자만 통과 — 백틱/따옴표 브레이크아웃 차단
+    private static final Pattern IDENTIFIER = Pattern.compile("^[A-Za-z0-9_$]{1,64}$");
+    // 호스트는 % 와일드카드, 점, 하이픈 허용
+    private static final Pattern HOST = Pattern.compile("^[A-Za-z0-9_%.\\-:]{1,255}$");
+    // GRANT/REVOKE 대상 권한 화이트리스트
+    private static final Set<String> ALLOWED_PRIVILEGES = Set.of(
+            "ALL PRIVILEGES", "ALL", "SELECT", "INSERT", "UPDATE", "DELETE",
+            "CREATE", "DROP", "ALTER", "INDEX", "EXECUTE", "REFERENCES",
+            "CREATE VIEW", "SHOW VIEW", "CREATE ROUTINE", "ALTER ROUTINE", "TRIGGER", "GRANT OPTION"
+    );
+
+    /** 스키마/테이블/컬럼 식별자 검증 — 실패 시 차단 */
+    private String safeIdentifier(String value) {
+        if (value == null || !IDENTIFIER.matcher(value).matches()) {
+            throw new IllegalArgumentException("허용되지 않는 식별자입니다.");
+        }
+        return value;
+    }
+
+    private String safeHost(String value) {
+        if (value == null || !HOST.matcher(value).matches()) {
+            throw new IllegalArgumentException("허용되지 않는 호스트입니다.");
+        }
+        return value;
+    }
+
+    private String safePrivilege(String value) {
+        if (value == null || !ALLOWED_PRIVILEGES.contains(value.trim().toUpperCase())) {
+            throw new IllegalArgumentException("허용되지 않는 권한입니다.");
+        }
+        return value.trim().toUpperCase();
+    }
+
+    /** 비밀번호 등 문자열 리터럴 내 작은따옴표/백슬래시 이스케이프 */
+    private String escapeLiteral(String value) {
+        if (value == null) return "";
+        return value.replace("\\", "\\\\").replace("'", "''");
+    }
 
     @Value("${spring.datasource.url}")
     private String datasourceUrl;
@@ -109,7 +150,8 @@ public class DbService {
     }
 
     public List<Map<String, Object>> getTableData(String schemaName, String tableName) {
-        String sql = String.format("SELECT * FROM `%s`.`%s` LIMIT 100", schemaName, tableName);
+        String sql = String.format("SELECT * FROM `%s`.`%s` LIMIT 100",
+                safeIdentifier(schemaName), safeIdentifier(tableName));
         return jdbcTemplate.queryForList(sql);
     }
 
@@ -124,24 +166,29 @@ public class DbService {
     }
 
     public void addPrivilege(String user, String host, String schema, String table, String privilege) {
-        String sql = String.format("GRANT %s ON `%s`.`%s` TO '%s'@'%s'", privilege, schema, table, user, host);
+        String sql = String.format("GRANT %s ON `%s`.`%s` TO '%s'@'%s'",
+                safePrivilege(privilege), safeIdentifier(schema), safeIdentifier(table),
+                safeIdentifier(user), safeHost(host));
         jdbcTemplate.execute(sql);
         jdbcTemplate.execute("FLUSH PRIVILEGES");
     }
 
     public void revokePrivilege(String user, String host, String schema, String table, String privilege) {
-        String sql = String.format("REVOKE %s ON `%s`.`%s` FROM '%s'@'%s'", privilege, schema, table, user, host);
+        String sql = String.format("REVOKE %s ON `%s`.`%s` FROM '%s'@'%s'",
+                safePrivilege(privilege), safeIdentifier(schema), safeIdentifier(table),
+                safeIdentifier(user), safeHost(host));
         jdbcTemplate.execute(sql);
         jdbcTemplate.execute("FLUSH PRIVILEGES");
     }
 
     public void deleteData(String schema, String table, String primaryKeyColumn, Object value) {
-        String sql = String.format("DELETE FROM `%s`.`%s` WHERE `%s` = ?", schema, table, primaryKeyColumn);
+        String sql = String.format("DELETE FROM `%s`.`%s` WHERE `%s` = ?",
+                safeIdentifier(schema), safeIdentifier(table), safeIdentifier(primaryKeyColumn));
         jdbcTemplate.update(sql, value);
     }
 
     public void dropSchema(String schemaName) {
-        String sql = String.format("DROP DATABASE `%s`", schemaName);
+        String sql = String.format("DROP DATABASE `%s`", safeIdentifier(schemaName));
         jdbcTemplate.execute(sql);
     }
 
@@ -149,7 +196,7 @@ public class DbService {
      * 스키마(데이터베이스)를 생성합니다.
      */
     public void createSchema(String schemaName) {
-        String sql = String.format("CREATE DATABASE `%s`", schemaName);
+        String sql = String.format("CREATE DATABASE `%s`", safeIdentifier(schemaName));
         jdbcTemplate.execute(sql);
     }
 
@@ -158,10 +205,12 @@ public class DbService {
      */
     public void createUser(String user, String host, String password, String targetSchema) {
         jdbcTemplate.execute(
-                String.format("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'", user, host, password)
+                String.format("CREATE USER '%s'@'%s' IDENTIFIED BY '%s'",
+                        safeIdentifier(user), safeHost(host), escapeLiteral(password))
         );
         jdbcTemplate.execute(
-                String.format("GRANT ALL PRIVILEGES ON `%s`.* TO '%s'@'%s'", targetSchema, user, host)
+                String.format("GRANT ALL PRIVILEGES ON `%s`.* TO '%s'@'%s'",
+                        safeIdentifier(targetSchema), safeIdentifier(user), safeHost(host))
         );
         jdbcTemplate.execute("FLUSH PRIVILEGES");
     }
@@ -170,7 +219,7 @@ public class DbService {
      * DB 사용자를 삭제합니다.
      */
     public void dropUser(String user, String host) {
-        jdbcTemplate.execute(String.format("DROP USER '%s'@'%s'", user, host));
+        jdbcTemplate.execute(String.format("DROP USER '%s'@'%s'", safeIdentifier(user), safeHost(host)));
         jdbcTemplate.execute("FLUSH PRIVILEGES");
     }
 
@@ -180,9 +229,11 @@ public class DbService {
     public void updatePrivilege(String user, String host, String schema, String privilege, String action) {
         String sql;
         if ("revoke".equalsIgnoreCase(action)) {
-            sql = String.format("REVOKE %s ON `%s`.* FROM '%s'@'%s'", privilege, schema, user, host);
+            sql = String.format("REVOKE %s ON `%s`.* FROM '%s'@'%s'",
+                    safePrivilege(privilege), safeIdentifier(schema), safeIdentifier(user), safeHost(host));
         } else {
-            sql = String.format("GRANT %s ON `%s`.* TO '%s'@'%s'", privilege, schema, user, host);
+            sql = String.format("GRANT %s ON `%s`.* TO '%s'@'%s'",
+                    safePrivilege(privilege), safeIdentifier(schema), safeIdentifier(user), safeHost(host));
         }
         jdbcTemplate.execute(sql);
         jdbcTemplate.execute("FLUSH PRIVILEGES");

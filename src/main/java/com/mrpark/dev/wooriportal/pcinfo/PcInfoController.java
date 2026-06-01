@@ -65,6 +65,7 @@ public class PcInfoController {
             pcinfoService.pcInfoDelete(pcInfoNum);
             return ResponseEntity.ok("success");
         } catch (Exception e) {
+            log.error("PC 삭제 실패: pcInfoNum={}", pcInfoNum, e);
             return ResponseEntity.status(500).body("삭제 실패");
         }
     }

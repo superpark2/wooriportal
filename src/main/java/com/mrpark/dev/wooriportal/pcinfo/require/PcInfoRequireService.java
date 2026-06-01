@@ -17,11 +17,6 @@ public class PcInfoRequireService {
     private final PcInfoRepository pcInfoRepository;
     private final ModelMapper modelMapper = new ModelMapper();
 
-    public Page<PcInfoRequireDTO> list(Long pcInfoNum, int page, int size) {
-        Page<PcInfoRequireEntity> entities = requireRepository.findByPcInfo_PcInfoNumOrderByReNumDesc(pcInfoNum, PageRequest.of(page, size));
-        return entities.map(e -> modelMapper.map(e, PcInfoRequireDTO.class));
-    }
-
     public Page<PcInfoRequireDTO> listAll(int page, int size) {
         Page<PcInfoRequireEntity> entities = requireRepository.findByReTypeOrderByReNumDesc("Q", PageRequest.of(page, size));
         Page<PcInfoRequireDTO> dtoPage = entities.map(e -> {

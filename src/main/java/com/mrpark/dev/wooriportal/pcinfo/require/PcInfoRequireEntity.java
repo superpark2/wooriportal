@@ -31,7 +31,8 @@ public class PcInfoRequireEntity extends BaseEntity {
     private PcInfoRequireEntity reParent;
 
     @ManyToOne
-    @JoinColumn(name="pcInfoNum")
+    @JoinColumn(name="pcInfoNum", nullable = true)
+    @OnDelete(action = OnDeleteAction.SET_NULL)
     private PcInfoEntity pcInfo;
 
 }

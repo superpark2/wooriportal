@@ -1,7 +1,9 @@
 package com.mrpark.dev.wooriportal.pcinfo;
 
 import com.mrpark.dev.wooriportal.location.LocationEntity;
+import com.mrpark.dev.wooriportal.log.LogRepository;
 import com.mrpark.dev.wooriportal.log.LogService;
+import com.mrpark.dev.wooriportal.pcinfo.require.PcInfoRequireRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.modelmapper.ModelMapper;
@@ -24,6 +26,8 @@ public class PcInfoService {
     private final ModelMapper modelMapper = new ModelMapper();
     private final PcInfoRepository pcInfoRepository;
     private final LogService logService;
+    private final LogRepository logRepository;
+    private final PcInfoRequireRepository requireRepository;
 
     public List<PcInfoDTO> getList(Long location) {
         List<PcInfoEntity> entity = pcInfoRepository.findByLocation_LocationNum(location);
@@ -126,6 +130,9 @@ public class PcInfoService {
     public void pcInfoDelete(Long pcInfoNum) {
         pcInfoRepository.findById(pcInfoNum).ifPresent(entity -> {
             logService.savePcLog(pcInfoNum, "PC 삭제");
+            // FK 참조 먼저 해제 (log, require 테이블의 pcinfo_num → null)
+            logRepository.detachPcInfo(pcInfoNum);
+            requireRepository.detachPcInfo(pcInfoNum);
             if (entity.getPcInfoImageMeta() != null) deleteLocalFileByMeta(entity.getPcInfoImageMeta());
             pcInfoRepository.deleteById(pcInfoNum);
         });
