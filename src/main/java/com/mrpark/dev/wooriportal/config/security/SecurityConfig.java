@@ -12,6 +12,16 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfToken;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.web.filter.OncePerRequestFilter;
+
+import java.io.IOException;
 
 @Configuration
 @EnableWebSecurity
@@ -29,11 +39,17 @@ public class SecurityConfig {
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
                 // CSRF: 쿠키 기반 토큰(XSRF-TOKEN) 발급 → 프론트엔드 fetch가 X-XSRF-TOKEN 헤더로 회신.
-                // 머신/외부 연동 엔드포인트(오토잇 에이전트, QR/비컨 출결)는 토큰을 보낼 수 없으므로 예외 처리.
+                // - plain CsrfTokenRequestAttributeHandler: 쿠키 원본값과 헤더값을 그대로 비교(JS 연동용).
+                //   기본 Xor 핸들러는 응답 토큰을 인코딩해 쿠키값과 불일치 → 403 유발.
+                // - 머신/외부 연동 엔드포인트(오토잇 에이전트, QR/비컨 출결)는 토큰을 보낼 수 없으므로 예외 처리.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
                         .ignoringRequestMatchers("/coolapi/**")
                 )
+                // Spring Security 6의 지연 토큰 로딩 대응: 매 요청마다 토큰을 강제로 로드해
+                // XSRF-TOKEN 쿠키가 항상 응답에 실리도록 함(없으면 JS가 토큰을 못 읽어 403).
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .authorizeHttpRequests(auth -> auth
                         // 1. 정적 리소스 및 공통 UI 요소 (모두 허용)
                         .requestMatchers(
@@ -85,5 +101,21 @@ public class SecurityConfig {
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
+    }
+
+    /**
+     * CsrfToken을 매 요청에서 강제로 렌더링(getToken 호출)하여
+     * CookieCsrfTokenRepository가 XSRF-TOKEN 쿠키를 응답에 반드시 쓰도록 한다.
+     */
+    static final class CsrfCookieFilter extends OncePerRequestFilter {
+        @Override
+        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+                throws ServletException, IOException {
+            CsrfToken csrfToken = (CsrfToken) request.getAttribute(CsrfToken.class.getName());
+            if (csrfToken != null) {
+                csrfToken.getToken(); // 토큰 로드 → 쿠키 기록 트리거
+            }
+            filterChain.doFilter(request, response);
+        }
     }
 }
