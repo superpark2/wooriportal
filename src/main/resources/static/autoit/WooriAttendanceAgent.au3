@@ -27,10 +27,26 @@ Global $iCheckInterval = 1000
 
 ; 상태머신: 출결저장 처리 라인 버퍼
 Global $sPendingLine   = ""
+; 보류 중인 트랜잭션(출결저장 라인)의 파일 시작 위치 — 전송 실패 시 여기로 되감아 재시도
+Global $iPendingLinePos = 0
 
 ; 통계 카운터
 Global $iReadCount  = 0
 Global $iSendCount  = 0
+
+; COM 에러 메시지 보관 (마지막 전송 실패 사유)
+Global $sLastComError = ""
+
+; 콘솔 로그 버퍼 — 무한 누적 방지(상한 초과 시 오래된 줄 잘라냄)
+Global $sConsoleBuf = ""
+Global $iLogCount   = 0
+Global Const $iMaxLogLines = 400
+
+; ================= [ COM 에러 핸들러 ] =================
+; WinHTTP .Send() 가 전송 계층에서 실패하면(서버 다운/네트워크 끊김) COM 예외가
+; 발생한다. 핸들러가 없으면 스크립트가 그 자리에서 종료되어 밤사이 에이전트가
+; 죽고, 다음 날 새 파일이 생겨도 읽지 못한다. 반드시 전역으로 등록한다.
+Global $oComError = ObjEvent("AutoIt.Error", "_ComErrFunc")
 
 ; ================= [ 설정 폴더 보장 ] =================
 If Not FileExists($sConfigDir) Then DirCreate($sConfigDir)
@@ -204,11 +220,19 @@ Func _TestApi()
         Return
     EndIf
 
-    ; 실제 형식과 동일한 테스트 페이로드 (서버에서 TEST 과정명으로 처리됨)
-    Local $sTestData = "출결저장 처리 : TEST_CARD||테스트학생||TEST_COURSE||0900||0000"
+    $oHttp.SetTimeouts(5000, 5000, 5000, 10000)
+
+    ; 실제 형식과 동일한 테스트 페이로드 (출결전송 선택 = card||date||AIG||course||memberNo||name||입실||퇴실||회차)
+    Local $sTestData = "출결전송 선택 : TEST_CARD||20260601||AIG_TEST||TEST_COURSE||TEST_NO||테스트학생||0900||0000||99"
+    $sLastComError = ""
     $oHttp.Open("POST", $sUrl, False)
     $oHttp.SetRequestHeader("Content-Type", "text/plain; charset=utf-8")
     $oHttp.Send(StringToBinary($sTestData, 4))
+
+    If $sLastComError <> "" Then
+        _LogWrite("[테스트] ❌ 연결 실패(네트워크) — " & $sLastComError)
+        Return
+    EndIf
 
     Local $iStatus = $oHttp.Status
     Local $sResp   = $oHttp.ResponseText
@@ -315,12 +339,29 @@ Func _MonitorLogFile()
 
     If $iCurrentSize > $iLastPos Then
         FileSetPos($hFile, $iLastPos, 0)
+
+        ; $iSafePos = 커밋해도 되는 위치. 정상 처리(버퍼링/전송성공/폐기/무관)는 계속
+        ; 전진하지만, 전송이 네트워크로 실패하면 보류 트랜잭션(출결저장 라인)으로
+        ; 되감아 다음 주기에 그 줄부터 다시 읽어 재전송한다. (줄 누락 방지)
+        Local $iSafePos = $iLastPos
         While 1
+            Local $iLinePos = FileGetPos($hFile)
             Local $sLine = FileReadLine($hFile)
             If @error = -1 Then ExitLoop
-            _ProcessLine($sLine)
+
+            Local $iRet = _ProcessLine($sLine)
+            If $iRet = -1 Then
+                ; 전송 실패 → 출결저장 라인 위치로 되감고 중단(다음 주기 재시도)
+                $iSafePos = $iPendingLinePos
+                ExitLoop
+            EndIf
+            ; 출결저장 라인은 전송 실패 시 복귀점으로 위치를 기억해 둔다
+            If $iRet = 1 Then $iPendingLinePos = $iLinePos
+            $iSafePos = FileGetPos($hFile)
         WEnd
-        $iLastPos = FileGetPos($hFile)
+
+        $iLastPos = $iSafePos
+        FileSetPos($hFile, $iLastPos, 0)
 
         IniWrite($sCacheIni, "Cache", "Date",    $sCurrentDate)
         IniWrite($sCacheIni, "Cache", "FilePos", $iLastPos)
@@ -328,15 +369,21 @@ Func _MonitorLogFile()
 EndFunc
 
 ; ================= [ 라인 처리 상태머신 ] =================
-;  "출결저장 처리" 또는 "퇴실저장 처리" → 버퍼링
-;  "출결전송 처리 : 정상" 또는 "퇴실전송 처리 : 정상" → 버퍼된 라인 전송
-;  전송 비정상 → 버퍼 폐기
+;  "출결전송 선택" → 버퍼링 (AIG·회차 포함된 풍부한 라인: card||date||AIG||course||
+;                    memberNo||name||입실||퇴실||회차)
+;  "출결전송 처리 : 정상" → 버퍼된 라인 전송 / 비정상 → 폐기
+;  ※ 과거엔 "출결저장 처리"(회차 없음)를 보냈으나, 같은 과정의 오전/오후반을
+;     회차로 구분하기 위해 "출결전송 선택" 라인으로 변경.
+;  반환값:  1 = 버퍼링됨(미완 트랜잭션 시작)
+;          -1 = 전송 시도했으나 네트워크 실패(되감아 재시도)
+;           0 = 무관 라인 / 전송 성공 / 폐기(커밋 가능)
 Func _ProcessLine($sLine)
-    ; ── 저장 이벤트: 입실 또는 퇴실 ──────────────────────────
-    If StringInStr($sLine, "저장 처리") And StringInStr($sLine, " : ") Then
+    ; ── 출결 이벤트(입실/퇴실): AIG·회차가 들어있는 "전송 선택" 라인을 버퍼 ──
+    If StringInStr($sLine, "전송 선택") Then
         $sPendingLine = $sLine
         $iReadCount  += 1
         _UpdateStats()
+        Return 1
 
     ; ── 전송 결과 ──────────────────────────────────────────────
     ElseIf StringInStr($sLine, "전송 처리") Then
@@ -345,12 +392,19 @@ Func _ProcessLine($sLine)
             If _SendToApi($sPendingLine) Then
                 $iSendCount += 1
                 _UpdateStats()
+                $sPendingLine = ""
+                Return 0
+            Else
+                ; 전송 실패 → 버퍼 유지, 되감아 재시도 (줄 누락 방지)
+                Return -1
             EndIf
         ElseIf Not StringInStr($sLine, "정상") And $sPendingLine <> "" Then
             _LogWrite("[폐기] 전송 비정상 → " & $sPendingLine)
         EndIf
         $sPendingLine = ""
     EndIf
+
+    Return 0
 EndFunc
 
 ; ================= [ REST API 전송 ] =================
@@ -361,9 +415,20 @@ Func _SendToApi($sData)
         Return False
     EndIf
 
+    ; resolve / connect / send / receive 타임아웃(ms) — GUI 루프가 멈추지 않도록
+    $oHttp.SetTimeouts(5000, 5000, 5000, 10000)
+
+    $sLastComError = ""
     $oHttp.Open("POST", $sApiUrl, False)
     $oHttp.SetRequestHeader("Content-Type", "text/plain; charset=utf-8")
     $oHttp.Send(StringToBinary($sData, 4))
+
+    ; 전송 계층 실패(서버 다운/타임아웃)는 COM 에러 핸들러가 $sLastComError 에 기록.
+    ; 여기서 스크립트가 죽지 않고 False 만 반환하므로 감시 루프는 계속 살아 있다.
+    If $sLastComError <> "" Then
+        _LogWrite("[에러] 전송 실패(네트워크) → " & $sLastComError)
+        Return False
+    EndIf
 
     If $oHttp.Status = 200 Then
         Return True
@@ -388,16 +453,38 @@ Func _UpdateStats()
 EndFunc
 
 ; ================= [ 콘솔 로그 출력 ] =================
+; 내부 문자열 버퍼에 누적하되, $iMaxLogLines 초과 시 최근 절반만 유지한다.
+; (장시간 구동 시 Edit 컨트롤 무한 증가로 인한 메모리/속도 저하 방지)
 Func _LogWrite($sMessage)
-    Local $sTime    = "[" & @HOUR & ":" & @MIN & ":" & @SEC & "] "
-    Local $sCurrent = GUICtrlRead($idEditConsole)
-    Local $sNew     = $sTime & $sMessage
+    Local $sLine = "[" & @HOUR & ":" & @MIN & ":" & @SEC & "] " & $sMessage
 
-    If $sCurrent = "" Then
-        GUICtrlSetData($idEditConsole, $sNew)
+    If $sConsoleBuf = "" Then
+        $sConsoleBuf = $sLine
     Else
-        GUICtrlSetData($idEditConsole, $sCurrent & @CRLF & $sNew)
+        $sConsoleBuf = $sConsoleBuf & @CRLF & $sLine
+    EndIf
+    $iLogCount += 1
+
+    If $iLogCount > $iMaxLogLines Then
+        Local $aL = StringSplit($sConsoleBuf, @CRLF, 2)   ; 2=$STR_ENTIRESPLIT
+        Local $iKeep  = Int($iMaxLogLines / 2)
+        Local $iStart = $aL[0] - $iKeep + 1
+        If $iStart < 1 Then $iStart = 1
+        Local $sTrim = $aL[$iStart]
+        For $i = $iStart + 1 To $aL[0]
+            $sTrim = $sTrim & @CRLF & $aL[$i]
+        Next
+        $sConsoleBuf = $sTrim
+        $iLogCount   = $aL[0] - $iStart + 1
     EndIf
 
+    GUICtrlSetData($idEditConsole, $sConsoleBuf)
     GUICtrlSendMsg($idEditConsole, $EM_LINESCROLL, 0, 100000)
+EndFunc
+
+; ================= [ COM 에러 핸들러 ] =================
+; .Send() 등 COM 호출이 실패할 때 호출된다. 여기서 처리(=무시하고 기록)하면
+; 스크립트가 종료되지 않고 계속 실행된다. 사유는 $sLastComError 로 전달.
+Func _ComErrFunc($oError)
+    $sLastComError = "0x" & Hex($oError.number, 8) & " " & $oError.description
 EndFunc

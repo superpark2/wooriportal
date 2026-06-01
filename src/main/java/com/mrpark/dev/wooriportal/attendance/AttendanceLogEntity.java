@@ -28,6 +28,14 @@ public class AttendanceLogEntity {
     @Column(name = "course_name", nullable = false, length = 500)
     private String courseName;
 
+    /** 회차(기수) — 과정 구분용. 수동/구형 데이터는 0 */
+    @Column(name = "round")
+    private Integer round = 0;
+
+    /** 출결 방식: HRD(카드) / QR / BEACON / MANUAL */
+    @Column(name = "source", length = 10)
+    private String source;
+
     /** 입실 시간 (HHMM 4자리, e.g. "1202") */
     @Column(name = "check_in", length = 4)
     private String checkIn;

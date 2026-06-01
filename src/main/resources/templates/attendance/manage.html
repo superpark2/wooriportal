@@ -127,6 +127,10 @@ document.body.insertAdjacentHTML('beforeend', `
       <input class="f-input" id="cName" placeholder="과정명을 입력하세요">
     </div>
     <div class="f-row">
+      <label>회차 <span style="font-weight:400;color:#aaa">(같은 과정명 오전/오후반 구분 · 0=구분없음)</span></label>
+      <input class="f-input" type="number" id="cRound" value="0" min="0" style="max-width:110px">
+    </div>
+    <div class="f-row">
       <label>수업 요일 *</label>
       <div class="dow-checks">
         <label><input type="checkbox" value="1"> 월</label>
@@ -217,7 +221,7 @@ function renderCourseCard(c) {
         <div class="course-hd">
             <div class="course-hd-name">
                 <i class="fas fa-chalkboard-teacher"></i>
-                ${esc(c.courseName)} ${time} ${dows}
+                ${esc(c.courseName)}${c.round ? ` <span class="dow-badge" style="background:#4f46e5;color:#fff">회차 ${c.round}</span>` : ''} ${time} ${dows}
             </div>
             <div class="course-hd-btns">
                 <button class="btn-hd" onclick="editCourse(${c.id})">수정</button>
@@ -263,6 +267,7 @@ async function renderStudents(courseId) {
 function openCourseModal(course = null) {
     document.getElementById('cId').value    = course?.id ?? '';
     document.getElementById('cName').value  = course?.courseName ?? '';
+    document.getElementById('cRound').value = course?.round ?? 0;
     document.getElementById('cStart').value = course?.startDate ?? '';
     document.getElementById('cEnd').value   = course?.endDate ?? '';
     document.getElementById('cCiTime').value = course?.checkInTime ?? '';
@@ -294,6 +299,7 @@ async function saveCourse() {
 
     const dto = {
         courseName: name, daysOfWeek: dows,
+        round: parseInt(document.getElementById('cRound').value) || 0,
         startDate:  document.getElementById('cStart').value   || null,
         endDate:    document.getElementById('cEnd').value     || null,
         checkInTime:  document.getElementById('cCiTime').value || null,

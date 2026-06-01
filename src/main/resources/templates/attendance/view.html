@@ -11,8 +11,8 @@
 <div layout:fragment="content">
 <style>
 /* ── 레이아웃 ─────────────────────────────────────────────── */
-.att-wrap         { padding: 24px; max-width: 1100px; }
-.att-toolbar      { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
+.att-wrap         { padding: 24px; max-width: 1360px; margin: 0 auto; }
+.att-toolbar      { display: flex; align-items: center; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
 .att-title        { font-size: 1.25rem; font-weight: 700; color: var(--text-primary);
                     display: flex; align-items: center; gap: 8px; }
 .att-title i      { color: var(--accent-main); }
@@ -33,27 +33,40 @@
 .att-live-txt     { font-size: 0.8rem; color: #22c55e; font-weight: 600; }
 .att-updated      { font-size: 0.78rem; color: var(--text-muted); }
 
-/* ── 과정 카드 ────────────────────────────────────────────── */
+/* ── 과정 카드 (그리드: 화면당 2~3개) ─────────────────────── */
+#attContent       { display: grid; gap: 16px; align-items: start;
+                    grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); }
 .att-course       { background: var(--bg-card); border: 1px solid var(--border);
-                    border-radius: 12px; margin-bottom: 20px;
-                    box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
-.att-course-hd    { padding: 12px 20px;
-                    background: linear-gradient(135deg, var(--accent-main), var(--accent-dark));
-                    display: flex; align-items: center; justify-content: space-between; }
-.att-course-name  { color: #fff; font-size: 0.95rem; font-weight: 700;
-                    display: flex; align-items: center; gap: 8px; }
-.att-course-time  { color: rgba(255,255,255,.75); font-size: 0.8rem; margin-left: 8px; font-weight: 400; }
-.att-course-stats { display: flex; gap: 12px; align-items: center; }
-.att-stat         { color: rgba(255,255,255,.9); font-size: 0.8rem;
+                    border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,.06); overflow: hidden; }
+.att-course-hd    { padding: 11px 16px;
+                    background: linear-gradient(135deg, var(--accent-main), var(--accent-dark)); }
+.att-course-name  { color: #fff; font-size: 0.9rem; font-weight: 700; line-height: 1.3;
+                    display: flex; align-items: center; gap: 6px; }
+.att-course-round { font-size: .7rem; font-weight: 700; background: rgba(255,255,255,.22);
+                    color:#fff; padding: 1px 7px; border-radius: 10px; white-space: nowrap; }
+/* 요일 + 시간 — 과정명 한 줄 아래 */
+.att-course-meta  { color: rgba(255,255,255,.82); font-size: 0.74rem; margin-top: 5px; }
+.att-course-stats { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center;
+                    padding: 8px 16px; background: var(--bg-main); border-bottom: 1px solid var(--border); }
+.att-stat         { color: var(--text-muted); font-size: 0.73rem;
                     display: flex; align-items: center; gap: 4px; }
 .att-stat-dot     { width: 7px; height: 7px; border-radius: 50%; }
 
 /* ── 학생 행 ──────────────────────────────────────────────── */
-.att-student-list { padding: 4px 0; }
-.att-row          { display: flex; align-items: center; gap: 12px;
-                    padding: 10px 20px; border-bottom: 1px solid var(--border-light, var(--border)); }
+.att-student-list { padding: 2px 0; }
+.att-row          { display: flex; align-items: center; gap: 8px;
+                    padding: 8px 14px; border-bottom: 1px solid var(--border-light, var(--border)); }
 .att-row:last-child { border-bottom: none; }
 .att-row:hover    { background: var(--hover-bg, rgba(0,0,0,.02)); }
+
+/* 행 액션 버튼 (QR / 비컨 / 취소) */
+.att-acts         { display: flex; gap: 3px; flex-shrink: 0; }
+.att-act          { border: none; border-radius: 6px; padding: 3px 7px; font-size: .68rem;
+                    font-weight: 700; cursor: pointer; line-height: 1.25; white-space: nowrap; }
+.att-act-qr       { background: #eef2ff; color: #4f46e5; }
+.att-act-bc       { background: #ecfeff; color: #0891b2; }
+.att-act-x        { background: #fef2f2; color: #dc2626; }
+.att-act:hover    { filter: brightness(.94); }
 
 /* LED 점 */
 .led              { width: 11px; height: 11px; border-radius: 50%; flex-shrink: 0; }
@@ -65,16 +78,17 @@
 .led-late         { background: #f97316; }
 
 /* 이름 */
-.att-name         { flex: 1; font-size: 0.9rem; font-weight: 600; min-width: 80px; }
+.att-name         { flex: 1; font-size: 0.85rem; font-weight: 600; min-width: 52px;
+                    white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .att-name.absent  { color: var(--text-muted); font-weight: 400; }
 
 /* 시간 */
-.att-time         { width: 60px; font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+.att-time         { width: 38px; font-size: 0.76rem; color: var(--text-muted); text-align: center; }
 .att-time.has-val { color: var(--text-primary); }
 
 /* 상태 배지 */
-.att-badge        { min-width: 72px; text-align: center; padding: 2px 10px; border-radius: 20px;
-                    font-size: 0.75rem; font-weight: 600; }
+.att-badge        { min-width: 48px; text-align: center; padding: 2px 6px; border-radius: 20px;
+                    font-size: 0.7rem; font-weight: 600; }
 .badge-absent     { background: rgba(156,163,175,.12); color: #9ca3af; border: 1px solid rgba(156,163,175,.3); }
 .badge-present    { background: rgba(34,197,94,.12);  color: #16a34a; border: 1px solid rgba(34,197,94,.3); }
 .badge-exited     { background: rgba(59,130,246,.12); color: #1d4ed8; border: 1px solid rgba(59,130,246,.3); }
@@ -100,10 +114,7 @@
         <div class="att-pulse"></div>
         <span class="att-live-txt">실시간</span>
         <span class="att-updated" id="lastUpdated">-</span>
-        <button class="att-manage-btn" style="background:#10b981" onclick="openManualModal()">
-            <i class="fas fa-plus"></i> 수동 입력
-        </button>
-        <a href="/coolapi/manage" class="att-manage-btn">
+        <a href="/coolapi/manage" class="att-manage-btn" style="margin-left:auto">
             <i class="fas fa-cog"></i> 과정/학생 관리
         </a>
     </div>
@@ -139,7 +150,7 @@ async function fetchData() {
 function render(courses) {
     const wrap = document.getElementById('attContent');
     if (!courses || courses.length === 0) {
-        wrap.innerHTML = `<div class="att-empty">
+        wrap.innerHTML = `<div class="att-empty" style="grid-column:1/-1">
             <i class="fas fa-calendar-times"></i>
             <p>해당 날짜에 등록된 과정이 없습니다.</p>
         </div>`;
@@ -156,42 +167,40 @@ function render(courses) {
             absent:  students.filter(s => s.colorClass === 'absent').length,
         };
 
-        const timeRange = (course.checkInTime || course.checkOutTime)
-            ? `<span class="att-course-time">${esc(course.checkInTime ?? '?')} ~ ${esc(course.checkOutTime ?? '?')}</span>`
-            : '';
+        const round      = course.round || 0;
+        const roundBadge = round > 0 ? `<span class="att-course-round">회차 ${round}</span>` : '';
+        const timeStr    = (course.checkInTime || course.checkOutTime)
+            ? `${course.checkInTime ?? '?'} ~ ${course.checkOutTime ?? '?'}` : '';
+        const meta = [daysLabel(course.daysOfWeek), timeStr].filter(Boolean).join(' · ');
 
         html += `
         <div class="att-course">
             <div class="att-course-hd">
-                <span class="att-course-name">
+                <div class="att-course-name">
                     <i class="fas fa-chalkboard-teacher"></i>
-                    ${esc(course.courseName)}${timeRange}
-                </span>
-                <div class="att-course-stats">
-                    <span class="att-stat"><span class="att-stat-dot" style="background:#22c55e"></span>${cnt.present}명 재원</span>
-                    <span class="att-stat"><span class="att-stat-dot" style="background:#3b82f6"></span>${cnt.exited}명 퇴실</span>
-                    ${cnt.late > 0 ? `<span class="att-stat"><span class="att-stat-dot" style="background:#f97316"></span>${cnt.late}명 지각/조퇴</span>` : ''}
-                    <span class="att-stat"><span class="att-stat-dot" style="background:#9ca3af"></span>${cnt.absent}명 미출석</span>
-                    <span class="att-stat" style="border-left:1px solid rgba(255,255,255,.3);padding-left:12px">총 ${students.length}명</span>
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${esc(course.courseName)}</span>
+                    ${roundBadge}
                 </div>
+                <div class="att-course-meta">${esc(meta)}</div>
             </div>
-            <div class="att-row-hd" style="display:flex;gap:12px;padding:7px 20px">
-                <span style="width:11px"></span>
-                <span style="flex:1">이름</span>
-                <span style="width:60px;text-align:center">입실</span>
-                <span style="width:60px;text-align:center">퇴실</span>
-                <span style="min-width:72px;text-align:center">상태</span>
+            <div class="att-course-stats">
+                <span class="att-stat"><span class="att-stat-dot" style="background:#22c55e"></span>${cnt.present} 재원</span>
+                <span class="att-stat"><span class="att-stat-dot" style="background:#3b82f6"></span>${cnt.exited} 퇴실</span>
+                ${cnt.late > 0 ? `<span class="att-stat"><span class="att-stat-dot" style="background:#f97316"></span>${cnt.late} 지각/조퇴</span>` : ''}
+                <span class="att-stat"><span class="att-stat-dot" style="background:#9ca3af"></span>${cnt.absent} 미출석</span>
+                <span class="att-stat" style="margin-left:auto;font-weight:700;color:var(--text-primary)">총 ${students.length}명</span>
             </div>
             <div class="att-student-list">`;
 
         if (students.length === 0) {
-            html += `<div class="att-row"><span style="color:var(--text-muted);font-size:.85rem">등록된 학생이 없습니다.</span></div>`;
+            html += `<div class="att-row"><span style="color:var(--text-muted);font-size:.82rem">등록된 학생이 없습니다.</span></div>`;
         } else {
             for (const s of students) {
-                const cc        = s.colorClass;
-                const clickable = cc !== 'absent';
-                const nameEl    = clickable
-                    ? `<span class="att-name att-name-link" onclick="showLog(${s.studentId},'${esc(s.studentName)}','${esc(course.courseName)}')">${esc(s.studentName)}</span>`
+                const cc   = s.colorClass;
+                const pure = pureName(s.studentName);
+                const nextType = s.checkIn ? 'EXIT' : 'ENTRY';   // 입실 전이면 입실, 후면 퇴실
+                const nameEl = (cc !== 'absent')
+                    ? `<span class="att-name att-name-link" onclick="showLog(${s.studentId},'${esc(pure)}','${esc(course.courseName)}',${round})">${esc(s.studentName)}</span>`
                     : `<span class="att-name absent">${esc(s.studentName)}</span>`;
                 html += `
                 <div class="att-row">
@@ -200,6 +209,14 @@ function render(courses) {
                     <span class="att-time ${s.checkIn ? 'has-val' : ''}">${s.checkIn ?? '-'}</span>
                     <span class="att-time ${s.checkOut ? 'has-val' : ''}">${s.checkOut ?? '-'}</span>
                     <span class="att-badge badge-${cc}">${esc(s.statusLabel)}</span>
+                    <span class="att-acts">
+                        <button class="att-act att-act-qr" title="QR ${nextType === 'EXIT' ? '퇴실' : '입실'}"
+                            onclick="markAtt('${esc(pure)}','${esc(course.courseName)}',${round},'QR','${nextType}')">QR</button>
+                        <button class="att-act att-act-bc" title="비컨 ${nextType === 'EXIT' ? '퇴실' : '입실'}"
+                            onclick="markAtt('${esc(pure)}','${esc(course.courseName)}',${round},'BEACON','${nextType}')">비컨</button>
+                        <button class="att-act att-act-x" title="당일 출결 취소"
+                            onclick="cancelAtt('${esc(pure)}','${esc(course.courseName)}',${round})">✕</button>
+                    </span>
                 </div>`;
             }
         }
@@ -210,16 +227,49 @@ function render(courses) {
     wrap.innerHTML = html;
 }
 
+/** "1,2,3,4,5" → "월화수목금" */
+function daysLabel(dow) {
+    if (!dow) return '';
+    const names = {1:'월',2:'화',3:'수',4:'목',5:'금',6:'토',7:'일'};
+    return dow.split(',').map(d => names[d.trim()] || '').filter(Boolean).join('');
+}
+/** 표시이름에서 "(생년월일)" 접미어 제거 → 서버 매칭용 순수 이름 */
+function pureName(n) { return String(n ?? '').replace(/\s*\(.*\)\s*$/, '').trim(); }
+
+/* ── 행 액션: QR / 비컨 출결, 취소 ── */
+async function markAtt(name, courseName, round, method, type) {
+    const res = await fetch('/coolapi/attendance/manual', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ courseName, round, studentName: name, type, method, time: '' })
+    });
+    if (res.ok) fetchData(); else alert('처리 실패');
+}
+async function cancelAtt(name, courseName, round) {
+    if (!confirm(`'${name}' 의 오늘 출결 기록을 취소(삭제)할까요?`)) return;
+    const res = await fetch('/coolapi/attendance/cancel', {
+        method: 'POST', headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ courseName, round, studentName: name })
+    });
+    if (res.ok) fetchData(); else alert('취소 실패');
+}
+
 /* ── 학생 기록 모달 ── */
-async function showLog(studentId, studentName, courseName) {
+let _curLog = { name:'', course:'', round:0, date:'' };
+async function showLog(studentId, studentName, courseName, round) {
     const date = dateInput.value;
-    const url  = `/coolapi/attendance/history?studentName=${encodeURIComponent(studentName)}&courseName=${encodeURIComponent(courseName)}&date=${date}`;
+    round = round || 0;
+    _curLog = { name: studentName, course: courseName, round: round, date: date };
+    const url  = `/coolapi/attendance/history?studentName=${encodeURIComponent(studentName)}&courseName=${encodeURIComponent(courseName)}&round=${round}&date=${date}`;
     const res  = await fetch(url);
     const logs = await res.json();
 
     const modal = document.getElementById('attLogModal');
     document.getElementById('attLogTitle').textContent = studentName;
-    document.getElementById('attLogCourse').textContent = courseName + ' · ' + date;
+    document.getElementById('attLogCourse').textContent = courseName + (round > 0 ? ' · 회차 ' + round : '');
+    document.getElementById('attLogDate').textContent = date;          // 날짜는 한 줄 아래
+    document.getElementById('attEditArea').style.display = 'none';      // 수정 영역 접기
+    document.getElementById('editCi').value = '';
+    document.getElementById('editCo').value = '';
 
     const body = document.getElementById('attLogBody');
     if (!logs.length) {
@@ -247,138 +297,71 @@ function esc(str) {
         .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
 
-/* ── 수동 입력 모달 ── */
-let _manCourses = [];
-
-async function openManualModal() {
-    const res = await fetch(`/coolapi/attendance/data?date=${dateInput.value}`);
-    _manCourses = await res.json();
-
-    const sel = document.getElementById('manCourse');
-    sel.innerHTML = '<option value="">과정 선택...</option>' +
-        _manCourses.map(c => `<option value="${esc(c.courseName)}">${esc(c.courseName)}</option>`).join('');
-    document.getElementById('manStudent').innerHTML = '<option value="">학생 선택...</option>';
-
-    // 기본 시간: 현재
-    const now = new Date();
-    document.getElementById('manTime').value =
-        String(now.getHours()).padStart(2,'0') + ':' + String(now.getMinutes()).padStart(2,'0');
-
-    document.getElementById('manModal').classList.add('open');
+/* ── 수정(시간 보정) ── */
+function toggleEdit() {
+    const a = document.getElementById('attEditArea');
+    a.style.display = (a.style.display === 'none' || !a.style.display) ? 'block' : 'none';
 }
-
-function onManCourseChange() {
-    const name = document.getElementById('manCourse').value;
-    const course = _manCourses.find(c => c.courseName === name);
-    const sel = document.getElementById('manStudent');
-    if (!course) { sel.innerHTML = '<option value="">학생 선택...</option>'; return; }
-    sel.innerHTML = '<option value="">학생 선택...</option>' +
-        (course.students || []).map(s =>
-            `<option value="${esc(s.studentName)}">${esc(s.studentName)}</option>`
-        ).join('');
-}
-
-async function submitManual() {
-    const courseName  = document.getElementById('manCourse').value;
-    const studentName = document.getElementById('manStudent').value;
-    const type        = document.querySelector('input[name="manType"]:checked')?.value;
-    const time        = document.getElementById('manTime').value;
-
-    if (!courseName || !studentName || !type) {
-        alert('과정, 학생, 유형을 선택하세요.');
-        return;
-    }
-
-    const res = await fetch('/coolapi/attendance/manual', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ courseName, studentName, type, time: time.replace(':', '') })
+async function editSave() {
+    const ci = document.getElementById('editCi').value;   // "HH:mm" or ''
+    const co = document.getElementById('editCo').value;
+    const { name, course, round } = _curLog;
+    // 당일 기록을 입력값으로 교체: 먼저 취소(삭제) 후 재등록
+    await fetch('/coolapi/attendance/cancel', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ courseName: course, round, studentName: name })
     });
-
-    if (res.ok) {
-        document.getElementById('manModal').classList.remove('open');
-        fetchData();
-    } else {
-        alert('저장 실패');
-    }
+    if (ci) await fetch('/coolapi/attendance/manual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ courseName: course, round, studentName: name, type:'ENTRY', method:'MANUAL', time: ci.replace(':','') })
+    });
+    if (co) await fetch('/coolapi/attendance/manual', {
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ courseName: course, round, studentName: name, type:'EXIT', method:'MANUAL', time: co.replace(':','') })
+    });
+    document.getElementById('attLogModal').classList.remove('open');
+    fetchData();
 }
 
-/* 모달 body 주입 */
+/* 학생 기록 모달 주입 (날짜 한 줄 아래 + 수정 버튼/영역) */
 document.body.insertAdjacentHTML('beforeend', `
 <div id="attLogModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
   <div style="background:#fff;border-radius:12px;width:min(380px,92vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="padding:16px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
+    <div style="padding:16px 18px;border-bottom:1px solid #eee;display:flex;align-items:flex-start;justify-content:space-between">
       <div>
         <div id="attLogTitle" style="font-weight:700;font-size:1rem;color:#111"></div>
-        <div id="attLogCourse" style="font-size:.75rem;color:#888;margin-top:2px"></div>
+        <div id="attLogCourse" style="font-size:.75rem;color:#888;margin-top:3px"></div>
+        <div id="attLogDate" style="font-size:.72rem;color:#aaa;margin-top:1px"></div>
       </div>
       <button onclick="document.getElementById('attLogModal').classList.remove('open')"
               style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa;line-height:1">✕</button>
     </div>
-    <div id="attLogBody" style="max-height:320px;overflow-y:auto"></div>
+    <div id="attLogBody" style="max-height:280px;overflow-y:auto"></div>
+    <div id="attEditArea" style="display:none;padding:12px 16px;border-top:1px solid #eee;background:#fafafa">
+      <div style="display:flex;gap:10px;margin-bottom:8px">
+        <label style="flex:1;font-size:.72rem;font-weight:700;color:#555">입실
+          <input type="time" id="editCi" style="width:100%;margin-top:3px;padding:6px;border:1.5px solid #ddd;border-radius:6px;font-size:.85rem"></label>
+        <label style="flex:1;font-size:.72rem;font-weight:700;color:#555">퇴실
+          <input type="time" id="editCo" style="width:100%;margin-top:3px;padding:6px;border:1.5px solid #ddd;border-radius:6px;font-size:.85rem"></label>
+      </div>
+      <div style="font-size:.68rem;color:#999;margin-bottom:8px">저장 시 오늘 기록을 입력값으로 교체합니다 (비우면 해당 시간 없음).</div>
+      <button onclick="editSave()" style="width:100%;padding:8px;border:none;border-radius:8px;background:#4f46e5;color:#fff;font-weight:700;cursor:pointer">저장</button>
+    </div>
+    <div style="padding:10px 16px;border-top:1px solid #eee;display:flex;justify-content:flex-end">
+      <button onclick="toggleEdit()"
+              style="padding:7px 16px;border-radius:8px;font-size:.82rem;font-weight:700;background:#eef2ff;color:#4f46e5;border:none;cursor:pointer">
+        <i class="fas fa-pen"></i> 수정
+      </button>
+    </div>
   </div>
 </div>
 `);
 document.getElementById('attLogModal').addEventListener('click', function(e) {
     if (e.target === this) this.classList.remove('open');
 });
-
-/* 수동 입력 모달 주입 */
-document.body.insertAdjacentHTML('beforeend', `
-<div id="manModal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:9999;align-items:center;justify-content:center;">
-  <div style="background:#fff;border-radius:14px;width:min(400px,94vw);overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3)">
-    <div style="padding:16px 18px;border-bottom:1px solid #eee;display:flex;align-items:center;justify-content:space-between">
-      <div style="font-weight:700;font-size:1rem;color:#111">수동 출결 입력 <span style="font-size:.75rem;color:#888;font-weight:400">QR / 비컨</span></div>
-      <button onclick="document.getElementById('manModal').classList.remove('open')"
-              style="background:none;border:none;font-size:1.1rem;cursor:pointer;color:#aaa">✕</button>
-    </div>
-    <div style="padding:18px">
-      <div style="margin-bottom:12px">
-        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">과정 *</label>
-        <select id="manCourse" onchange="onManCourseChange()"
-                style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
-          <option value="">과정 선택...</option>
-        </select>
-      </div>
-      <div style="margin-bottom:12px">
-        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">학생 *</label>
-        <select id="manStudent"
-                style="width:100%;padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
-          <option value="">학생 선택...</option>
-        </select>
-      </div>
-      <div style="margin-bottom:12px">
-        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:8px">유형 *</label>
-        <div style="display:flex;gap:16px">
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem">
-            <input type="radio" name="manType" value="ENTRY" checked> 입실
-          </label>
-          <label style="display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.88rem">
-            <input type="radio" name="manType" value="EXIT"> 퇴실
-          </label>
-        </div>
-      </div>
-      <div style="margin-bottom:18px">
-        <label style="display:block;font-size:.78rem;font-weight:700;color:#555;margin-bottom:5px">시간 <span style="font-weight:400;color:#aaa">(비워두면 현재 시간)</span></label>
-        <input type="time" id="manTime"
-               style="padding:8px 10px;border:1.5px solid #ddd;border-radius:8px;font-size:.87rem;background:#fafafa">
-      </div>
-      <div style="display:flex;justify-content:flex-end;gap:8px">
-        <button onclick="document.getElementById('manModal').classList.remove('open')"
-                style="padding:8px 16px;border-radius:8px;font-size:.87rem;font-weight:600;background:#f1f1f1;color:#555;border:1.5px solid #ddd;cursor:pointer">취소</button>
-        <button onclick="submitManual()"
-                style="padding:8px 22px;border-radius:8px;font-size:.87rem;font-weight:700;background:#10b981;color:#fff;border:none;cursor:pointer">저장</button>
-      </div>
-    </div>
-  </div>
-</div>
-`);
-document.getElementById('manModal').addEventListener('click', function(e) {
-    if (e.target === this) this.classList.remove('open');
-});
 /* open 클래스 → flex 전환 */
 const _attStyle = document.createElement('style');
-_attStyle.textContent = '#attLogModal.open{display:flex!important} #manModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
+_attStyle.textContent = '#attLogModal.open{display:flex!important} .att-name-link{cursor:pointer;text-decoration:underline;text-underline-offset:3px}';
 document.head.appendChild(_attStyle);
 </script>
 </div>

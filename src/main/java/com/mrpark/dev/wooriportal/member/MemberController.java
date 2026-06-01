@@ -56,8 +56,9 @@ public class MemberController {
 
     @PostMapping("/check-id")
     @ResponseBody
-    public String idCheck(String memberId) {
-        return memberRepository.findByMemberId(memberId).isEmpty() ? "true" : "false";
+    public String idCheck(@RequestBody String memberId) {
+        // 프론트엔드 fetch가 text/plain 본문으로 ID를 전송하므로 @RequestBody 로 수신
+        return memberRepository.findByMemberId(memberId.trim()).isEmpty() ? "true" : "false";
     }
 
     @GetMapping("/member/mgmt")

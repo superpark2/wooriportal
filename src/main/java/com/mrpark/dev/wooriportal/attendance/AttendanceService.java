@@ -35,39 +35,52 @@ public class AttendanceService {
 
             String[] parts = data.split("\\|\\|");
 
-            String name, courseName, checkIn, checkOut;
+            String name, rawCourse, checkIn, checkOut;
+            int round = 0;
 
-            if (parts.length >= 5) {
-                // 5필드 형식: cardNum(무시) || name || course || checkIn || checkOut
-                name       = parts[1].trim();
-                courseName = resolveCourseName(parts[2].trim());
-                checkIn    = parts[3].trim();
-                checkOut   = parts[4].trim();
+            if (parts.length >= 9) {
+                // 출결전송 선택 형식: card||date||AIG(무시)||course||memberNo||name||checkIn||checkOut||회차
+                rawCourse = parts[3].trim();
+                name      = parts[5].trim();
+                checkIn   = parts[6].trim();
+                checkOut  = parts[7].trim();
+                round     = parseRound(parts[8]);
+            } else if (parts.length >= 5) {
+                // 구형 5필드: cardNum(무시) || name || course || checkIn || checkOut
+                name      = parts[1].trim();
+                rawCourse = parts[2].trim();
+                checkIn   = parts[3].trim();
+                checkOut  = parts[4].trim();
             } else if (parts.length == 4) {
-                // 4필드 형식: name || course || checkIn || checkOut
-                name       = parts[0].trim();
-                courseName = resolveCourseName(parts[1].trim());
-                checkIn    = parts[2].trim();
-                checkOut   = parts[3].trim();
+                // 구형 4필드: name || course || checkIn || checkOut
+                name      = parts[0].trim();
+                rawCourse = parts[1].trim();
+                checkIn   = parts[2].trim();
+                checkOut  = parts[3].trim();
             } else {
                 log.warn("[출결] 파싱 불가 (필드 수 {}): {}", parts.length, rawLine);
                 return;
             }
 
-            if (name.isBlank() || courseName.isBlank()) return;
+            if (name.isBlank() || rawCourse.isBlank()) return;
+
+            // 미등록 과정/학생은 기본 틀로 자동 등록 (개강·종강·지각시간 등은 추후 수동 보정)
+            CourseEntity course = resolveOrCreateCourse(rawCourse, round);
+            String courseName   = course.getCourseName();
+            ensureStudent(course, name);
 
             LocalDate today  = LocalDate.now();
             boolean   isExit = !"0000".equals(checkOut) && !checkOut.isBlank();
 
             // ── 중복 체크 ──────────────────────────────────────
             if (isExit) {
-                if (repository.existsDuplicateExit(name, courseName, today, checkOut)) {
-                    log.debug("[출결] 중복 skip — 퇴실: {} / {} / {}", name, courseName, checkOut);
+                if (repository.existsDuplicateExit(name, courseName, round, today, checkOut)) {
+                    log.debug("[출결] 중복 skip — 퇴실: {} / {} / {} / 회차 {}", name, courseName, checkOut, round);
                     return;
                 }
             } else {
-                if (repository.existsDuplicateEntry(name, courseName, today, checkIn)) {
-                    log.debug("[출결] 중복 skip — 입실: {} / {} / {}", name, courseName, checkIn);
+                if (repository.existsDuplicateEntry(name, courseName, round, today, checkIn)) {
+                    log.debug("[출결] 중복 skip — 입실: {} / {} / {} / 회차 {}", name, courseName, checkIn, round);
                     return;
                 }
             }
@@ -75,6 +88,8 @@ public class AttendanceService {
             AttendanceLogEntity e = new AttendanceLogEntity();
             e.setStudentName(name);
             e.setCourseName(courseName);
+            e.setRound(round);
+            e.setSource("HRD");
             e.setAttendanceDate(today);
 
             if (isExit) {
@@ -109,21 +124,39 @@ public class AttendanceService {
 
         LocalDate today = LocalDate.now();
         boolean isExit  = "EXIT".equalsIgnoreCase(req.getType());
+        int round       = req.getRound() != null ? req.getRound() : 0;
+        String method   = (req.getMethod() == null || req.getMethod().isBlank())
+                ? "MANUAL" : req.getMethod().trim().toUpperCase();
+
+        // 미등록 과정/학생은 기본 틀로 자동 등록
+        String name        = req.getStudentName().trim();
+        CourseEntity course = resolveOrCreateCourse(req.getCourseName().trim(), round);
+        ensureStudent(course, name);
 
         AttendanceLogEntity e = new AttendanceLogEntity();
-        e.setStudentName(req.getStudentName().trim());
-        e.setCourseName(req.getCourseName().trim());
+        e.setStudentName(name);
+        e.setCourseName(course.getCourseName());
+        e.setRound(round);
+        e.setSource(method);
         e.setAttendanceDate(today);
 
         if (isExit) {
             e.setCheckOut(time);
-            log.info("[수동] 퇴실: {} / {} / {}", req.getStudentName(), req.getCourseName(), time);
+            log.info("[수동:{}] 퇴실: {} / {} / 회차 {} / {}", method, name, course.getCourseName(), round, time);
         } else {
             e.setCheckIn(time);
-            log.info("[수동] 입실: {} / {} / {}", req.getStudentName(), req.getCourseName(), time);
+            log.info("[수동:{}] 입실: {} / {} / 회차 {} / {}", method, name, course.getCourseName(), round, time);
         }
 
         repository.save(e);
+    }
+
+    /** 취소 — 특정 학생의 당일 출결 기록 전체 삭제 */
+    @Transactional
+    public void cancelAttendance(String courseName, Integer round, String studentName) {
+        int r = round != null ? round : 0;
+        int deleted = repository.deleteStudentDay(studentName.trim(), courseName.trim(), r, LocalDate.now());
+        log.info("[취소] {} / {} / 회차 {} — {}건 삭제", studentName, courseName, r, deleted);
     }
 
     // ═══════════════════════════════════════════════════════════
@@ -147,9 +180,9 @@ public class AttendanceService {
             List<StudentEntity> students =
                     studentRepository.findByCourseIdAndActiveTrueOrderByStudentNameAsc(course.getId());
 
-            // 당일 전체 로그 → 학생 이름별 그룹핑
+            // 당일 전체 로그 → 학생 이름별 그룹핑 (회차로 오전/오후반 구분)
             Map<String, List<AttendanceLogEntity>> byName = new HashMap<>();
-            repository.findByCourseNameAndAttendanceDate(course.getCourseName(), date)
+            repository.findByCourseAndDate(course.getCourseName(), course.getRound(), date)
                       .forEach(l -> byName.computeIfAbsent(l.getStudentName(), k -> new ArrayList<>()).add(l));
 
             List<CourseAttendanceDTO.StudentAttendanceItem> items = new ArrayList<>();
@@ -198,6 +231,8 @@ public class AttendanceService {
             result.add(new CourseAttendanceDTO(
                     course.getId(),
                     course.getCourseName(),
+                    course.getRound(),
+                    course.getDaysOfWeek(),
                     formatTime(course.getCheckInTime()),
                     formatTime(course.getCheckOutTime()),
                     items
@@ -208,11 +243,10 @@ public class AttendanceService {
     }
 
     /** 학생 당일 기록 전체 (이름 클릭 모달용) */
-    public List<AttendanceLogDTO> getStudentLog(String courseName, LocalDate date, String studentName) {
+    public List<AttendanceLogDTO> getStudentLog(String courseName, Integer round, LocalDate date, String studentName) {
         // 이름에 "(생년월일)" 접미어가 붙어있을 수 있으므로 괄호 앞까지만 추출
         String pureName = studentName.replaceAll("\\s*\\(.*\\)\\s*$", "").trim();
-        return repository.findByCourseNameAndAttendanceDateAndStudentNameOrderByCreatedAtAsc(
-                        courseName, date, pureName)
+        return repository.findStudentLog(courseName, round, date, pureName)
                 .stream().map(AttendanceLogDTO::from).collect(Collectors.toList());
     }
 
@@ -296,68 +330,94 @@ public class AttendanceService {
     }
 
     // ═══════════════════════════════════════════════════════════
-    // 과정명 정규화 매칭
-    //  1순위: 공백 제거 후 완전 일치
-    //  2순위: 공백 제거 후 Levenshtein 유사도 90% 이상 → 가장 높은 것 선택
-    //  미매칭: 원본 그대로 (로그 경고)
+    // 과정 식별(공백 제거 완전일치 + 회차) + 미등록 시 자동 등록
+    //  - 같은 과정명이라도 회차(기수)가 다르면 별개 과정(오전/오후반)
+    //  - 매칭: 공백 모두 제거한 과정명 완전일치 AND 회차 일치 (유사도 매칭 없음)
     // ═══════════════════════════════════════════════════════════
 
-    private String resolveCourseName(String raw) {
-        String normalizedRaw = raw.replaceAll("\\s+", "");
+    private CourseEntity resolveOrCreateCourse(String raw, int round) {
+        String normalizedRaw = stripSpaces(raw);
 
-        List<CourseEntity> courses = courseRepository.findByActiveTrueOrderByCourseNameAsc();
+        List<CourseEntity> courses = courseRepository.findAllByOrderByCourseNameAsc();
 
-        // 1순위: 공백 무시 완전 일치
+        // 공백 무시 완전 일치 + 회차 일치 (동일 조건이 여러 개면 활성 과정 우선)
+        CourseEntity match = null;
         for (CourseEntity c : courses) {
-            if (c.getCourseName().replaceAll("\\s+", "").equals(normalizedRaw)) {
-                if (!c.getCourseName().equals(raw)) {
-                    log.info("[과정명] 공백 정규화: '{}' → '{}'", raw, c.getCourseName());
-                }
-                return c.getCourseName();
+            int cRound = c.getRound() != null ? c.getRound() : 0;
+            if (cRound == round && stripSpaces(c.getCourseName()).equals(normalizedRaw)) {
+                if (match == null || (!match.isActive() && c.isActive())) match = c;
             }
         }
 
-        // 2순위: 유사도 90% 이상 중 최고 점수
-        String bestMatch = null;
-        double bestScore = 0.0;
-        for (CourseEntity c : courses) {
-            double score = nameSimilarity(normalizedRaw, c.getCourseName().replaceAll("\\s+", ""));
-            if (score > bestScore) {
-                bestScore = score;
-                bestMatch = c.getCourseName();
+        if (match != null) {
+            // 삭제(비활성)된 과정에 다시 출결이 들어오면 되살린다 (재전송 시 누락 복구)
+            if (!match.isActive()) {
+                match.setActive(true);
+                courseRepository.save(match);
+                log.info("[과정] 비활성 → 재활성화: '{}' (회차 {})", match.getCourseName(), round);
             }
+            if (!match.getCourseName().equals(raw)) {
+                log.info("[과정명] 공백 정규화: '{}' → '{}' (회차 {})", raw, match.getCourseName(), round);
+            }
+            return match;
         }
 
-        if (bestScore >= 0.9 && bestMatch != null) {
-            log.info("[과정명] 유사 매칭({:.1f}%): '{}' → '{}'", bestScore * 100, raw, bestMatch);
-            return bestMatch;
-        }
-
-        log.warn("[과정명] 매칭 실패 — 원본 저장: '{}'", raw);
-        return raw;
+        // 미매칭 → 기본 틀로 자동 등록
+        return createDefaultCourse(raw, round);
     }
 
-    /** 레벤슈타인 기반 유사도 (0.0 ~ 1.0) */
-    private double nameSimilarity(String a, String b) {
-        if (a.isEmpty() && b.isEmpty()) return 1.0;
-        if (a.isEmpty() || b.isEmpty()) return 0.0;
-        int maxLen = Math.max(a.length(), b.length());
-        return 1.0 - (double) levenshtein(a, b) / maxLen;
+    /** 미등록 과정을 최소 기본값으로 등록 (요일=월~금, 시간/기간은 미설정 → 추후 수동 보정) */
+    private CourseEntity createDefaultCourse(String raw, int round) {
+        CourseEntity c = new CourseEntity();
+        c.setCourseName(raw.trim());
+        c.setRound(round);
+        c.setDaysOfWeek("1,2,3,4,5");   // 월~금 (관리 화면에서는 항상 보이며, 일별 뷰 노출 요일은 추후 보정)
+        c.setActive(true);
+        CourseEntity saved = courseRepository.save(c);
+        log.info("[과정] 자동 등록(기본 틀): '{}' (회차 {}, id={})", saved.getCourseName(), round, saved.getId());
+        return saved;
     }
 
-    private int levenshtein(String a, String b) {
-        int m = a.length(), n = b.length();
-        int[][] dp = new int[m + 1][n + 1];
-        for (int i = 0; i <= m; i++) dp[i][0] = i;
-        for (int j = 0; j <= n; j++) dp[0][j] = j;
-        for (int i = 1; i <= m; i++) {
-            for (int j = 1; j <= n; j++) {
-                dp[i][j] = a.charAt(i - 1) == b.charAt(j - 1)
-                        ? dp[i - 1][j - 1]
-                        : 1 + Math.min(dp[i - 1][j - 1], Math.min(dp[i - 1][j], dp[i][j - 1]));
+    /** "17" 등 회차 문자열 → int (파싱 실패 시 0) */
+    private static int parseRound(String s) {
+        if (s == null) return 0;
+        try { return Integer.parseInt(s.trim()); } catch (NumberFormatException e) { return 0; }
+    }
+
+    /** 과정 내 동일 이름 학생이 없으면 자동 등록, 비활성(삭제) 학생이면 되살린다 */
+    private void ensureStudent(CourseEntity course, String studentName) {
+        StudentEntity existing = studentRepository
+                .findFirstByCourseIdAndStudentName(course.getId(), studentName)
+                .orElse(null);
+
+        if (existing != null) {
+            // 삭제(비활성)된 학생에 다시 출결이 들어오면 되살린다 (재전송 시 누락 복구)
+            if (!existing.isActive()) {
+                existing.setActive(true);
+                studentRepository.save(existing);
+                log.info("[학생] 비활성 → 재활성화: '{}' / 과정 '{}'", studentName, course.getCourseName());
             }
+            return;
         }
-        return dp[m][n];
+
+        StudentEntity s = new StudentEntity();
+        s.setCourse(course);
+        s.setStudentName(studentName);
+        s.setActive(true);
+        studentRepository.save(s);
+        log.info("[학생] 자동 등록: '{}' / 과정 '{}'", studentName, course.getCourseName());
+    }
+
+    /**
+     * 과정명 비교용 공백 제거 — 일반 공백/탭뿐 아니라 한글 데이터에 흔한
+     * 전각 공백(U+3000)·비분리 공백(U+00A0)·제로폭 문자까지 모두 제거한다.
+     * (Java 정규식의 \\s 는 전각 공백을 잡지 못해 매칭이 실패하는 문제 방지)
+     */
+    private static final java.util.regex.Pattern WS =
+            java.util.regex.Pattern.compile("[\\s\\u00A0\\u200B\\u3000\\uFEFF]+");
+
+    private static String stripSpaces(String s) {
+        return s == null ? "" : WS.matcher(s).replaceAll("");
     }
 
     // ═══════════════════════════════════════════════════════════

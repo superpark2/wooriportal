@@ -20,6 +20,13 @@ public class CourseEntity {
     private String courseName;
 
     /**
+     * 회차(기수) — 같은 과정명의 오전/오후반 등을 구분하는 고정 식별자.
+     * HRD 로그 끝 숫자(예: 17/18). 수동/구형 데이터는 0.
+     */
+    @Column(name = "round")
+    private Integer round = 0;
+
+    /**
      * 수업 요일 (쉼표 구분, Java DayOfWeek value: 1=월 ~ 7=일)
      * 예: "1,2,3,4,5" = 월~금
      */

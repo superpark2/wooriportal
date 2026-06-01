@@ -36,6 +36,17 @@ public class AttendanceController {
         return ResponseEntity.ok("OK");
     }
 
+    // ── 출결 취소 (당일 기록 삭제) ──────────────────────────────
+    @PostMapping("/attendance/cancel")
+    @ResponseBody
+    public ResponseEntity<String> cancel(@RequestBody ManualAttendanceRequest req) {
+        if (req.getCourseName() == null || req.getStudentName() == null) {
+            return ResponseEntity.badRequest().body("MISSING_FIELDS");
+        }
+        attendanceService.cancelAttendance(req.getCourseName(), req.getRound(), req.getStudentName());
+        return ResponseEntity.ok("OK");
+    }
+
     // ── 출결 현황 뷰 ─────────────────────────────────────────────
     @GetMapping("/view")
     public String view() {
@@ -58,10 +69,11 @@ public class AttendanceController {
     public ResponseEntity<List<AttendanceLogDTO>> getStudentLog(
             @RequestParam String courseName,
             @RequestParam String studentName,
+            @RequestParam(required = false) Integer round,
             @RequestParam(required = false)
             @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
         LocalDate target = (date != null) ? date : LocalDate.now();
-        return ResponseEntity.ok(attendanceService.getStudentLog(courseName, target, studentName));
+        return ResponseEntity.ok(attendanceService.getStudentLog(courseName, round, target, studentName));
     }
 
     /** 원시 로그 목록 (구형 API 호환) */

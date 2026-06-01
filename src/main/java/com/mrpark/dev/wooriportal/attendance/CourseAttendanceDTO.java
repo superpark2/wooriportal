@@ -12,6 +12,8 @@ public class CourseAttendanceDTO {
 
     private Long courseId;
     private String courseName;
+    private Integer round;          // 회차(기수)
+    private String daysOfWeek;      // "1,2,3,4,5" — 화면에서 요일 표시용
     private String checkInTime;
     private String checkOutTime;
     private List<StudentAttendanceItem> students;

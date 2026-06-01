@@ -8,8 +8,12 @@ import lombok.Setter;
 public class ManualAttendanceRequest {
     private String courseName;
     private String studentName;
+    /** 회차(기수) — 과정 구분용 */
+    private Integer round;
     /** "ENTRY" 또는 "EXIT" */
     private String type;
+    /** 출결 방식: "QR" / "BEACON" / "MANUAL" */
+    private String method;
     /** "HHmm" 또는 "HH:mm" 형식 */
     private String time;
 }

@@ -12,6 +12,9 @@ public class CourseDTO {
     private Long id;
     private String courseName;
 
+    /** 회차(기수) — 같은 과정명의 오전/오후반 구분 */
+    private Integer round;
+
     /** "1,2,3,4,5" 형식 */
     private String daysOfWeek;
 
@@ -30,6 +33,7 @@ public class CourseDTO {
         CourseDTO dto = new CourseDTO();
         dto.setId(e.getId());
         dto.setCourseName(e.getCourseName());
+        dto.setRound(e.getRound());
         dto.setDaysOfWeek(e.getDaysOfWeek());
         dto.setStartDate(e.getStartDate() != null ? e.getStartDate().toString() : null);
         dto.setEndDate(e.getEndDate() != null ? e.getEndDate().toString() : null);
@@ -43,6 +47,7 @@ public class CourseDTO {
     // ── DTO → Entity (create/update) ────────────────────────
     public void applyTo(CourseEntity e) {
         e.setCourseName(courseName);
+        if (round != null) e.setRound(round);   // 미전송 시 기존 회차 보존 (덮어쓰기 방지)
         e.setDaysOfWeek(daysOfWeek);
         e.setStartDate(startDate != null && !startDate.isBlank() ? LocalDate.parse(startDate) : null);
         e.setEndDate(endDate != null && !endDate.isBlank() ? LocalDate.parse(endDate) : null);
