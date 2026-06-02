@@ -4,11 +4,14 @@ import com.mrpark.dev.wooriportal.hrd.HrdNetClient;
 import com.mrpark.dev.wooriportal.hrd.HrdSessionExpiredException;
 import com.mrpark.dev.wooriportal.hrd.dto.HrdDailyAttendance;
 import java.io.IOException;
+import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CopyOnWriteArrayList;
 import lombok.extern.slf4j.Slf4j;
@@ -42,6 +45,11 @@ public class HrdBoardService {
     private volatile List<HrdBoardRow> snapshot = List.of();
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
+    // 진단용 마지막 갱신 상태
+    private volatile Instant lastRefreshAt;
+    private volatile String lastStatus = "아직 폴링 전";
+    private volatile int lastFailCount;
+
     public HrdBoardService(HrdNetClient client, HrdRequestTemplateProvider templates) {
         this.client = client;
         this.templates = templates;
@@ -55,29 +63,55 @@ public class HrdBoardService {
     public void refresh() {
         Optional<byte[]> template = templates.detailTemplate();
         if (template.isEmpty()) {
-            return; // 템플릿 미배치 — 로그는 provider 가 1회 남김
+            lastStatus = "요청 템플릿 없음(config/hrd 배치 또는 하베스터 주입 필요)";
+            return;
         }
         List<CourseKey> courses = parseCourses();
         if (courses.isEmpty()) {
+            lastStatus = "폴링 대상 과정 미설정(hrd.board.courses)";
             return;
         }
         String today = LocalDate.now().format(YMD);
 
         List<HrdDailyAttendance> results = new ArrayList<>();
+        int fail = 0;
         for (CourseKey c : courses) {
             try {
                 results.add(client.fetchDailyAttendance(template.get(), c.tracseId(), c.tracseTme(), today));
             } catch (HrdSessionExpiredException e) {
+                lastStatus = "세션 만료/무효: " + e.getMessage();
+                lastFailCount = courses.size();
+                lastRefreshAt = Instant.now();
                 log.warn("HRD 세션 만료/무효 — 이번 갱신 중단: {}", e.getMessage());
                 return; // 세션 문제는 전 과정 공통 → 중단
             } catch (Exception e) {
+                fail++;
                 log.warn("과정 {}:{} 조회 실패: {}", c.tracseId(), c.tracseTme(), e.toString());
             }
             sleepQuietly(staggerMs);
         }
 
         snapshot = sortForBoard(results);
+        lastRefreshAt = Instant.now();
+        lastFailCount = fail;
+        int presentSum = results.stream().mapToInt(HrdDailyAttendance::getPresent).sum();
+        lastStatus = String.format("성공 %d과정 / 실패 %d / 출석 %d명", results.size(), fail, presentSum);
+        log.info("전광판 갱신: {}", lastStatus);
         broadcast();
+    }
+
+    /** 로그인 없이 폴 결과를 확인하는 진단 정보. */
+    public Map<String, Object> status() {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("courseCount", snapshot.size());
+        m.put("lastStatus", lastStatus);
+        m.put("lastFailCount", lastFailCount);
+        m.put("lastRefreshAt", lastRefreshAt != null ? lastRefreshAt.toString() : null);
+        m.put("courses", snapshot.stream().map(r ->
+                Map.of("name", String.valueOf(r.getCourseName()),
+                        "present", r.getPresent(), "late", r.getLate(),
+                        "absent", r.getAbsent(), "total", r.getTotal())).toList());
+        return m;
     }
 
     /** 진행중 과정 먼저, 전원 퇴실(종료) 과정은 뒤로. */
