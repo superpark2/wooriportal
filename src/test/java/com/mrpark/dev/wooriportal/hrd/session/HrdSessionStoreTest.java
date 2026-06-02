@@ -2,39 +2,60 @@ package com.mrpark.dev.wooriportal.hrd.session;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import com.mrpark.dev.wooriportal.hrd.session.HrdSessionStore.Result;
 import org.junit.jupiter.api.Test;
 
 class HrdSessionStoreTest {
 
     @Test
-    void updateDetectsChange() {
+    void firstConnectAccepted() {
         HrdSessionStore store = new HrdSessionStore();
         assertThat(store.isPresent()).isFalse();
-
-        assertThat(store.update("JS1", "W1")).as("최초 주입").isTrue();
+        assertThat(store.tryUpdate("JS1", "W1", "alice")).isEqualTo(Result.ACCEPTED);
         assertThat(store.isPresent()).isTrue();
-
-        assertThat(store.update("JS1", "W1")).as("동일 값 재주입").isFalse();
-        assertThat(store.update("JS2", "W1")).as("세션 변경").isTrue();
+        assertThat(store.current().orElseThrow().getSource()).isEqualTo("alice");
     }
 
     @Test
-    void ignoresBlankSession() {
+    void sameOwnerCanRefresh() {
         HrdSessionStore store = new HrdSessionStore();
-        assertThat(store.update(null, "W1")).isFalse();
-        assertThat(store.update("  ", "W1")).isFalse();
+        store.tryUpdate("JS1", "W1", "alice");
+        assertThat(store.tryUpdate("JS2", "W1", "alice")).isEqualTo(Result.ACCEPTED);
+        assertThat(store.current().orElseThrow().getJsessionId()).isEqualTo("JS2");
+    }
+
+    @Test
+    void otherOwnerRejectedWhenOccupied() {
+        HrdSessionStore store = new HrdSessionStore();
+        store.tryUpdate("JS1", "W1", "alice");
+        assertThat(store.tryUpdate("JSX", "W1", "bob")).isEqualTo(Result.REJECTED);
+        assertThat(store.current().orElseThrow().getSource()).isEqualTo("alice");
+    }
+
+    @Test
+    void takeoverWindowLetsOtherOwnerIn() {
+        HrdSessionStore store = new HrdSessionStore();
+        store.tryUpdate("JS1", "W1", "alice");
+
+        store.openTakeover(90);               // 웹에서 전환 확인
+        assertThat(store.isPresent()).isFalse(); // 기존 연동 해제됨
+        assertThat(store.tryUpdate("JS2", "W1", "bob")).isEqualTo(Result.ACCEPTED);
+        assertThat(store.current().orElseThrow().getSource()).isEqualTo("bob");
+    }
+
+    @Test
+    void blankSessionRejected() {
+        HrdSessionStore store = new HrdSessionStore();
+        assertThat(store.tryUpdate(null, "W1", "alice")).isEqualTo(Result.REJECTED);
+        assertThat(store.tryUpdate("  ", "W1", "alice")).isEqualTo(Result.REJECTED);
         assertThat(store.isPresent()).isFalse();
     }
 
     @Test
-    void buildsCookieHeader() {
+    void disconnectClears() {
         HrdSessionStore store = new HrdSessionStore();
-        store.update("Qxrz!-123!-456", "R8QorMU679h");
-
-        String cookie = store.current().orElseThrow().toCookieHeader();
-        assertThat(cookie)
-                .contains("WMONID=R8QorMU679h")
-                .contains("JSESSIONID=Qxrz!-123!-456")
-                .startsWith("gv_ssoFlag=;");
+        store.tryUpdate("JS1", "W1", "alice");
+        store.disconnect();
+        assertThat(store.isPresent()).isFalse();
     }
 }

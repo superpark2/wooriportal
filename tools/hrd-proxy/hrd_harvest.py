@@ -18,14 +18,17 @@ www.hrd.go.kr 으로 가는 모든 요청의 Cookie 헤더에서 JSESSIONID / WM
 import os
 import json
 import time
+import socket
 import threading
 import urllib.request
 
-DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:4402/coolapi/hrd/session")
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://woori10-0.iptime.org:4402/coolapi/hrd/session")
 HARVEST_TOKEN = os.environ.get("HARVEST_TOKEN", "")
+# 연동자 식별(누가 연동했는지). 기본 = Windows 사용자명 또는 호스트명
+SOURCE = os.environ.get("SOURCE") or os.environ.get("USERNAME") or socket.gethostname()
 HRD_HOST = "www.hrd.go.kr"
-# 값이 안 바뀌어도 이 주기(초)마다 재전송 — 대시보드 재시작 후 세션 복구용
-HEARTBEAT_SEC = int(os.environ.get("HEARTBEAT_SEC", "60"))
+# 값이 안 바뀌어도 이 주기(초)마다 재전송 — 대시보드 재시작/전환창 대응
+HEARTBEAT_SEC = int(os.environ.get("HEARTBEAT_SEC", "30"))
 
 _last_sent = {"jsessionId": None, "wmonid": None, "at": 0.0}
 _lock = threading.Lock()
@@ -41,7 +44,7 @@ def _parse_cookies(cookie_header: str) -> dict:
 
 
 def _push(jsession: str, wmonid: str):
-    body = json.dumps({"jsessionId": jsession, "wmonid": wmonid}).encode("utf-8")
+    body = json.dumps({"jsessionId": jsession, "wmonid": wmonid, "source": SOURCE}).encode("utf-8")
     req = urllib.request.Request(DASHBOARD_URL, data=body, method="POST")
     req.add_header("Content-Type", "application/json")
     if HARVEST_TOKEN:
@@ -49,6 +52,12 @@ def _push(jsession: str, wmonid: str):
     try:
         with urllib.request.urlopen(req, timeout=5) as resp:
             resp.read()
+            print(f"[hrd_harvest] 연동됨 (source={SOURCE})")
+    except urllib.error.HTTPError as e:
+        if e.code == 409:
+            print(f"[hrd_harvest] 다른 사용자가 연동 중 — 웹에서 'HRD 연동'으로 전환하세요")
+        else:
+            print(f"[hrd_harvest] push 실패: HTTP {e.code}")
     except Exception as e:  # 서버 미기동 등은 조용히 무시(다음 요청 때 재시도)
         print(f"[hrd_harvest] push 실패: {e}")
 

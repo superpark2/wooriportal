@@ -16,7 +16,7 @@ class HrdNetClientTest {
     void buildsDetailRequestWithSwappedSessionAndKeys() {
         byte[] template = HrdCaptures.load("/hrd/selectDailAtndceDetail.req.hex");
         HrdNetClient client = new HrdNetClient(new HrdSessionStore());
-        HrdSession session = new HrdSession("LIVESESSION!-9!-9", "WMONLIVE", Instant.now());
+        HrdSession session = new HrdSession("LIVESESSION!-9!-9", "WMONLIVE", "tester", Instant.now());
 
         byte[] body = client.buildDetailRequestBody(template, session,
                 "AIG20250000541286", "1", "20260603");

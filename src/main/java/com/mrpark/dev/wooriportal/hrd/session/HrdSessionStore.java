@@ -8,31 +8,59 @@ import org.springframework.stereotype.Component;
 /**
  * 현재 살아있는 HRD 세션을 보관하는 싱글톤 저장소.
  *
- * <p>프록시 하베스터가 새 쿠키를 밀어넣으면 갱신되고, HRD 클라이언트/폴러가 읽어 쓴다.
- * 단일 세션을 모든 전광판이 공유한다(서버 부하 최소화).</p>
+ * <p>여러 PC 의 하베스터가 동시에 밀어넣을 수 있으므로 <b>소유권</b> 개념을 둔다:
+ * 한 번 누군가(source) 가 연동되면, 다른 source 의 갱신은 거부한다(서로 덮어쓰며
+ * 충돌하는 것 방지). 웹의 "HRD 연동" 버튼이 전환 창({@link #openTakeover})을 열면
+ * 그 시간 동안의 첫 갱신이 소유권을 가져간다.</p>
  */
 @Slf4j
 @Component
 public class HrdSessionStore {
 
     private volatile HrdSession current;
+    /** 전환 창 마감시각 — 이 시각 전에는 다른 source 도 소유권을 가져갈 수 있다. */
+    private volatile Instant takeoverDeadline = Instant.EPOCH;
+
+    public enum Result { ACCEPTED, REJECTED }
 
     /**
-     * 하베스트된 쿠키로 갱신한다. 자격증명이 바뀐 경우에만 로그를 남긴다.
+     * 하베스트된 쿠키로 갱신 시도.
      *
-     * @return 실제로 갱신되었으면 true(신규/변경), 동일 값이면 false
+     * @return ACCEPTED(반영됨) 또는 REJECTED(다른 사용자가 이미 연동 중)
      */
-    public boolean update(String jsessionId, String wmonid) {
+    public synchronized Result tryUpdate(String jsessionId, String wmonid, String source) {
         if (jsessionId == null || jsessionId.isBlank()) {
-            return false;
+            return Result.REJECTED;
         }
-        HrdSession existing = current;
-        boolean changed = existing == null || !existing.sameCredentials(jsessionId, wmonid);
-        current = new HrdSession(jsessionId, wmonid, Instant.now());
-        if (changed) {
-            log.info("HRD 세션 갱신: JSESSIONID=...{} WMONID={}", tail(jsessionId), wmonid);
+        boolean owned = current != null;
+        boolean sameOwner = owned && java.util.Objects.equals(current.getSource(), source);
+        boolean windowOpen = Instant.now().isBefore(takeoverDeadline);
+
+        if (owned && !sameOwner && !windowOpen) {
+            return Result.REJECTED; // 다른 사람이 연동 중 + 전환창 닫힘
         }
-        return changed;
+
+        boolean ownerChanged = !owned || !sameOwner;
+        current = new HrdSession(jsessionId, wmonid, source, Instant.now());
+        takeoverDeadline = Instant.EPOCH; // 소비
+        if (ownerChanged) {
+            log.info("HRD 연동: source={} JSESSIONID=...{}", source, tail(jsessionId));
+        }
+        return Result.ACCEPTED;
+    }
+
+    /** 전환 창을 연다(웹에서 "끊고 새로 연동" 확인 시). 기존 연동은 즉시 해제. */
+    public synchronized void openTakeover(int seconds) {
+        log.info("HRD 연동 전환 창 열림 ({}초) — 기존 연동 해제", seconds);
+        current = null;
+        takeoverDeadline = Instant.now().plusSeconds(seconds);
+    }
+
+    /** 연동 해제. */
+    public synchronized void disconnect() {
+        current = null;
+        takeoverDeadline = Instant.EPOCH;
+        log.info("HRD 연동 해제");
     }
 
     public Optional<HrdSession> current() {
@@ -41,6 +69,10 @@ public class HrdSessionStore {
 
     public boolean isPresent() {
         return current != null;
+    }
+
+    public boolean isTakeoverOpen() {
+        return Instant.now().isBefore(takeoverDeadline);
     }
 
     private static String tail(String s) {
