@@ -81,6 +81,14 @@ public class HrdNetClient {
      */
     public HrdDailyAttendance fetchDailyAttendance(byte[] templateBody,
                                                    String tracseId, String tracseTme, String traingDe) {
+        SsvData data = fetchDetailRaw(templateBody, tracseId, tracseTme, traingDe);
+        return new HrdDailyAttendance(
+                HrdAttendanceMapper.toCourseDetail(data),
+                HrdAttendanceMapper.toRoster(data));
+    }
+
+    /** 상세 응답을 디코딩만 해서 원시 {@link SsvData} 로 반환(필드 매핑 디버그/확장용). */
+    public SsvData fetchDetailRaw(byte[] templateBody, String tracseId, String tracseTme, String traingDe) {
         HrdSession session = sessionStore.current()
                 .orElseThrow(() -> new HrdSessionExpiredException("HRD 세션 없음 — 하베스터가 아직 쿠키를 수확하지 못함"));
 
@@ -101,11 +109,7 @@ public class HrdNetClient {
         if (!isSsv(respBody)) {
             throw new HrdSessionExpiredException("HRD 응답이 SSV 가 아님(로그인 리다이렉트 추정) — 세션 갱신 필요");
         }
-
-        SsvData data = SsvDecoder.decode(respBody);
-        return new HrdDailyAttendance(
-                HrdAttendanceMapper.toCourseDetail(data),
-                HrdAttendanceMapper.toRoster(data));
+        return SsvDecoder.decode(respBody);
     }
 
     private static boolean isSsv(byte[] body) {
