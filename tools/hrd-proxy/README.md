@@ -18,7 +18,7 @@ HRD 행정프로그램 ──▶ mitmproxy(:8899) ──▶ www.hrd.go.kr:44381
 pip install mitmproxy
 
 # 하베스터 구동 (헤드리스)
-set DASHBOARD_URL=http://localhost:8080/coolapi/hrd/session
+set DASHBOARD_URL=http://localhost:4402/coolapi/hrd/session
 set HARVEST_TOKEN=             # 서버 hrd.harvest.token 설정 시 동일 값
 mitmdump -s hrd_harvest.py --listen-port 8899
 ```
@@ -31,7 +31,7 @@ mitmdump -s hrd_harvest.py --listen-port 8899
 ## 확인
 
 ```
-GET http://localhost:8080/coolapi/hrd/session/status
+GET http://localhost:4402/coolapi/hrd/session/status
 → {"present":true,"harvestedAt":"...","ageSeconds":3}
 ```
 

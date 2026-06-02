@@ -20,7 +20,7 @@ import json
 import threading
 import urllib.request
 
-DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:8080/coolapi/hrd/session")
+DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:4402/coolapi/hrd/session")
 HARVEST_TOKEN = os.environ.get("HARVEST_TOKEN", "")
 HRD_HOST = "www.hrd.go.kr"
 
