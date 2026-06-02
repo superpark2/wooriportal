@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ko" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>실시간 출결 전광판</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: #0b1020; color: #e8eefc; font-family: "Pretendard", "맑은 고딕", sans-serif;
+            min-height: 100vh; padding: 24px;
+        }
+        header {
+            display: flex; align-items: baseline; justify-content: space-between;
+            margin-bottom: 20px; border-bottom: 2px solid #1d2944; padding-bottom: 14px;
+        }
+        header h1 { font-size: 30px; letter-spacing: 2px; }
+        .meta { display: flex; gap: 18px; align-items: center; font-size: 15px; color: #9fb0d6; }
+        #clock { font-variant-numeric: tabular-nums; font-size: 22px; color: #e8eefc; }
+        .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; margin-right: 6px; }
+        .dot.live { background: #36d399; box-shadow: 0 0 8px #36d399; }
+        .dot.wait { background: #fbbd23; }
+        .dot.off  { background: #f87272; }
+
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
+        .card {
+            background: #131c33; border: 1px solid #223153; border-radius: 14px; padding: 18px 20px;
+            display: flex; flex-direction: column; gap: 12px;
+        }
+        .card.done { opacity: .5; }
+        .card .title { font-size: 21px; font-weight: 700; line-height: 1.3; }
+        .card .sub { font-size: 13px; color: #9fb0d6; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+        .counts { display: flex; gap: 10px; }
+        .pill { flex: 1; text-align: center; border-radius: 10px; padding: 8px 4px; background: #0e1730; }
+        .pill .n { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
+        .pill .l { font-size: 12px; color: #9fb0d6; }
+        .pill.present .n { color: #36d399; }
+        .pill.late .n    { color: #fbbd23; }
+        .pill.absent .n  { color: #f87272; }
+        .pill.out .n     { color: #7aa2ff; }
+
+        .people { display: flex; flex-wrap: wrap; gap: 6px; }
+        .chip {
+            font-size: 13px; padding: 4px 9px; border-radius: 999px; background: #1b2745; border: 1px solid #2b3c64;
+        }
+        .chip.s_present { border-color: #1f5e44; }
+        .chip.s_late    { border-color: #6b5318; }
+        .chip.s_absent  { border-color: #6b2a2a; color: #ffb4b4; }
+        .chip.s_out     { opacity: .55; text-decoration: line-through; }
+        .chip .ty { color: #8aa0cc; font-size: 11px; margin-left: 4px; }
+        .empty { color: #6f80a6; text-align: center; padding: 60px; font-size: 18px; }
+        .done-badge { font-size: 12px; color: #7aa2ff; border: 1px solid #2b3c64; border-radius: 6px; padding: 2px 7px; }
+    </style>
+</head>
+<body>
+<header>
+    <h1>실시간 출결 전광판</h1>
+    <div class="meta">
+        <span><span id="status-dot" class="dot wait"></span><span id="status-text">연결 대기</span></span>
+        <span id="clock">--:--:--</span>
+    </div>
+</header>
+
+<div id="board" class="grid"></div>
+<div id="empty" class="empty">데이터 대기 중… (HRD 세션·템플릿·과정 설정 확인)</div>
+
+<script th:inline="javascript">
+    const DEMO = /*[[${demo}]]*/ false;
+    const board = document.getElementById('board');
+    const emptyEl = document.getElementById('empty');
+    const statusDot = document.getElementById('status-dot');
+    const statusText = document.getElementById('status-text');
+
+    function setStatus(cls, text) {
+        statusDot.className = 'dot ' + cls;
+        statusText.textContent = text;
+    }
+
+    function clock() {
+        const d = new Date();
+        const p = n => String(n).padStart(2, '0');
+        document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+    }
+    setInterval(clock, 1000); clock();
+
+    function statusClass(s) {
+        if (!s) return '';
+        if (s.includes('출석')) return 's_present';
+        if (s.includes('지각')) return 's_late';
+        if (s.includes('결석')) return 's_absent';
+        return '';
+    }
+
+    function render(rows) {
+        if (!rows || rows.length === 0) {
+            board.innerHTML = '';
+            emptyEl.style.display = 'block';
+            return;
+        }
+        emptyEl.style.display = 'none';
+        board.innerHTML = rows.map(r => {
+            const people = (r.attendees || []).map(a => {
+                const cls = a.checkedOut ? 's_out' : statusClass(a.status);
+                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${a.status || ''}</span></span>`;
+            }).join('');
+            return `
+            <div class="card ${r.allCheckedOut ? 'done' : ''}">
+                <div class="title">${r.courseName || '(과정명 없음)'} ${r.allCheckedOut ? '<span class="done-badge">전원 퇴실</span>' : ''}</div>
+                <div class="sub"><span>${r.period || ''}</span><span>${r.time || ''}</span></div>
+                <div class="counts">
+                    <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
+                    <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
+                    <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
+                    <div class="pill out"><div class="n">${r.checkedOut}/${r.total}</div><div class="l">퇴실</div></div>
+                </div>
+                <div class="people">${people}</div>
+            </div>`;
+        }).join('');
+    }
+
+    // 백엔드 미연결(정적 미리보기)에서도 화면을 볼 수 있는 샘플
+    const SAMPLE = [
+        {courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
+         present:2, late:1, absent:1, checkedOut:0, total:4, allCheckedOut:false,
+         attendees:[{name:'강건임',type:'실업자',status:'출석',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkedOut:false},
+                    {name:'이몽룡',type:'실업자',status:'지각',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
+        {courseName:'AWS기반 웹서비스플랫폼개발', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00(총 8시간)',
+         present:3, late:0, absent:0, checkedOut:3, total:3, allCheckedOut:true,
+         attendees:[{name:'홍길동',type:'실업자',status:'출석',checkedOut:true},{name:'임꺽정',type:'실업자',status:'출석',checkedOut:true},
+                    {name:'장길산',type:'실업자',status:'출석',checkedOut:true}]}
+    ];
+
+    if (DEMO) {
+        setStatus('live', '미리보기(데모)');
+        fetch('/hrd/board/data?demo=1').then(r => r.json()).then(render).catch(() => render(SAMPLE));
+    } else {
+        // 초기 1회 + SSE 실시간. 백엔드 미연결이면 샘플로 화면 확인.
+        fetch('/hrd/board/data').then(r => r.json()).then(render).catch(() => { setStatus('off','백엔드 미연결(샘플)'); render(SAMPLE); });
+        try {
+            const es = new EventSource('/hrd/board/stream');
+            es.addEventListener('snapshot', e => { setStatus('live', '실시간 연결됨'); render(JSON.parse(e.data)); });
+            es.onopen = () => setStatus('live', '실시간 연결됨');
+            es.onerror = () => setStatus('off', '연결 끊김 — 재시도 중');
+        } catch (e) { /* 정적 미리보기 */ }
+    }
+</script>
+</body>
+</html>
