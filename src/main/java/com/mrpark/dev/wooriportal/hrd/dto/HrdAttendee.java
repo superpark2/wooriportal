@@ -27,14 +27,10 @@ public class HrdAttendee {
 
     /** 출결 일자 yyyyMMdd */
     private String atendDe;
-    /** 입실 시각 HHmm */
-    private String gnotBeginTime;
-    /** 퇴실 시각 HHmm */
-    private String gnotRtrnTime;
-    /** 지각 시각 HHmm */
-    private String lpsilTime;
-    /** 조퇴/이탈 시각 HHmm */
-    private String levromTime;
+    /** 입실 시각 HHmm (HRD: lpsilTime) */
+    private String checkInTime;
+    /** 퇴실 시각 HHmm (HRD: levromTime) */
+    private String checkOutTime;
 
     public static HrdAttendee from(SsvDataset ds, int row) {
         HrdAttendee a = new HrdAttendee();
@@ -45,20 +41,18 @@ public class HrdAttendee {
         a.setAtendSttusNm(ds.getString(row, "atendSttusNm"));
         a.setTrneeSttusNm(ds.getString(row, "trneeSttusNm"));
         a.setAtendDe(ds.getString(row, "atendDe"));
-        a.setGnotBeginTime(ds.getString(row, "gnotBeginTime"));
-        a.setGnotRtrnTime(ds.getString(row, "gnotRtrnTime"));
-        a.setLpsilTime(ds.getString(row, "lpsilTime"));
-        a.setLevromTime(ds.getString(row, "levromTime"));
+        a.setCheckInTime(ds.getString(row, "lpsilTime"));
+        a.setCheckOutTime(ds.getString(row, "levromTime"));
         return a;
     }
 
     /** 입실했는지(입실 시각 존재). */
     public boolean isCheckedIn() {
-        return gnotBeginTime != null && !gnotBeginTime.isBlank();
+        return checkInTime != null && !checkInTime.isBlank();
     }
 
     /** 퇴실했는지(퇴실 시각 존재). */
     public boolean isCheckedOut() {
-        return gnotRtrnTime != null && !gnotRtrnTime.isBlank();
+        return checkOutTime != null && !checkOutTime.isBlank();
     }
 }

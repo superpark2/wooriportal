@@ -48,6 +48,7 @@
         .chip.s_absent  { border-color: #6b2a2a; color: #ffb4b4; }
         .chip.s_out     { opacity: .55; text-decoration: line-through; }
         .chip .ty { color: #8aa0cc; font-size: 11px; margin-left: 4px; }
+        .chip .tm { color: #6f80a6; font-size: 11px; margin-left: 5px; font-variant-numeric: tabular-nums; }
         .empty { color: #6f80a6; text-align: center; padding: 60px; font-size: 18px; }
         .done-badge { font-size: 12px; color: #7aa2ff; border: 1px solid #2b3c64; border-radius: 6px; padding: 2px 7px; }
     </style>
@@ -91,6 +92,11 @@
         return '';
     }
 
+    function fmtTime(hhmm) {
+        if (!hhmm || hhmm.length !== 4) return '';
+        return hhmm.slice(0, 2) + ':' + hhmm.slice(2);
+    }
+
     function render(rows) {
         if (!rows || rows.length === 0) {
             board.innerHTML = '';
@@ -101,7 +107,9 @@
         board.innerHTML = rows.map(r => {
             const people = (r.attendees || []).map(a => {
                 const cls = a.checkedOut ? 's_out' : statusClass(a.status);
-                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${a.status || ''}</span></span>`;
+                const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
+                const times = (inT || outT) ? `<span class="tm">${inT ? '입 ' + inT : ''}${outT ? ' · 퇴 ' + outT : ''}</span>` : '';
+                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${a.status || ''}</span>${times}</span>`;
             }).join('');
             return `
             <div class="card ${r.allCheckedOut ? 'done' : ''}">
@@ -122,12 +130,12 @@
     const SAMPLE = [
         {courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
          present:2, late:1, absent:1, checkedOut:0, total:4, allCheckedOut:false,
-         attendees:[{name:'강건임',type:'실업자',status:'출석',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkedOut:false},
-                    {name:'이몽룡',type:'실업자',status:'지각',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
+         attendees:[{name:'강건임',type:'실업자',status:'출석',checkInTime:'1856',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkInTime:'1902',checkedOut:false},
+                    {name:'이몽룡',type:'실업자',status:'지각',checkInTime:'1930',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
         {courseName:'AWS기반 웹서비스플랫폼개발', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00(총 8시간)',
          present:3, late:0, absent:0, checkedOut:3, total:3, allCheckedOut:true,
-         attendees:[{name:'홍길동',type:'실업자',status:'출석',checkedOut:true},{name:'임꺽정',type:'실업자',status:'출석',checkedOut:true},
-                    {name:'장길산',type:'실업자',status:'출석',checkedOut:true}]}
+         attendees:[{name:'홍길동',type:'실업자',status:'출석',checkInTime:'0900',checkOutTime:'1800',checkedOut:true},{name:'임꺽정',type:'실업자',status:'출석',checkInTime:'0858',checkOutTime:'1801',checkedOut:true},
+                    {name:'장길산',type:'실업자',status:'출석',checkInTime:'0905',checkOutTime:'1759',checkedOut:true}]}
     ];
 
     if (DEMO) {

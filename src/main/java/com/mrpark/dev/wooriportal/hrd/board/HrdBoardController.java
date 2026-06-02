@@ -69,10 +69,10 @@ public class HrdBoardController {
             a.setTrneeSeNm(p[1]);
             a.setAtendSttusNm(p[2]);
             if ("out".equals(p[3])) {
-                a.setGnotBeginTime("0900");
-                a.setGnotRtrnTime("1800");
+                a.setCheckInTime("0900");
+                a.setCheckOutTime("1800");
             } else if ("in".equals(p[3])) {
-                a.setGnotBeginTime("1900");
+                a.setCheckInTime("1900");
             }
             roster.add(a);
         }

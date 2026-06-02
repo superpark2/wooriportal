@@ -49,12 +49,16 @@ public class HrdBoardRow {
         private final String name;
         private final String type;        // 실업자/재직자
         private final String status;      // 출결 상태명
+        private final String checkInTime;  // 입실 HHmm
+        private final String checkOutTime; // 퇴실 HHmm
         private final boolean checkedOut;
 
         Attendee(HrdAttendee a) {
             this.name = a.getCstmrNm();
             this.type = a.getTrneeSeNm();
             this.status = a.getAtendSttusNm();
+            this.checkInTime = a.getCheckInTime();
+            this.checkOutTime = a.getCheckOutTime();
             this.checkedOut = a.isCheckedOut();
         }
     }
