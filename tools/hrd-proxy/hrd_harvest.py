@@ -17,14 +17,17 @@ www.hrd.go.kr 으로 가는 모든 요청의 Cookie 헤더에서 JSESSIONID / WM
 """
 import os
 import json
+import time
 import threading
 import urllib.request
 
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://localhost:4402/coolapi/hrd/session")
 HARVEST_TOKEN = os.environ.get("HARVEST_TOKEN", "")
 HRD_HOST = "www.hrd.go.kr"
+# 값이 안 바뀌어도 이 주기(초)마다 재전송 — 대시보드 재시작 후 세션 복구용
+HEARTBEAT_SEC = int(os.environ.get("HEARTBEAT_SEC", "60"))
 
-_last_sent = {"jsessionId": None, "wmonid": None}
+_last_sent = {"jsessionId": None, "wmonid": None, "at": 0.0}
 _lock = threading.Lock()
 
 
@@ -63,10 +66,13 @@ def request(flow):
         return
 
     with _lock:
-        if _last_sent["jsessionId"] == jsession and _last_sent["wmonid"] == wmonid:
-            return  # 변경 없음 → 서버에 안 보냄
+        unchanged = _last_sent["jsessionId"] == jsession and _last_sent["wmonid"] == wmonid
+        fresh = (time.time() - _last_sent["at"]) < HEARTBEAT_SEC
+        if unchanged and fresh:
+            return  # 변경 없고 하트비트 주기 내 → 생략
         _last_sent["jsessionId"] = jsession
         _last_sent["wmonid"] = wmonid
+        _last_sent["at"] = time.time()
 
-    print(f"[hrd_harvest] 세션 수확 JSESSIONID=...{jsession[-6:]} WMONID={wmonid}")
+    print(f"[hrd_harvest] 세션 전송 JSESSIONID=...{jsession[-6:]} WMONID={wmonid}")
     threading.Thread(target=_push, args=(jsession, wmonid), daemon=True).start()
