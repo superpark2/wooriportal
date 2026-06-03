@@ -60,7 +60,7 @@ public class SecurityConfig {
 
                         // 2. 인증/인가 없이 접근 가능한 공통 페이지
                         //    (filestorage·db는 민감 데이터/관리 기능이므로 permitAll에서 제거)
-                        .requestMatchers("/login", "/signup", "/check-id", "/aicoach/**", "/coolapi/**").permitAll()
+                        .requestMatchers("/login", "/signup", "/check-id", "/aicoach/**", "/coolapi/**", "/hrd/**").permitAll()
 
                         // 3. DB 관리 화면 및 API는 관리자 전용
                         .requestMatchers("/db/**").hasAuthority("admin")
