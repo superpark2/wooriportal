@@ -41,11 +41,11 @@ public class SecurityConfig {
                 // CSRF: 쿠키 기반 토큰(XSRF-TOKEN) 발급 → 프론트엔드 fetch가 X-XSRF-TOKEN 헤더로 회신.
                 // - plain CsrfTokenRequestAttributeHandler: 쿠키 원본값과 헤더값을 그대로 비교(JS 연동용).
                 //   기본 Xor 핸들러는 응답 토큰을 인코딩해 쿠키값과 불일치 → 403 유발.
-                // - 머신/외부 연동 엔드포인트(오토잇 에이전트, QR/비컨 출결)는 토큰을 보낼 수 없으므로 예외 처리.
+                // - 머신/외부 연동 엔드포인트(HRD 세션·템플릿 하베스터)는 토큰을 보낼 수 없으므로 예외 처리.
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        // 머신/외부 연동(오토잇·QR/비컨) + 상태 변경 없는 읽기 전용 ID 중복확인은 제외
+                        // 머신/외부 연동(HRD 하베스터·전광판 토글) + 읽기 전용 ID 중복확인은 제외
                         .ignoringRequestMatchers("/coolapi/**", "/check-id")
                 )
                 // Spring Security 6의 지연 토큰 로딩 대응: 매 요청마다 토큰을 강제로 로드해
