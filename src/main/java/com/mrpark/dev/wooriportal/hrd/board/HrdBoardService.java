@@ -33,6 +33,7 @@ public class HrdBoardService {
 
     private final HrdNetClient client;
     private final HrdRequestTemplateProvider templates;
+    private final com.mrpark.dev.wooriportal.hrd.session.HrdSessionStore sessionStore;
 
     /** 폴링 대상 과정: "tracseId:tracseTme" 콤마 구분. (목록 자동탐색 전까지 설정 기반) */
     @Value("${hrd.board.courses:}")
@@ -50,9 +51,11 @@ public class HrdBoardService {
     private volatile String lastStatus = "아직 폴링 전";
     private volatile int lastFailCount;
 
-    public HrdBoardService(HrdNetClient client, HrdRequestTemplateProvider templates) {
+    public HrdBoardService(HrdNetClient client, HrdRequestTemplateProvider templates,
+                           com.mrpark.dev.wooriportal.hrd.session.HrdSessionStore sessionStore) {
         this.client = client;
         this.templates = templates;
+        this.sessionStore = sessionStore;
     }
 
     public List<HrdBoardRow> snapshot() {
@@ -82,6 +85,7 @@ public class HrdBoardService {
                 lastStatus = "세션 만료/무효: " + e.getMessage();
                 lastFailCount = courses.size();
                 lastRefreshAt = Instant.now();
+                sessionStore.markBroken(); // 웹에 "끊김" 표시
                 log.warn("HRD 세션 만료/무효 — 이번 갱신 중단: {}", e.getMessage());
                 return; // 세션 문제는 전 과정 공통 → 중단
             } catch (Exception e) {
@@ -92,6 +96,9 @@ public class HrdBoardService {
         }
 
         snapshot = sortForBoard(results);
+        if (!results.isEmpty()) {
+            sessionStore.markHealthy(); // 호출 성공 → 정상
+        }
         lastRefreshAt = Instant.now();
         lastFailCount = fail;
         int presentSum = results.stream().mapToInt(HrdDailyAttendance::getPresent).sum();

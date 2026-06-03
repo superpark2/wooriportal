@@ -20,6 +20,8 @@ public class HrdSessionStore {
     private volatile HrdSession current;
     /** 전환 창 마감시각 — 이 시각 전에는 다른 source 도 소유권을 가져갈 수 있다. */
     private volatile Instant takeoverDeadline = Instant.EPOCH;
+    /** 직전 호출이 세션 만료로 거부됨(쿠키는 있으나 죽음) → 웹에 "끊김" 표시. */
+    private volatile boolean broken;
 
     public enum Result { ACCEPTED, REJECTED }
 
@@ -43,22 +45,42 @@ public class HrdSessionStore {
         boolean ownerChanged = !owned || !sameOwner;
         current = new HrdSession(jsessionId, wmonid, source, Instant.now());
         takeoverDeadline = Instant.EPOCH; // 소비
+        broken = false;                   // 새 쿠키 들어옴 → 정상 복구
         if (ownerChanged) {
             log.info("HRD 연동: source={} JSESSIONID=...{}", source, tail(jsessionId));
         }
         return Result.ACCEPTED;
     }
 
+    /** 호출이 세션 만료로 거부됨 — 쿠키는 유지하되 "끊김"으로 표시(재로그인 시 자동 복구). */
+    public void markBroken() {
+        if (current != null && !broken) {
+            broken = true;
+            log.warn("HRD 세션 끊김(만료) — source={}", current.getSource());
+        }
+    }
+
+    /** 호출 성공 — 정상 상태. */
+    public void markHealthy() {
+        broken = false;
+    }
+
+    public boolean isBroken() {
+        return broken;
+    }
+
     /** 전환 창을 연다(웹에서 "끊고 새로 연동" 확인 시). 기존 연동은 즉시 해제. */
     public synchronized void openTakeover(int seconds) {
         log.info("HRD 연동 전환 창 열림 ({}초) — 기존 연동 해제", seconds);
         current = null;
+        broken = false;
         takeoverDeadline = Instant.now().plusSeconds(seconds);
     }
 
     /** 연동 해제. */
     public synchronized void disconnect() {
         current = null;
+        broken = false;
         takeoverDeadline = Instant.EPOCH;
         log.info("HRD 연동 해제");
     }

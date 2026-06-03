@@ -85,6 +85,7 @@ public class HrdSessionController {
     private Map<String, Object> status(String action) {
         Map<String, Object> m = new LinkedHashMap<>();
         m.put("present", sessionStore.isPresent());
+        m.put("broken", sessionStore.isBroken());
         m.put("takeoverOpen", sessionStore.isTakeoverOpen());
         sessionStore.current().ifPresent(s -> {
             m.put("owner", s.getSource());
