@@ -1,19 +1,21 @@
 """
-HRD-Net 세션 하베스터 (mitmproxy 애드온)
+HRD-Net 세션 + 요청템플릿 하베스터 (mitmproxy 애드온)
 
-HRD 데스크탑 행정프로그램(XPLATFORM)을 이 프록시 경유로 띄워두면,
-www.hrd.go.kr 으로 가는 모든 요청의 Cookie 헤더에서 JSESSIONID / WMONID 를
-실시간으로 뽑아 전광판 서버(wooriportal)에 밀어넣는다.
+HRD 데스크탑 행정프로그램(XPLATFORM)을 이 프록시 경유로 띄워두면, www.hrd.go.kr 으로
+가는 요청에서 두 가지를 전광판 서버(wooriportal)로 자동 전송한다:
+  1) 세션 쿠키(JSESSIONID/WMONID)
+  2) 요청 본문 템플릿(인증서 gds_userInfo 포함) — selectAtendList / selectDailAtndceDetail
+     → 이 본문(인증서)이 실인증 수단이라, 최근 사용자의 자격으로 서버가 자동 동작.
+       (특정 개인 인증서 만료에 묶이지 않음)
 
 실행:
     pip install mitmproxy
     mitmdump -s hrd_harvest.py --listen-port 8899
-    # CA 1회 신뢰: http://mitm.it 접속 후 Windows 인증서 설치(HTTP Toolkit 때와 동일)
-    # HRD 프로그램이 시스템 프록시(127.0.0.1:8899)를 타도록 설정
 
 환경변수:
-    DASHBOARD_URL   기본 http://localhost:8080/coolapi/hrd/session
+    DASHBOARD_URL   기본 http://woori10-0.iptime.org:4402/coolapi/hrd/session
     HARVEST_TOKEN   서버 hrd.harvest.token 과 동일하게(설정 시)
+    SOURCE          연동자 이름(웹 표시). 기본 = Windows 사용자명/호스트명
 """
 import os
 import json
@@ -21,16 +23,26 @@ import time
 import socket
 import threading
 import urllib.request
+import urllib.error
 
 DASHBOARD_URL = os.environ.get("DASHBOARD_URL", "http://woori10-0.iptime.org:4402/coolapi/hrd/session")
 HARVEST_TOKEN = os.environ.get("HARVEST_TOKEN", "")
-# 연동자 식별(누가 연동했는지). 기본 = Windows 사용자명 또는 호스트명
 SOURCE = os.environ.get("SOURCE") or os.environ.get("USERNAME") or socket.gethostname()
 HRD_HOST = "www.hrd.go.kr"
-# 값이 안 바뀌어도 이 주기(초)마다 재전송 — 대시보드 재시작/전환창 대응
 HEARTBEAT_SEC = int(os.environ.get("HEARTBEAT_SEC", "30"))
 
+# 서버 루트 도출 → 템플릿 업로드 URL
+SERVER_ROOT = DASHBOARD_URL.split("/coolapi")[0]
+TEMPLATE_URL = SERVER_ROOT + "/coolapi/hrd/harvester/template"
+
+# 요청 경로 → 템플릿 엔드포인트 키
+TEMPLATE_ENDPOINTS = {
+    "selectAtendList.do": "list",
+    "selectDailAtndceDetail.do": "detail",
+}
+
 _last_sent = {"jsessionId": None, "wmonid": None, "at": 0.0}
+_last_tpl = {}  # endpoint -> hash
 _lock = threading.Lock()
 
 
@@ -43,45 +55,67 @@ def _parse_cookies(cookie_header: str) -> dict:
     return out
 
 
-def _push(jsession: str, wmonid: str):
-    body = json.dumps({"jsessionId": jsession, "wmonid": wmonid, "source": SOURCE}).encode("utf-8")
-    req = urllib.request.Request(DASHBOARD_URL, data=body, method="POST")
-    req.add_header("Content-Type", "application/json")
+def _post(url, data, content_type):
+    req = urllib.request.Request(url, data=data, method="POST")
+    req.add_header("Content-Type", content_type)
     if HARVEST_TOKEN:
         req.add_header("X-Harvest-Token", HARVEST_TOKEN)
+    with urllib.request.urlopen(req, timeout=5) as resp:
+        resp.read()
+
+
+def _push_session(jsession, wmonid):
+    body = json.dumps({"jsessionId": jsession, "wmonid": wmonid, "source": SOURCE}).encode("utf-8")
     try:
-        with urllib.request.urlopen(req, timeout=5) as resp:
-            resp.read()
-            print(f"[hrd_harvest] 연동됨 (source={SOURCE})")
+        _post(DASHBOARD_URL, body, "application/json")
+        print(f"[hrd_harvest] 세션 연동됨 (source={SOURCE})")
     except urllib.error.HTTPError as e:
         if e.code == 409:
-            print(f"[hrd_harvest] 다른 사용자가 연동 중 — 웹에서 'HRD 연동'으로 전환하세요")
+            print("[hrd_harvest] 다른 사용자가 연동 중 — 웹에서 'HRD 연동'으로 전환하세요")
         else:
-            print(f"[hrd_harvest] push 실패: HTTP {e.code}")
-    except Exception as e:  # 서버 미기동 등은 조용히 무시(다음 요청 때 재시도)
-        print(f"[hrd_harvest] push 실패: {e}")
+            print(f"[hrd_harvest] 세션 push 실패: HTTP {e.code}")
+    except Exception as e:
+        print(f"[hrd_harvest] 세션 push 실패: {e}")
+
+
+def _push_template(endpoint, body_bytes):
+    try:
+        _post(TEMPLATE_URL + "?endpoint=" + endpoint, body_bytes, "application/octet-stream")
+        print(f"[hrd_harvest] 템플릿 전송: {endpoint} ({len(body_bytes)} bytes)")
+    except Exception as e:
+        print(f"[hrd_harvest] 템플릿 push 실패({endpoint}): {e}")
 
 
 def request(flow):
     if HRD_HOST not in flow.request.pretty_host:
         return
+
+    # 1) 세션 쿠키
     cookie_header = flow.request.headers.get("Cookie", "")
-    if not cookie_header:
-        return
-    cookies = _parse_cookies(cookie_header)
+    cookies = _parse_cookies(cookie_header) if cookie_header else {}
     jsession = cookies.get("JSESSIONID")
     wmonid = cookies.get("WMONID")
-    if not jsession:
-        return
+    if jsession:
+        with _lock:
+            unchanged = _last_sent["jsessionId"] == jsession and _last_sent["wmonid"] == wmonid
+            fresh = (time.time() - _last_sent["at"]) < HEARTBEAT_SEC
+            send = not (unchanged and fresh)
+            if send:
+                _last_sent.update({"jsessionId": jsession, "wmonid": wmonid, "at": time.time()})
+        if send:
+            threading.Thread(target=_push_session, args=(jsession, wmonid), daemon=True).start()
 
-    with _lock:
-        unchanged = _last_sent["jsessionId"] == jsession and _last_sent["wmonid"] == wmonid
-        fresh = (time.time() - _last_sent["at"]) < HEARTBEAT_SEC
-        if unchanged and fresh:
-            return  # 변경 없고 하트비트 주기 내 → 생략
-        _last_sent["jsessionId"] = jsession
-        _last_sent["wmonid"] = wmonid
-        _last_sent["at"] = time.time()
-
-    print(f"[hrd_harvest] 세션 전송 JSESSIONID=...{jsession[-6:]} WMONID={wmonid}")
-    threading.Thread(target=_push, args=(jsession, wmonid), daemon=True).start()
+    # 2) 요청 본문 템플릿(인증서 포함) — 대상 엔드포인트만
+    path = flow.request.path or ""
+    for needle, endpoint in TEMPLATE_ENDPOINTS.items():
+        if needle in path:
+            body = flow.request.raw_content or b""
+            if len(body) >= 2 and body[0] == 0xFF and body[1] == 0xAD:
+                h = hash(body)
+                with _lock:
+                    changed = _last_tpl.get(endpoint) != h
+                    if changed:
+                        _last_tpl[endpoint] = h
+                if changed:
+                    threading.Thread(target=_push_template, args=(endpoint, body), daemon=True).start()
+            break

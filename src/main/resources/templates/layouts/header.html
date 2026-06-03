@@ -81,6 +81,7 @@
         <div id="hrdGuideModal" class="hrd-modal" onclick="hrdGuideBg(event)">
             <div class="hrd-modal-box">
                 <h3>HRD 연동 방법</h3>
+                <div id="hrdTplStatus" style="background:#f0f4ff;border:1px solid #d3deff;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:#345;">현재 인증서 정보 조회 중…</div>
                 <ol>
                     <li><b>하베스터 다운로드</b> 후 압축을 풀어 한 폴더에 둡니다(아래 버튼).</li>
                     <li>최초 1회: <code>pip install mitmproxy</code> 설치.</li>
@@ -119,7 +120,18 @@
                     }
                 });
             }
-            function hrdGuideOpen() { document.getElementById('hrdGuideModal').classList.add('show'); }
+            function hrdGuideOpen() {
+                document.getElementById('hrdGuideModal').classList.add('show');
+                fetch('/coolapi/hrd/harvester/template/status').then(function (r) { return r.json(); }).then(function (s) {
+                    var d = s && s.detail || {};
+                    var box = document.getElementById('hrdTplStatus');
+                    if (d.present) {
+                        box.innerHTML = '✅ 현재 활성 인증서: <b>' + (d.owner || '미상') + '</b>' + (d.updatedAt ? ' <span style="color:#789">(갱신 ' + d.updatedAt.replace('T',' ').slice(0,16) + ')</span>' : '') + '<br>HRD를 쓰는 분의 요청이 프록시를 지나면 그분 인증서로 자동 갱신됩니다.';
+                    } else {
+                        box.innerHTML = '⚠️ 활성 인증서 없음 — 아래 하베스터를 설치하고 HRD를 한 번 조회하면 인증서가 자동 저장됩니다.';
+                    }
+                }).catch(function () { document.getElementById('hrdTplStatus').textContent = '인증서 상태 조회 실패'; });
+            }
             function hrdGuideClose() { document.getElementById('hrdGuideModal').classList.remove('show'); }
             function hrdGuideBg(e) { if (e.target.id === 'hrdGuideModal') hrdGuideClose(); }
             document.addEventListener('DOMContentLoaded', function () { hrdFetchStatus(); setInterval(hrdFetchStatus, 15000); });
