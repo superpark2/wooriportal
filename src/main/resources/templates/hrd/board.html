@@ -98,7 +98,7 @@
             <div class="s present"><div class="v" id="sumPresent">0</div><div class="k">출석</div></div>
             <div class="s"><div class="v" id="sumLate">0</div><div class="k">지각</div></div>
             <div class="s"><div class="v" id="sumAbsent">0</div><div class="k">결석</div></div>
-            <div class="s wait"><div class="v" id="sumWait">0</div><div class="k">미입력</div></div>
+            <div class="s wait"><div class="v" id="sumWait">0</div><div class="k">미출석</div></div>
         </div>
         <div class="meta">
             <span><span id="status-dot" class="dot wait"></span><span class="status-txt" id="status-text">연결 대기</span></span>
@@ -148,7 +148,7 @@
             const rate = r.total ? Math.round(attended / r.total * 100) : 0;
             const people = (r.attendees || []).map(a => {
                 const cls = a.checkedOut ? 's_out' : statusClass(a.status);
-                const label = (!a.status || a.status === '-') ? '미입력' : a.status;
+                const label = (!a.status || a.status === '-') ? '미출석' : a.status;
                 const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
                 const times = (inT || outT) ? `<span class="tm">${inT ? '입'+inT : ''}${outT ? ' 퇴'+outT : ''}</span>` : '';
                 return `<span class="chip ${cls}"><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${times}</span>`;
@@ -171,7 +171,7 @@
                     <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
                     <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
                     <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
-                    <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미입력</div></div>
+                    <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미출석</div></div>
                     <div class="pill out"><div class="n">${r.checkedOut}</div><div class="l">퇴실</div></div>
                 </div>
                 <div class="people">${people}</div>
