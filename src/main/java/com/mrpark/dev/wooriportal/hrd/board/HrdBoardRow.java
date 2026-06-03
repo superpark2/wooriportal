@@ -23,6 +23,7 @@ public class HrdBoardRow {
     private final int present;
     private final int late;
     private final int absent;
+    private final int waiting;
     private final int checkedOut;
     private final boolean allCheckedOut;
 
@@ -38,6 +39,7 @@ public class HrdBoardRow {
         this.present = a.getPresent();
         this.late = a.getLate();
         this.absent = a.getAbsent();
+        this.waiting = a.getWaiting();
         this.checkedOut = a.getCheckedOut();
         this.allCheckedOut = a.isAllCheckedOut();
         this.attendees = a.getRoster().stream().map(Attendee::new).toList();

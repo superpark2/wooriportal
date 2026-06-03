@@ -124,7 +124,7 @@ public class HrdBoardService {
         m.put("courses", snapshot.stream().map(r ->
                 Map.of("name", String.valueOf(r.getCourseName()),
                         "present", r.getPresent(), "late", r.getLate(),
-                        "absent", r.getAbsent(), "total", r.getTotal(),
+                        "absent", r.getAbsent(), "waiting", r.getWaiting(), "total", r.getTotal(),
                         "checkedOut", r.getCheckedOut(), "allCheckedOut", r.isAllCheckedOut())).toList());
         return m;
     }

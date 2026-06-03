@@ -16,23 +16,24 @@ public class HrdDailyAttendance {
     private final int present;     // 출석(입실 완료)
     private final int late;        // 지각
     private final int absent;      // 결석
+    private final int waiting;     // 미입력(아직 안 찍힘, 상태 "-"/빈값)
     private final int checkedOut;  // 퇴실 완료
 
     public HrdDailyAttendance(HrdCourseDetail course, List<HrdAttendee> roster) {
         this.course = course;
         this.roster = roster;
 
-        int p = 0, l = 0, ab = 0, out = 0;
+        int p = 0, l = 0, ab = 0, w = 0, out = 0;
         for (HrdAttendee a : roster) {
             String status = a.getAtendSttusNm();
-            if (status != null) {
-                if (status.contains("지각")) {
-                    l++;
-                } else if (status.contains("결석")) {
-                    ab++;
-                } else if (status.contains("출석")) {
-                    p++;
-                }
+            if (status != null && status.contains("지각")) {
+                l++;
+            } else if (status != null && status.contains("결석")) {
+                ab++;
+            } else if (status != null && status.contains("출석")) {
+                p++;
+            } else {
+                w++; // "-", 빈값, null 등 미입력
             }
             if (a.isCheckedOut()) {
                 out++;
@@ -42,6 +43,7 @@ public class HrdDailyAttendance {
         this.present = p;
         this.late = l;
         this.absent = ab;
+        this.waiting = w;
         this.checkedOut = out;
     }
 

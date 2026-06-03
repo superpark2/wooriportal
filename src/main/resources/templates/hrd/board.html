@@ -37,6 +37,7 @@
         .pill.present .n { color: #36d399; }
         .pill.late .n    { color: #fbbd23; }
         .pill.absent .n  { color: #f87272; }
+        .pill.wait .n    { color: #8aa0cc; }
         .pill.out .n     { color: #7aa2ff; }
 
         .people { display: flex; flex-wrap: wrap; gap: 6px; }
@@ -46,6 +47,7 @@
         .chip.s_present { border-color: #1f5e44; }
         .chip.s_late    { border-color: #6b5318; }
         .chip.s_absent  { border-color: #6b2a2a; color: #ffb4b4; }
+        .chip.s_wait    { border-color: #33405f; color: #8aa0cc; opacity: .8; }
         .chip.s_out     { opacity: .55; text-decoration: line-through; }
         .chip .ty { color: #8aa0cc; font-size: 11px; margin-left: 4px; }
         .chip .tm { color: #6f80a6; font-size: 11px; margin-left: 5px; font-variant-numeric: tabular-nums; }
@@ -85,11 +87,11 @@
     setInterval(clock, 1000); clock();
 
     function statusClass(s) {
-        if (!s) return '';
+        if (!s || s === '-') return 's_wait';
         if (s.includes('출석')) return 's_present';
         if (s.includes('지각')) return 's_late';
         if (s.includes('결석')) return 's_absent';
-        return '';
+        return 's_wait';
     }
 
     function fmtTime(hhmm) {
@@ -107,9 +109,10 @@
         board.innerHTML = rows.map(r => {
             const people = (r.attendees || []).map(a => {
                 const cls = a.checkedOut ? 's_out' : statusClass(a.status);
+                const label = (!a.status || a.status === '-') ? '미입력' : a.status;
                 const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
                 const times = (inT || outT) ? `<span class="tm">${inT ? '입 ' + inT : ''}${outT ? ' · 퇴 ' + outT : ''}</span>` : '';
-                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${a.status || ''}</span>${times}</span>`;
+                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${label}</span>${times}</span>`;
             }).join('');
             return `
             <div class="card ${r.allCheckedOut ? 'done' : ''}">
@@ -119,6 +122,7 @@
                     <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
                     <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
                     <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
+                    <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미입력</div></div>
                     <div class="pill out"><div class="n">${r.checkedOut}/${r.total}</div><div class="l">퇴실</div></div>
                 </div>
                 <div class="people">${people}</div>
@@ -129,11 +133,15 @@
     // 백엔드 미연결(정적 미리보기)에서도 화면을 볼 수 있는 샘플
     const SAMPLE = [
         {courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
-         present:2, late:1, absent:1, checkedOut:0, total:4, allCheckedOut:false,
+         present:2, late:1, absent:1, waiting:0, checkedOut:0, total:4, allCheckedOut:false,
          attendees:[{name:'강건임',type:'실업자',status:'출석',checkInTime:'1856',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkInTime:'1902',checkedOut:false},
                     {name:'이몽룡',type:'실업자',status:'지각',checkInTime:'1930',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
+        {courseName:'AI응용서비스개발자 과정', period:'2026-03-17~2027-01-06 (1회차)', time:'09:00~18:00(총 8시간)',
+         present:1, late:0, absent:0, waiting:3, checkedOut:0, total:4, allCheckedOut:false,
+         attendees:[{name:'김초롱',type:'실업자',status:'출석',checkInTime:'0902',checkedOut:false},{name:'박두팔',type:'실업자',status:'-',checkedOut:false},
+                    {name:'최삼식',type:'실업자',status:'-',checkedOut:false},{name:'정사랑',type:'실업자',status:'-',checkedOut:false}]},
         {courseName:'AWS기반 웹서비스플랫폼개발', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00(총 8시간)',
-         present:3, late:0, absent:0, checkedOut:3, total:3, allCheckedOut:true,
+         present:3, late:0, absent:0, waiting:0, checkedOut:3, total:3, allCheckedOut:true,
          attendees:[{name:'홍길동',type:'실업자',status:'출석',checkInTime:'0900',checkOutTime:'1800',checkedOut:true},{name:'임꺽정',type:'실업자',status:'출석',checkInTime:'0858',checkOutTime:'1801',checkedOut:true},
                     {name:'장길산',type:'실업자',status:'출석',checkInTime:'0905',checkOutTime:'1759',checkedOut:true}]}
     ];
