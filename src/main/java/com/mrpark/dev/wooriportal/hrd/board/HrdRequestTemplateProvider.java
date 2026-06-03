@@ -22,30 +22,48 @@ public class HrdRequestTemplateProvider {
     @Value("${hrd.template.detail-path:config/hrd/selectDailAtndceDetail.req.hex}")
     private String detailPath;
 
+    @Value("${hrd.template.list-path:config/hrd/selectAtendList.req.hex}")
+    private String listPath;
+
     private volatile byte[] detailTemplate;
+    private volatile byte[] listTemplate;
 
     @PostConstruct
     void loadFromFile() {
+        detailTemplate = load(detailPath, "상세(selectDailAtndceDetail)");
+        listTemplate = load(listPath, "목록(selectAtendList)");
+    }
+
+    private byte[] load(String path, String label) {
         try {
-            Path p = Path.of(detailPath);
+            Path p = Path.of(path);
             if (Files.isReadable(p)) {
-                detailTemplate = parseHex(Files.readString(p, StandardCharsets.UTF_8));
-                log.info("HRD 상세 요청 템플릿 로드: {} ({} bytes)", detailPath, detailTemplate.length);
-            } else {
-                log.warn("HRD 상세 요청 템플릿 없음: {} — 하베스터 주입 또는 파일 배치 필요", detailPath);
+                byte[] b = parseHex(Files.readString(p, StandardCharsets.UTF_8));
+                log.info("HRD {} 요청 템플릿 로드: {} ({} bytes)", label, path, b.length);
+                return b;
             }
+            log.warn("HRD {} 요청 템플릿 없음: {} — 파일 배치 필요", label, path);
         } catch (Exception e) {
-            log.warn("HRD 템플릿 로드 실패: {}", e.getMessage());
+            log.warn("HRD {} 템플릿 로드 실패: {}", label, e.getMessage());
         }
+        return null;
     }
 
     public Optional<byte[]> detailTemplate() {
         return Optional.ofNullable(detailTemplate);
     }
 
+    public Optional<byte[]> listTemplate() {
+        return Optional.ofNullable(listTemplate);
+    }
+
     /** 하베스터/운영자가 런타임에 템플릿을 주입. */
     public void setDetailTemplate(byte[] body) {
         this.detailTemplate = body;
+    }
+
+    public void setListTemplate(byte[] body) {
+        this.listTemplate = body;
     }
 
     private static byte[] parseHex(String hex) {

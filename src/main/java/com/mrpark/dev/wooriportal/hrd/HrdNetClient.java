@@ -32,10 +32,13 @@ public class HrdNetClient {
     private static final String BASE = "https://www.hrd.go.kr:44381";
     static final String DETAIL_URL = BASE + "/hrdg/zz/hzzd/hzzdi/selectDailAtndceDetail.do";
     private static final String DETAIL_REFERER = BASE + "/HRDNUI/HZZ/DX/HZZDAX0103P.xfdl";
+    static final String LIST_URL = BASE + "/hrdg/th/hzzd/hzzdo/selectAtendList.do";
+    private static final String LIST_REFERER = BASE + "/HRDNUI/HZZ/DO/HZZDAO0100L.xfdl";
     private static final String USER_AGENT =
             "XPLATFORM/9.2.2 Runtmie (compatible; Mozilla/4.0; MSIE7.0; System=Win64; Device=; OS=Windows 10; Screen=1920*1080*16M)";
 
     private static final DateTimeFormatter TS = DateTimeFormatter.ofPattern("yyyyMMddHHmmss");
+    private static final DateTimeFormatter YMD = DateTimeFormatter.ofPattern("yyyyMMdd");
 
     private final HrdSessionStore sessionStore;
     private final RestTemplate restTemplate;
@@ -124,6 +127,51 @@ public class HrdNetClient {
             throw new HrdSessionExpiredException("HRD 응답이 SSV 가 아님(로그인 리다이렉트/인증 실패 추정)");
         }
         return SsvDecoder.decode(respBody);
+    }
+
+    /**
+     * 당일 과정 목록을 조회한다(selectAtendList). 폴링 대상 자동탐색용.
+     * 세션은 선택(템플릿 인증서로 인증).
+     */
+    public java.util.List<com.mrpark.dev.wooriportal.hrd.dto.HrdCourse> fetchCourseList(byte[] listTemplate) {
+        HrdSession session = sessionStore.current().orElse(null);
+        SsvData req = SsvDecoder.decode(listTemplate);
+        String jsession;
+        String wmonid;
+        if (session != null) {
+            jsession = session.getJsessionId();
+            wmonid = session.getWmonid();
+            req.setVariable("JSESSIONID", jsession);
+            if (wmonid != null && !wmonid.isBlank()) {
+                req.setVariable("WMONID", wmonid);
+            }
+        } else {
+            jsession = req.getVariable("JSESSIONID");
+            wmonid = req.getVariable("WMONID");
+        }
+        req.setVariable("request-timestamp", LocalDateTime.now().format(TS));
+
+        // 당일 진행 과정으로 조회되도록 검색조건 세팅(tdayOptnYn=Y + 날짜범위를 오늘 포함으로)
+        SsvDataset cond = req.getDataset("ds_cond");
+        if (cond != null && cond.getRowCount() > 0) {
+            java.time.LocalDate today = java.time.LocalDate.now();
+            if (cond.hasColumn("tdayOptnYn")) {
+                cond.setString(0, "tdayOptnYn", "Y");
+            }
+            if (cond.hasColumn("bgnDe")) {
+                cond.setString(0, "bgnDe", today.minusDays(180).format(YMD));
+            }
+            if (cond.hasColumn("endDe")) {
+                cond.setString(0, "endDe", today.format(YMD));
+            }
+        }
+
+        ResponseEntity<byte[]> resp = post(LIST_URL, LIST_REFERER, SsvEncoder.encode(req), jsession, wmonid);
+        byte[] respBody = resp.getBody();
+        if (!isSsv(respBody)) {
+            throw new HrdSessionExpiredException("HRD 목록 응답이 SSV 가 아님(인증 실패 추정)");
+        }
+        return HrdAttendanceMapper.toCourses(SsvDecoder.decode(respBody));
     }
 
     private ResponseEntity<byte[]> post(String url, String referer, byte[] body, String jsession, String wmonid) {

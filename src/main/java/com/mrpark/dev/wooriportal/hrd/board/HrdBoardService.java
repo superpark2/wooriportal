@@ -43,8 +43,15 @@ public class HrdBoardService {
     @Value("${hrd.board.stagger-ms:200}")
     private long staggerMs;
 
+    /** 과정 자동탐색 캐시 갱신 주기(분) — 목록은 하루 내 거의 안 바뀜. */
+    @Value("${hrd.board.discover-minutes:10}")
+    private long discoverMinutes;
+
     private volatile List<HrdBoardRow> snapshot = List.of();
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
+
+    private volatile List<CourseKey> discovered;
+    private volatile Instant discoveredAt = Instant.EPOCH;
 
     // 진단용 마지막 갱신 상태
     private volatile Instant lastRefreshAt;
@@ -69,9 +76,9 @@ public class HrdBoardService {
             lastStatus = "요청 템플릿 없음(config/hrd 배치 또는 하베스터 주입 필요)";
             return;
         }
-        List<CourseKey> courses = parseCourses();
+        List<CourseKey> courses = resolveCourses();
         if (courses.isEmpty()) {
-            lastStatus = "폴링 대상 과정 미설정(hrd.board.courses)";
+            lastStatus = "폴링 대상 과정 없음(자동탐색 실패 + hrd.board.courses 미설정)";
             return;
         }
         String today = LocalDate.now().format(YMD);
@@ -159,6 +166,36 @@ public class HrdBoardService {
     }
 
     // ── helpers ──
+
+    /** 폴링 대상 과정 결정: 목록 템플릿 있으면 오늘 과정 자동탐색(캐시), 없으면 설정값. */
+    private List<CourseKey> resolveCourses() {
+        Optional<byte[]> listT = templates.listTemplate();
+        if (listT.isPresent()) {
+            boolean stale = discovered == null
+                    || java.time.Duration.between(discoveredAt, Instant.now()).toMinutes() >= discoverMinutes;
+            if (stale) {
+                try {
+                    List<CourseKey> found = new ArrayList<>();
+                    for (var c : client.fetchCourseList(listT.get())) {
+                        if (c.getTracseId() != null && c.getTracseTme() != null) {
+                            found.add(new CourseKey(c.getTracseId(), c.getTracseTme()));
+                        }
+                    }
+                    if (!found.isEmpty()) {
+                        discovered = found;
+                        discoveredAt = Instant.now();
+                        log.info("오늘 과정 자동탐색: {}개", found.size());
+                    }
+                } catch (Exception e) {
+                    log.warn("과정 자동탐색 실패(설정값으로 폴백): {}", e.toString());
+                }
+            }
+            if (discovered != null && !discovered.isEmpty()) {
+                return discovered;
+            }
+        }
+        return parseCourses(); // 폴백: hrd.board.courses
+    }
 
     private List<CourseKey> parseCourses() {
         List<CourseKey> list = new ArrayList<>();
