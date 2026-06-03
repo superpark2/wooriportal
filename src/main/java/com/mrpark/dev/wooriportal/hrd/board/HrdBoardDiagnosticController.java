@@ -46,6 +46,21 @@ public class HrdBoardDiagnosticController {
         return Map.of("enabled", on);
     }
 
+    /** 과정별 강의요일 전체 조회. (courseKey → "1,2,3,4,5") */
+    @GetMapping("/schedules")
+    public Map<String, String> schedules() {
+        return boardService.schedules();
+    }
+
+    /** 과정 강의요일 저장. days = "1,2,3,4,5" (1=월..7=일), 빈값이면 매일. */
+    @PostMapping("/schedule")
+    public Map<String, Object> saveSchedule(@RequestParam("tracseId") String tracseId,
+                                            @RequestParam("tracseTme") String tracseTme,
+                                            @RequestParam(value = "days", required = false) String days) {
+        boardService.saveSchedule(tracseId, tracseTme, HrdBoardService.parseDays(days));
+        return Map.of("ok", true);
+    }
+
     /** 한 과정의 출결 원시 시각/상태 컬럼을 덤프(필드 매핑 확인용, 이름 제외). */
     @GetMapping("/debug")
     public Object debug(@RequestParam String tracseId, @RequestParam String tracseTme) {

@@ -62,20 +62,21 @@ public class HrdBoardController {
         c.setTracseNm(name);
         c.setTracsePd(period);
         c.setTraingTime(time);
+        c.setTraingBeginTime("0900");
+        c.setTraingEndTime("1800");
         List<HrdAttendee> roster = new java.util.ArrayList<>();
         for (String[] p : people) {
             HrdAttendee a = new HrdAttendee();
             a.setCstmrNm(p[0]);
             a.setTrneeSeNm(p[1]);
-            a.setAtendSttusNm(p[2]);
             if ("out".equals(p[3])) {
                 a.setCheckInTime("0900");
                 a.setCheckOutTime("1800");
             } else if ("in".equals(p[3])) {
-                a.setCheckInTime("1900");
+                a.setCheckInTime("0905");
             }
             roster.add(a);
         }
-        return new HrdBoardRow(new HrdDailyAttendance(c, roster));
+        return new HrdBoardRow(new HrdDailyAttendance(c, roster), true, java.time.LocalTime.now(), java.util.List.of());
     }
 }

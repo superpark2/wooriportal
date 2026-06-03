@@ -6,42 +6,31 @@
     <title>실시간 출결 전광판</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        /* ── 테마 토큰 ── */
-        body {                       /* 화이트(기본) */
+        body {
             --bg: #eef1f8; --card: #ffffff; --card2: #f7f9fd; --line: #e2e8f4;
             --ink: #1a2438; --dim: #5a6b8c; --dim2: #93a0bd;
             --green: #0f9d6b; --amber: #c0860d; --red: #df4a4f; --blue: #3461d6; --gray: #8090ac;
             --pill: #f2f5fb; --pill-line: #e6ebf5; --bar: #e7ecf6;
-            --chip: #f4f7fc; --chip-line: #e2e8f4;
-            --shadow: 0 2px 10px rgba(40,60,120,.06);
+            --chip: #f4f7fc; --chip-line: #e2e8f4; --shadow: 0 2px 10px rgba(40,60,120,.06);
         }
         body[data-theme="dark"] {
             --bg: #0a0e1a; --card: #141b2e; --card2: #0f1626; --line: #233152;
             --ink: #eaf0ff; --dim: #8294bd; --dim2: #5d6d92;
             --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #7aa2ff; --gray: #7e8db0;
             --pill: #0c1424; --pill-line: #1b2643; --bar: #0b1322;
-            --chip: #16203a; --chip-line: #263656;
-            --shadow: none;
+            --chip: #16203a; --chip-line: #263656; --shadow: none;
         }
         body[data-theme="gray"] {
             --bg: #2b2f37; --card: #363b45; --card2: #31353e; --line: #474d5a;
             --ink: #eceef3; --dim: #aab1c1; --dim2: #828a9c;
             --green: #4ecc9d; --amber: #e0b251; --red: #ee7d7d; --blue: #8fa9ec; --gray: #9aa3b5;
             --pill: #2f343d; --pill-line: #474d5a; --bar: #272b32;
-            --chip: #383d48; --chip-line: #484e5b;
-            --shadow: 0 2px 10px rgba(0,0,0,.18);
+            --chip: #383d48; --chip-line: #484e5b; --shadow: 0 2px 10px rgba(0,0,0,.18);
         }
-
-        body {
-            background: var(--bg); color: var(--ink);
-            font-family: "Pretendard", "맑은 고딕", system-ui, sans-serif;
-            min-height: 100vh; padding: 20px 24px; transition: background .2s, color .2s;
-        }
-        header {
-            display: flex; align-items: center; justify-content: space-between; gap: 16px;
-            margin-bottom: 16px; padding-bottom: 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap;
-        }
+        body { background: var(--bg); color: var(--ink); font-family: "Pretendard","맑은 고딕",system-ui,sans-serif;
+            min-height: 100vh; padding: 20px 24px; transition: background .2s, color .2s; }
+        header { display: flex; align-items: center; justify-content: space-between; gap: 16px;
+            margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
         .brand { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
         .brand h1 { font-size: 24px; letter-spacing: 2px; font-weight: 800; }
         .brand .date { font-size: 13px; color: var(--dim); letter-spacing: 1px; }
@@ -59,37 +48,48 @@
         .dot.wait { background: var(--amber); }
         .dot.off  { background: var(--red); }
         .status-txt { font-size: 12px; color: var(--dim); }
-
         .power { cursor: pointer; font-weight: 800; font-size: 13px; padding: 7px 15px; border-radius: 999px;
             border: 1px solid; letter-spacing: 1px; white-space: nowrap; }
         .power:hover { filter: brightness(1.08); }
         .power.on  { background: color-mix(in srgb, var(--green) 16%, transparent); color: var(--green); border-color: var(--green); }
         .power.off { background: color-mix(in srgb, var(--red) 16%, transparent); color: var(--red); border-color: var(--red); }
-
         .themes { display: inline-flex; border: 1px solid var(--line); border-radius: 999px; overflow: hidden; }
-        .themes button { cursor: pointer; border: none; background: transparent; color: var(--dim);
-            font-size: 12px; font-weight: 600; padding: 6px 11px; }
+        .themes button { cursor: pointer; border: none; background: transparent; color: var(--dim); font-size: 12px; font-weight: 600; padding: 6px 11px; }
         .themes button.active { background: var(--blue); color: #fff; }
 
-        #pausedBanner { display: none; text-align: center; padding: 20px; margin-bottom: 14px;
-            color: var(--amber); font-size: 16px; font-weight: 600; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent);
-            border-radius: 14px; background: color-mix(in srgb, var(--amber) 7%, transparent); }
+        #pausedBanner { display: none; text-align: center; padding: 18px; margin-bottom: 12px; color: var(--amber); font-size: 16px;
+            font-weight: 600; border: 1px dashed color-mix(in srgb, var(--amber) 55%, transparent); border-radius: 14px;
+            background: color-mix(in srgb, var(--amber) 7%, transparent); }
         body.paused #board > .card { opacity: .4; filter: grayscale(.6); }
         body.paused #pausedBanner { display: block; }
 
+        /* 접힌 과정 바 */
+        .collapsed-bar { display: flex; flex-wrap: wrap; gap: 7px; margin-bottom: 12px; }
+        .col-chip { cursor: pointer; font-size: 12.5px; padding: 5px 11px; border-radius: 999px; background: var(--card);
+            border: 1px solid var(--line); color: var(--dim); display: inline-flex; align-items: center; gap: 7px; box-shadow: var(--shadow); }
+        .col-chip:hover { color: var(--ink); border-color: var(--blue); }
+        .col-chip .cnt { font-size: 11px; color: var(--dim2); }
+        .col-chip .noday { color: var(--amber); font-size: 11px; }
+        .collapsed-bar .lbl { font-size: 12px; color: var(--dim2); align-self: center; margin-right: 2px; }
+
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 14px; }
-        .card {
-            background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--gray);
-            border-radius: 16px; padding: 15px 17px 13px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow);
-        }
+        .card { background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--gray); border-radius: 16px;
+            padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 10px; box-shadow: var(--shadow); }
         .card.active { border-left-color: var(--green); }
-        .card.done { opacity: .58; border-left-color: var(--blue); }
-        .card .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
-        .card .title { font-size: 18px; font-weight: 700; line-height: 1.3; }
-        .card .badge { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
-            background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue);
-            border: 1px solid color-mix(in srgb, var(--blue) 35%, transparent); white-space: nowrap; }
-        .card .sub { font-size: 12.5px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 3px 14px; }
+        .card.done { opacity: .6; border-left-color: var(--blue); }
+        .card.noclass { border-left-color: var(--amber); }
+        .card .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
+        .card .title { font-size: 18px; font-weight: 700; line-height: 1.3; flex: 1; }
+        .card .acts { display: flex; gap: 4px; flex-shrink: 0; }
+        .icon-btn { cursor: pointer; border: 1px solid var(--line); background: var(--pill); color: var(--dim); border-radius: 8px;
+            width: 27px; height: 27px; font-size: 13px; display: inline-flex; align-items: center; justify-content: center; }
+        .icon-btn:hover { color: var(--ink); border-color: var(--blue); }
+        .badge { font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+        .badge.done { background: color-mix(in srgb, var(--blue) 14%, transparent); color: var(--blue); border: 1px solid color-mix(in srgb, var(--blue) 35%, transparent); }
+        .badge.noclass { background: color-mix(in srgb, var(--amber) 16%, transparent); color: var(--amber); border: 1px solid color-mix(in srgb, var(--amber) 45%, transparent); }
+        .card .sub { font-size: 12.5px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 3px 14px; align-items: center; }
+        .daysline { font-size: 11.5px; color: var(--dim2); }
+        .daysline b { color: var(--blue); }
 
         .bar { height: 7px; border-radius: 4px; background: var(--bar); overflow: hidden; display: flex; }
         .bar > span { height: 100%; }
@@ -98,33 +98,47 @@
         .bar .b-absent { background: var(--red); }
         .rate { font-size: 12px; color: var(--dim); display: flex; justify-content: space-between; }
         .rate b { color: var(--ink); }
-
         .counts { display: flex; gap: 7px; }
         .pill { flex: 1; text-align: center; border-radius: 11px; padding: 7px 2px; background: var(--pill); border: 1px solid var(--pill-line); }
         .pill .n { font-size: 22px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
         .pill .l { font-size: 11px; color: var(--dim); margin-top: 4px; }
         .pill.present .n { color: var(--green); }
-        .pill.late .n    { color: var(--amber); }
-        .pill.absent .n  { color: var(--red); }
-        .pill.wait .n    { color: var(--gray); }
-        .pill.out .n     { color: var(--blue); }
-
+        .pill.late .n { color: var(--amber); }
+        .pill.absent .n { color: var(--red); }
+        .pill.wait .n { color: var(--gray); }
+        .pill.out .n { color: var(--blue); }
         .people { display: flex; flex-wrap: wrap; gap: 5px; }
-        .chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: var(--chip);
-            border: 1px solid var(--chip-line); display: inline-flex; align-items: center; gap: 5px; }
+        .chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: var(--chip); border: 1px solid var(--chip-line);
+            display: inline-flex; align-items: center; gap: 5px; }
         .chip .ty { color: var(--dim2); font-size: 10.5px; }
         .chip .tm { color: var(--dim2); font-size: 10.5px; font-variant-numeric: tabular-nums; }
         .chip.s_present { border-color: color-mix(in srgb, var(--green) 55%, transparent); }
-        .chip.s_late    { border-color: color-mix(in srgb, var(--amber) 55%, transparent); }
-        .chip.s_absent  { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+        .chip.s_late { border-color: color-mix(in srgb, var(--amber) 55%, transparent); }
+        .chip.s_absent { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
         .chip.s_absent .nm { color: var(--red); }
-        .chip.s_wait    { color: var(--dim); opacity: .9; }
-        .chip.s_out     { opacity: .5; }
+        .chip.s_wait { color: var(--dim); opacity: .9; }
+        .chip.s_out { opacity: .5; }
         .chip.s_out .nm { text-decoration: line-through; }
-
         .empty { grid-column: 1/-1; color: var(--dim2); text-align: center; padding: 70px; font-size: 18px; }
 
-        /* ── 모바일: 상단 텍스트 재배치 ── */
+        /* 요일 설정 모달 */
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.45); z-index: 9999; align-items: center; justify-content: center; }
+        .modal.show { display: flex; }
+        .modal-box { background: var(--card); color: var(--ink); width: min(420px,92vw); border-radius: 14px; padding: 22px; border: 1px solid var(--line); }
+        .modal-box h3 { font-size: 17px; margin-bottom: 6px; }
+        .modal-box .mc { font-size: 13px; color: var(--dim); margin-bottom: 14px; }
+        .days { display: flex; gap: 6px; margin-bottom: 18px; }
+        .days label { flex: 1; }
+        .days input { display: none; }
+        .days span { display: block; text-align: center; padding: 9px 0; border-radius: 9px; border: 1px solid var(--line);
+            background: var(--pill); color: var(--dim); font-weight: 700; cursor: pointer; font-size: 14px; }
+        .days input:checked + span { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .modal-actions { display: flex; gap: 8px; justify-content: flex-end; }
+        .modal-actions button { cursor: pointer; padding: 9px 16px; border-radius: 9px; border: 1px solid var(--line); font-weight: 600; }
+        .btn-save { background: var(--blue); color: #fff; border-color: var(--blue); }
+        .btn-cancel { background: transparent; color: var(--dim); }
+        .hint { font-size: 11.5px; color: var(--dim2); margin-bottom: 14px; }
+
         @media (max-width: 760px) {
             body { padding: 12px 13px; }
             header { flex-direction: column; align-items: stretch; gap: 11px; padding-bottom: 11px; }
@@ -142,10 +156,6 @@
             .grid { grid-template-columns: 1fr; gap: 11px; }
             .card .title { font-size: 16px; }
             .pill .n { font-size: 19px; }
-        }
-        @media (max-width: 420px) {
-            .brand h1 { font-size: 16px; }
-            .summary .s .k { font-size: 9px; }
         }
     </style>
 </head>
@@ -177,11 +187,43 @@
 </header>
 
 <div id="pausedBanner">⏸ 전광판이 정지되었습니다 — 좌측 상단 <b>[정지]</b> 버튼을 눌러 재가동하세요. (현재 화면은 마지막 데이터)</div>
+<div id="collapsedBar" class="collapsed-bar"></div>
 <div id="board" class="grid"></div>
+
+<div id="dayModal" class="modal" onclick="if(event.target.id==='dayModal')closeDays()">
+    <div class="modal-box">
+        <h3>강의 요일 설정</h3>
+        <div class="mc" id="dayModalTitle"></div>
+        <div class="hint">강의 있는 요일만 선택하세요. 선택 안 한 요일은 '미출석'(결석 아님)으로 표시되고 카드가 자동으로 접힙니다.</div>
+        <div class="days">
+            <label><input type="checkbox" class="daychk" value="1"><span>월</span></label>
+            <label><input type="checkbox" class="daychk" value="2"><span>화</span></label>
+            <label><input type="checkbox" class="daychk" value="3"><span>수</span></label>
+            <label><input type="checkbox" class="daychk" value="4"><span>목</span></label>
+            <label><input type="checkbox" class="daychk" value="5"><span>금</span></label>
+            <label><input type="checkbox" class="daychk" value="6"><span>토</span></label>
+            <label><input type="checkbox" class="daychk" value="7"><span>일</span></label>
+        </div>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeDays()">취소</button>
+            <button class="btn-save" onclick="saveDays()">저장</button>
+        </div>
+    </div>
+</div>
 
 <script th:inline="javascript">
     const DEMO = /*[[${demo}]]*/ false;
+    const DAYNAMES = ['', '월', '화', '수', '목', '금', '토', '일'];
     const board = document.getElementById('board');
+    const collapsedBar = document.getElementById('collapsedBar');
+    let LAST_ROWS = [];
+
+    function todayDow() { const d = new Date().getDay(); return d === 0 ? 7 : d; }
+    function courseKey(r) { return r.tracseId + '|' + r.tracseTme; }
+    function effClassDay(r) {
+        const days = r.scheduledDays || [];
+        return days.length === 0 ? true : days.indexOf(todayDow()) >= 0;
+    }
 
     function setTheme(t) {
         document.body.setAttribute('data-theme', t);
@@ -204,19 +246,54 @@
         document.body.classList.toggle('paused', !on);
     }
     function togglePower() {
-        const next = !boardEnabled;
-        renderPower(next);
-        fetch('/coolapi/hrd/board/power?on=' + next, { method: 'POST' })
-            .then(r => r.json()).then(s => renderPower(!!s.enabled)).catch(() => {});
+        const next = !boardEnabled; renderPower(next);
+        fetch('/coolapi/hrd/board/power?on=' + next, { method: 'POST' }).then(r => r.json()).then(s => renderPower(!!s.enabled)).catch(() => {});
     }
 
     function tick() {
         const d = new Date(), p = n => String(n).padStart(2, '0');
         document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
-        const wd = ['일','월','화','수','목','금','토'][d.getDay()];
-        document.getElementById('today').textContent = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} (${wd})`;
+        document.getElementById('today').textContent = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} (${DAYNAMES[todayDow()]})`;
     }
     setInterval(tick, 1000); tick();
+
+    // ── 접기 상태 ──
+    function collapseMap() { try { return JSON.parse(localStorage.getItem('hrdCollapse') || '{}'); } catch (e) { return {}; } }
+    function setCollapse(key, val) { const m = collapseMap(); if (val) m[key] = val; else delete m[key]; try { localStorage.setItem('hrdCollapse', JSON.stringify(m)); } catch (e) {} }
+    function isCollapsed(r) {
+        const m = collapseMap(), k = courseKey(r);
+        if (m[k] === 'open') return false;
+        if (m[k] === 'closed') return true;
+        return !effClassDay(r);   // 기본: 비강의일이면 접힘
+    }
+    function toggleCollapse(key) {
+        const r = LAST_ROWS.find(x => courseKey(x) === key); if (!r) return;
+        setCollapse(key, isCollapsed(r) ? 'open' : 'closed');
+        render(LAST_ROWS);
+    }
+
+    // ── 요일 설정 모달 ──
+    let dayModalKey = null;
+    function openDays(key) {
+        const r = LAST_ROWS.find(x => courseKey(x) === key); if (!r) return;
+        dayModalKey = key;
+        document.getElementById('dayModalTitle').textContent = (r.courseName || '') + ' (' + (r.tracseTme || '') + '회차)';
+        const days = r.scheduledDays || [];
+        document.querySelectorAll('#dayModal .daychk').forEach(cb => cb.checked = days.indexOf(+cb.value) >= 0);
+        document.getElementById('dayModal').classList.add('show');
+    }
+    function closeDays() { document.getElementById('dayModal').classList.remove('show'); }
+    function saveDays() {
+        const r = LAST_ROWS.find(x => courseKey(x) === dayModalKey); if (!r) return closeDays();
+        const days = [...document.querySelectorAll('#dayModal .daychk:checked')].map(cb => +cb.value);
+        const csv = days.join(',');
+        fetch(`/coolapi/hrd/board/schedule?tracseId=${encodeURIComponent(r.tracseId)}&tracseTme=${encodeURIComponent(r.tracseTme)}&days=${csv}`, { method: 'POST' })
+            .then(() => {
+                r.scheduledDays = days;           // 즉시 반영(집계는 최대 10초 후 서버 동기화)
+                setCollapse(courseKey(r), null);  // 명시적 접기 해제 → 자동규칙 적용
+                closeDays(); render(LAST_ROWS);
+            }).catch(() => { closeDays(); });
+    }
 
     function statusClass(s) {
         if (!s || s === '-') return 's_wait';
@@ -226,50 +303,77 @@
         return 's_wait';
     }
     function fmtTime(hhmm) { return (hhmm && hhmm.length === 4) ? hhmm.slice(0,2) + ':' + hhmm.slice(2) : ''; }
+    function daysLabel(r) {
+        const days = r.scheduledDays || [];
+        if (days.length === 0) return '매일';
+        return days.slice().sort().map(d => DAYNAMES[d]).join('·');
+    }
+
+    function cardHtml(r) {
+        const noClass = !effClassDay(r);
+        const attended = r.present + r.late;
+        const rate = r.total ? Math.round(attended / r.total * 100) : 0;
+        const pct = n => r.total ? (n / r.total * 100).toFixed(1) : 0;
+        const people = (r.attendees || []).map(a => {
+            const cls = a.checkedOut ? 's_out' : statusClass(a.status);
+            const label = (!a.status || a.status === '-') ? '미출석' : a.status;
+            const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
+            const times = (inT || outT) ? `<span class="tm">${inT ? '입'+inT : ''}${outT ? ' 퇴'+outT : ''}</span>` : '';
+            return `<span class="chip ${cls}"><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${times}</span>`;
+        }).join('');
+        const cardCls = noClass ? 'noclass' : (r.allCheckedOut ? 'done' : (attended > 0 ? 'active' : ''));
+        const badge = noClass ? '<span class="badge noclass">오늘 강의 없음</span>'
+            : (r.allCheckedOut ? '<span class="badge done">전원 퇴실</span>' : '');
+        const key = courseKey(r);
+        return `
+        <div class="card ${cardCls}">
+            <div class="head">
+                <div class="title">${r.courseName || '(과정명 없음)'}</div>
+                <div class="acts">
+                    ${badge}
+                    <button class="icon-btn" title="강의요일 설정" onclick="openDays('${key}')">⚙</button>
+                    <button class="icon-btn" title="접기" onclick="toggleCollapse('${key}')">▾</button>
+                </div>
+            </div>
+            <div class="sub"><span>${r.period || ''}</span><span>${r.time || ''}</span><span class="daysline">강의요일 <b>${daysLabel(r)}</b></span></div>
+            <div class="bar">
+                <span class="b-present" style="width:${pct(r.present)}%"></span>
+                <span class="b-late" style="width:${pct(r.late)}%"></span>
+                <span class="b-absent" style="width:${pct(r.absent)}%"></span>
+            </div>
+            <div class="rate"><span>출석률 <b>${rate}%</b></span><span>${attended}/${r.total}명</span></div>
+            <div class="counts">
+                <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
+                <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
+                <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
+                <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미출석</div></div>
+                <div class="pill out"><div class="n">${r.checkedOut}</div><div class="l">퇴실</div></div>
+            </div>
+            <div class="people">${people}</div>
+        </div>`;
+    }
 
     function render(rows) {
-        if (!rows || rows.length === 0) {
+        LAST_ROWS = rows || [];
+        if (LAST_ROWS.length === 0) {
+            collapsedBar.innerHTML = '';
             board.innerHTML = '<div class="empty">데이터 대기 중… (오늘 진행 과정 / 출결 입력 확인)</div>';
             ['Total','Present','Late','Absent','Wait'].forEach(k => document.getElementById('sum'+k).textContent = '0');
             return;
         }
         let st = 0, sp = 0, sl = 0, sa = 0, sw = 0;
-        board.innerHTML = rows.map(r => {
+        const open = [], collapsed = [];
+        LAST_ROWS.forEach(r => {
             st += r.total; sp += r.present; sl += r.late; sa += r.absent; sw += r.waiting;
-            const pct = n => r.total ? (n / r.total * 100).toFixed(1) : 0;
-            const attended = r.present + r.late;
-            const rate = r.total ? Math.round(attended / r.total * 100) : 0;
-            const people = (r.attendees || []).map(a => {
-                const cls = a.checkedOut ? 's_out' : statusClass(a.status);
-                const label = (!a.status || a.status === '-') ? '미출석' : a.status;
-                const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
-                const times = (inT || outT) ? `<span class="tm">${inT ? '입'+inT : ''}${outT ? ' 퇴'+outT : ''}</span>` : '';
-                return `<span class="chip ${cls}"><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${times}</span>`;
+            (isCollapsed(r) ? collapsed : open).push(r);
+        });
+        board.innerHTML = open.map(cardHtml).join('');
+        collapsedBar.innerHTML = collapsed.length === 0 ? '' :
+            '<span class="lbl">접힌 과정</span>' + collapsed.map(r => {
+                const key = courseKey(r);
+                const tag = !effClassDay(r) ? '<span class="noday">휴강</span>' : `<span class="cnt">출석 ${r.present + r.late}/${r.total}</span>`;
+                return `<span class="col-chip" onclick="toggleCollapse('${key}')">▸ ${r.courseName || '?'} ${tag}</span>`;
             }).join('');
-            const cardCls = r.allCheckedOut ? 'done' : (attended > 0 ? 'active' : '');
-            return `
-            <div class="card ${cardCls}">
-                <div class="head">
-                    <div class="title">${r.courseName || '(과정명 없음)'}</div>
-                    ${r.allCheckedOut ? '<span class="badge">전원 퇴실</span>' : ''}
-                </div>
-                <div class="sub"><span>${r.period || ''}</span><span>${r.time || ''}</span></div>
-                <div class="bar">
-                    <span class="b-present" style="width:${pct(r.present)}%"></span>
-                    <span class="b-late" style="width:${pct(r.late)}%"></span>
-                    <span class="b-absent" style="width:${pct(r.absent)}%"></span>
-                </div>
-                <div class="rate"><span>출석률 <b>${rate}%</b></span><span>${attended}/${r.total}명</span></div>
-                <div class="counts">
-                    <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
-                    <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
-                    <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
-                    <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미출석</div></div>
-                    <div class="pill out"><div class="n">${r.checkedOut}</div><div class="l">퇴실</div></div>
-                </div>
-                <div class="people">${people}</div>
-            </div>`;
-        }).join('');
         document.getElementById('sumTotal').textContent = st;
         document.getElementById('sumPresent').textContent = sp;
         document.getElementById('sumLate').textContent = sl;
@@ -278,23 +382,21 @@
     }
 
     const SAMPLE = [
-        {courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
-         present:2, late:1, absent:1, waiting:0, checkedOut:0, total:4, allCheckedOut:false,
+        {tracseId:'A1', tracseTme:'17', courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
+         present:2, late:1, absent:1, waiting:0, checkedOut:0, total:4, allCheckedOut:false, classDay:true, scheduledDays:[1,2,3,4,5],
          attendees:[{name:'강건임',type:'실업자',status:'출석',checkInTime:'1856',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkInTime:'1902',checkedOut:false},
                     {name:'이몽룡',type:'실업자',status:'지각',checkInTime:'1930',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
-        {courseName:'AI응용서비스개발자 과정', period:'2026-03-17~2027-01-06 (1회차)', time:'09:00~18:00(총 8시간)',
-         present:1, late:0, absent:0, waiting:3, checkedOut:0, total:4, allCheckedOut:false,
-         attendees:[{name:'김초롱',type:'실업자',status:'출석',checkInTime:'0902',checkedOut:false},{name:'박두팔',type:'실업자',status:'-',checkedOut:false},
-                    {name:'최삼식',type:'실업자',status:'-',checkedOut:false},{name:'정사랑',type:'실업자',status:'-',checkedOut:false}]},
-        {courseName:'AWS기반 웹서비스플랫폼개발', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00(총 8시간)',
-         present:3, late:0, absent:0, waiting:0, checkedOut:3, total:3, allCheckedOut:true,
-         attendees:[{name:'홍길동',type:'실업자',status:'출석',checkInTime:'0900',checkOutTime:'1800',checkedOut:true},{name:'임꺽정',type:'실업자',status:'출석',checkInTime:'0858',checkOutTime:'1801',checkedOut:true},
-                    {name:'장길산',type:'실업자',status:'출석',checkInTime:'0905',checkOutTime:'1759',checkedOut:true}]}
+        {tracseId:'A2', tracseTme:'1', courseName:'AI응용서비스개발자 과정', period:'2026-03-17~2027-01-06 (1회차)', time:'09:00~18:00(총 8시간)',
+         present:1, late:0, absent:0, waiting:3, checkedOut:0, total:4, allCheckedOut:false, classDay:true, scheduledDays:[],
+         attendees:[{name:'김초롱',type:'실업자',status:'출석',checkInTime:'0902',checkedOut:false},{name:'박두팔',type:'실업자',status:'미출석',checkedOut:false},
+                    {name:'최삼식',type:'실업자',status:'미출석',checkedOut:false},{name:'정사랑',type:'실업자',status:'미출석',checkedOut:false}]},
+        {tracseId:'A3', tracseTme:'8', courseName:'AWS기반 웹서비스플랫폼개발(오늘 휴강)', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00',
+         present:0, late:0, absent:0, waiting:3, checkedOut:0, total:3, allCheckedOut:false, classDay:false, scheduledDays:[6],
+         attendees:[{name:'홍길동',type:'실업자',status:'미출석',checkedOut:false},{name:'임꺽정',type:'실업자',status:'미출석',checkedOut:false},{name:'장길산',type:'실업자',status:'미출석',checkedOut:false}]}
     ];
 
     if (DEMO) {
-        renderPower(true);
-        setStatus('live', '미리보기(데모)');
+        renderPower(true); setStatus('live', '미리보기(데모)');
         fetch('/hrd/board/data?demo=1').then(r => r.json()).then(render).catch(() => render(SAMPLE));
     } else {
         fetch('/coolapi/hrd/board/status').then(r => r.json()).then(s => renderPower(!!s.enabled)).catch(() => {});

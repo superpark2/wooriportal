@@ -32,6 +32,9 @@ public class HrdAttendee {
     /** 퇴실 시각 HHmm (HRD: levromTime) */
     private String checkOutTime;
 
+    /** 규칙으로 재판정한 출결상태(출석/지각/결석/미출석) — HRD atendSttusNm 대신 사용. */
+    private String computedStatus;
+
     public static HrdAttendee from(SsvDataset ds, int row) {
         HrdAttendee a = new HrdAttendee();
         a.setCstmrNm(ds.getString(row, "cstmrNm"));

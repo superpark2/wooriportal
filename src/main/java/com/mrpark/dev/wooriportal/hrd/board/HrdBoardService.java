@@ -6,6 +6,7 @@ import com.mrpark.dev.wooriportal.hrd.dto.HrdDailyAttendance;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -62,11 +63,15 @@ public class HrdBoardService {
     private volatile String lastStatus = "아직 폴링 전";
     private volatile int lastFailCount;
 
+    private final HrdCourseScheduleRepository scheduleRepo;
+
     public HrdBoardService(HrdNetClient client, HrdRequestTemplateProvider templates,
-                           com.mrpark.dev.wooriportal.hrd.session.HrdSessionStore sessionStore) {
+                           com.mrpark.dev.wooriportal.hrd.session.HrdSessionStore sessionStore,
+                           HrdCourseScheduleRepository scheduleRepo) {
         this.client = client;
         this.templates = templates;
         this.sessionStore = sessionStore;
+        this.scheduleRepo = scheduleRepo;
     }
 
     public List<HrdBoardRow> snapshot() {
@@ -129,7 +134,7 @@ public class HrdBoardService {
         }
         lastRefreshAt = Instant.now();
         lastFailCount = fail;
-        int presentSum = results.stream().mapToInt(HrdDailyAttendance::getPresent).sum();
+        int presentSum = snapshot.stream().mapToInt(HrdBoardRow::getPresent).sum();
         lastStatus = String.format("성공 %d과정 / 실패 %d / 출석 %d명", results.size(), fail, presentSum);
         log.info("전광판 갱신: {}", lastStatus);
         broadcast();
@@ -151,14 +156,72 @@ public class HrdBoardService {
         return m;
     }
 
-    /** 진행중 과정 먼저, 전원 퇴실(종료) 과정은 뒤로. */
+    /** 규칙 판정 + 강의요일 적용 후 정렬: 강의일·진행중 먼저, 비강의일/전원퇴실은 뒤로. */
     private List<HrdBoardRow> sortForBoard(List<HrdDailyAttendance> results) {
-        return results.stream()
-                .sorted(Comparator
-                        .comparing(HrdDailyAttendance::isAllCheckedOut)              // false(진행중) 먼저
-                        .thenComparing(a -> -a.getPresent()))                        // 출석 많은 순
-                .map(HrdBoardRow::new)
-                .toList();
+        Map<String, List<Integer>> schedules = loadSchedules();
+        int todayDow = LocalDate.now().getDayOfWeek().getValue(); // 1=월..7=일
+        LocalTime now = LocalTime.now();
+
+        List<HrdBoardRow> rows = new ArrayList<>();
+        for (HrdDailyAttendance a : results) {
+            String id = a.getCourse() != null ? a.getCourse().getTracseId() : null;
+            String tme = a.getCourse() != null ? a.getCourse().getTracseTme() : null;
+            List<Integer> days = schedules.get(HrdCourseScheduleEntity.key(id, tme));
+            // 스케줄 미설정 = 매일 강의로 간주(classDay=true). 설정됐으면 오늘 요일 포함 여부.
+            boolean classDay = (days == null || days.isEmpty()) || days.contains(todayDow);
+            rows.add(new HrdBoardRow(a, classDay, now, days != null ? days : List.of()));
+        }
+        rows.sort(Comparator
+                .comparing(HrdBoardRow::isClassDay).reversed()        // 강의일 먼저
+                .thenComparing(HrdBoardRow::isAllCheckedOut)          // 진행중 먼저
+                .thenComparing(r -> -(r.getPresent() + r.getLate()))); // 출석 많은 순
+        return rows;
+    }
+
+    private Map<String, List<Integer>> loadSchedules() {
+        Map<String, List<Integer>> map = new LinkedHashMap<>();
+        for (HrdCourseScheduleEntity e : scheduleRepo.findAll()) {
+            map.put(e.getCourseKey(), parseDays(e.getDaysOfWeek()));
+        }
+        return map;
+    }
+
+    static List<Integer> parseDays(String csv) {
+        List<Integer> days = new ArrayList<>();
+        if (csv == null || csv.isBlank()) {
+            return days;
+        }
+        for (String t : csv.split(",")) {
+            try {
+                int d = Integer.parseInt(t.trim());
+                if (d >= 1 && d <= 7) {
+                    days.add(d);
+                }
+            } catch (NumberFormatException ignore) {
+                // skip
+            }
+        }
+        return days;
+    }
+
+    /** 과정 강의요일 저장. days = 1~7 리스트(빈 리스트면 매일). */
+    public void saveSchedule(String tracseId, String tracseTme, List<Integer> days) {
+        String key = HrdCourseScheduleEntity.key(tracseId, tracseTme);
+        HrdCourseScheduleEntity e = scheduleRepo.findById(key).orElseGet(HrdCourseScheduleEntity::new);
+        e.setCourseKey(key);
+        e.setTracseId(tracseId);
+        e.setTracseTme(tracseTme);
+        e.setDaysOfWeek(days == null ? "" : days.stream().map(String::valueOf).reduce((x, y) -> x + "," + y).orElse(""));
+        scheduleRepo.save(e);
+        log.info("강의요일 저장: {} = {}", key, e.getDaysOfWeek());
+    }
+
+    public Map<String, String> schedules() {
+        Map<String, String> m = new LinkedHashMap<>();
+        for (HrdCourseScheduleEntity e : scheduleRepo.findAll()) {
+            m.put(e.getCourseKey(), e.getDaysOfWeek());
+        }
+        return m;
     }
 
     // ── SSE ──
