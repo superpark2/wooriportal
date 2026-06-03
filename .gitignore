@@ -35,3 +35,7 @@ out/
 
 ### VS Code ###
 .vscode/
+
+### HRD 캡처 (실 인증서/이름/주민번호 PII — git 제외, 로컬 전용) ###
+src/test/resources/hrd/*.hex
+config/hrd/*.hex
