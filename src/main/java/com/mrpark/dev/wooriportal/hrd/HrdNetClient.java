@@ -87,29 +87,65 @@ public class HrdNetClient {
                 HrdAttendanceMapper.toRoster(data));
     }
 
-    /** 상세 응답을 디코딩만 해서 원시 {@link SsvData} 로 반환(필드 매핑 디버그/확장용). */
+    /**
+     * 상세 응답을 디코딩만 해서 원시 {@link SsvData} 로 반환.
+     *
+     * <p>세션은 <b>선택</b>이다 — 실인증은 요청 템플릿의 인증서(gds_userInfo)가 하므로,
+     * 살아있는 세션이 있으면 그 쿠키를, 없으면 템플릿에 박힌 값을 그대로 쓴다.</p>
+     */
     public SsvData fetchDetailRaw(byte[] templateBody, String tracseId, String tracseTme, String traingDe) {
-        HrdSession session = sessionStore.current()
-                .orElseThrow(() -> new HrdSessionExpiredException("HRD 세션 없음 — 하베스터가 아직 쿠키를 수확하지 못함"));
+        HrdSession session = sessionStore.current().orElse(null);
 
-        byte[] body = buildDetailRequestBody(templateBody, session, tracseId, tracseTme, traingDe);
+        SsvData req = SsvDecoder.decode(templateBody);
+        String jsession;
+        String wmonid;
+        if (session != null) {
+            jsession = session.getJsessionId();
+            wmonid = session.getWmonid();
+            req.setVariable("JSESSIONID", jsession);
+            if (wmonid != null && !wmonid.isBlank()) {
+                req.setVariable("WMONID", wmonid);
+            }
+        } else {
+            jsession = req.getVariable("JSESSIONID");   // 템플릿 값 사용
+            wmonid = req.getVariable("WMONID");
+        }
+        req.setVariable("request-timestamp", LocalDateTime.now().format(TS));
+        SsvDataset cond = req.getDataset("ds_cond");
+        if (cond != null && cond.getRowCount() > 0) {
+            cond.setString(0, "tracseId", tracseId);
+            cond.setString(0, "tracseTme", tracseTme);
+            cond.setString(0, "traingDe", traingDe);
+        }
 
+        ResponseEntity<byte[]> resp = post(DETAIL_URL, DETAIL_REFERER, SsvEncoder.encode(req), jsession, wmonid);
+        byte[] respBody = resp.getBody();
+        if (!isSsv(respBody)) {
+            throw new HrdSessionExpiredException("HRD 응답이 SSV 가 아님(로그인 리다이렉트/인증 실패 추정)");
+        }
+        return SsvDecoder.decode(respBody);
+    }
+
+    private ResponseEntity<byte[]> post(String url, String referer, byte[] body, String jsession, String wmonid) {
         HttpHeaders headers = new HttpHeaders();
         headers.set("Content-Type", "application/octet-stream");
         headers.set("Accept", "*/*");
         headers.set("Cache-Control", "no-cache");
-        headers.set("Cookie", session.toCookieHeader());
-        headers.set("Referer", DETAIL_REFERER);
+        headers.set("Cookie", cookieHeader(jsession, wmonid));
+        headers.set("Referer", referer);
         headers.set("User-Agent", USER_AGENT);
+        return restTemplate.exchange(url, HttpMethod.POST, new HttpEntity<>(body, headers), byte[].class);
+    }
 
-        ResponseEntity<byte[]> resp =
-                restTemplate.exchange(DETAIL_URL, HttpMethod.POST, new HttpEntity<>(body, headers), byte[].class);
-
-        byte[] respBody = resp.getBody();
-        if (!isSsv(respBody)) {
-            throw new HrdSessionExpiredException("HRD 응답이 SSV 가 아님(로그인 리다이렉트 추정) — 세션 갱신 필요");
+    private static String cookieHeader(String jsession, String wmonid) {
+        StringBuilder sb = new StringBuilder("gv_ssoFlag=; ");
+        if (wmonid != null && !wmonid.isBlank()) {
+            sb.append("WMONID=").append(wmonid).append("; ");
         }
-        return SsvDecoder.decode(respBody);
+        if (jsession != null && !jsession.isBlank()) {
+            sb.append("JSESSIONID=").append(jsession).append(";");
+        }
+        return sb.toString();
     }
 
     private static boolean isSsv(byte[] body) {
