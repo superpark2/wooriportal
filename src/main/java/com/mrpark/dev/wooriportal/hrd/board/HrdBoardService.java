@@ -47,6 +47,10 @@ public class HrdBoardService {
     @Value("${hrd.board.discover-minutes:10}")
     private long discoverMinutes;
 
+    /** 폴링 ON/OFF 스위치(전광판 좌상단 버튼). OFF 면 HRD 호출 안 함. */
+    @Value("${hrd.board.enabled:true}")
+    private volatile boolean enabled;
+
     private volatile List<HrdBoardRow> snapshot = List.of();
     private final List<SseEmitter> emitters = new CopyOnWriteArrayList<>();
 
@@ -69,8 +73,25 @@ public class HrdBoardService {
         return snapshot;
     }
 
-    /** 폴러가 주기적으로 호출. 세션/템플릿 없으면 조용히 패스. */
+    public boolean isEnabled() {
+        return enabled;
+    }
+
+    /** 폴링 ON/OFF. OFF 로 끄면 다음 틱부터 HRD 호출 중단(전광판은 마지막 스냅샷 유지). */
+    public void setEnabled(boolean on) {
+        this.enabled = on;
+        log.info("전광판 폴링 {}", on ? "ON" : "OFF");
+        if (!on) {
+            lastStatus = "중지됨(OFF)";
+        }
+        broadcastState();
+    }
+
+    /** 폴러가 주기적으로 호출. OFF/세션·템플릿 없으면 조용히 패스. */
     public void refresh() {
+        if (!enabled) {
+            return; // 폴링 OFF
+        }
         Optional<byte[]> template = templates.detailTemplate();
         if (template.isEmpty()) {
             lastStatus = "요청 템플릿 없음(config/hrd 배치 또는 하베스터 주입 필요)";
@@ -117,6 +138,7 @@ public class HrdBoardService {
     /** 로그인 없이 폴 결과를 확인하는 진단 정보. */
     public Map<String, Object> status() {
         Map<String, Object> m = new LinkedHashMap<>();
+        m.put("enabled", enabled);
         m.put("courseCount", snapshot.size());
         m.put("lastStatus", lastStatus);
         m.put("lastFailCount", lastFailCount);
@@ -147,6 +169,7 @@ public class HrdBoardService {
         emitter.onCompletion(() -> emitters.remove(emitter));
         emitter.onTimeout(() -> emitters.remove(emitter));
         try {
+            emitter.send(SseEmitter.event().name("state").data(Map.of("enabled", enabled)));
             emitter.send(SseEmitter.event().name("snapshot").data(snapshot));
         } catch (IOException e) {
             emitters.remove(emitter);
@@ -158,6 +181,17 @@ public class HrdBoardService {
         for (SseEmitter emitter : emitters) {
             try {
                 emitter.send(SseEmitter.event().name("snapshot").data(snapshot));
+            } catch (Exception e) {
+                emitter.complete();
+                emitters.remove(emitter);
+            }
+        }
+    }
+
+    private void broadcastState() {
+        for (SseEmitter emitter : emitters) {
+            try {
+                emitter.send(SseEmitter.event().name("state").data(Map.of("enabled", enabled)));
             } catch (Exception e) {
                 emitter.complete();
                 emitters.remove(emitter);

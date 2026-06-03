@@ -20,8 +20,18 @@
             display: flex; align-items: center; justify-content: space-between; gap: 20px;
             margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
         }
-        .brand { display: flex; align-items: baseline; gap: 14px; }
+        .brand { display: flex; align-items: center; gap: 14px; }
         .brand h1 { font-size: 26px; letter-spacing: 3px; font-weight: 800; }
+        .power { cursor: pointer; font-weight: 800; font-size: 13px; padding: 8px 16px; border-radius: 999px;
+            border: 1px solid; letter-spacing: 1px; white-space: nowrap; transition: filter .15s; }
+        .power:hover { filter: brightness(1.1); }
+        .power.on  { background: rgba(52,211,153,.16); color: var(--green); border-color: rgba(52,211,153,.55); }
+        .power.off { background: rgba(248,113,113,.16); color: var(--red); border-color: rgba(248,113,113,.55); }
+        #pausedBanner { display: none; text-align: center; padding: 22px; margin-bottom: 16px;
+            color: var(--amber); font-size: 17px; font-weight: 600; border: 1px dashed rgba(251,191,36,.5);
+            border-radius: 14px; background: rgba(251,191,36,.06); }
+        body.paused #board > .card { opacity: .35; filter: grayscale(.7); }
+        body.paused #pausedBanner { display: block; }
         .brand .date { font-size: 14px; color: var(--dim); letter-spacing: 1px; }
         .hgroup { display: flex; align-items: center; gap: 26px; }
         .summary { display: flex; gap: 20px; }
@@ -89,6 +99,7 @@
 <body>
 <header>
     <div class="brand">
+        <button id="powerBtn" class="power on" onclick="togglePower()" title="전광판 실시간 갱신 켜기/끄기">● 가동중</button>
         <h1>실시간 출결 전광판</h1>
         <span class="date" id="today"></span>
     </div>
@@ -107,6 +118,7 @@
     </div>
 </header>
 
+<div id="pausedBanner">⏸ 전광판이 정지되었습니다 — 좌측 상단 <b>[정지]</b> 버튼을 눌러 재가동하세요. (현재 화면은 마지막 데이터)</div>
 <div id="board" class="grid"></div>
 
 <script th:inline="javascript">
@@ -116,6 +128,22 @@
     function setStatus(cls, text) {
         document.getElementById('status-dot').className = 'dot ' + cls;
         document.getElementById('status-text').textContent = text;
+    }
+
+    let boardEnabled = true;
+    function renderPower(on) {
+        boardEnabled = on;
+        const b = document.getElementById('powerBtn');
+        b.className = 'power ' + (on ? 'on' : 'off');
+        b.textContent = on ? '● 가동중' : '⏸ 정지';
+        document.body.classList.toggle('paused', !on);
+    }
+    function togglePower() {
+        const next = !boardEnabled;
+        renderPower(next); // 즉시 반영
+        fetch('/coolapi/hrd/board/power?on=' + next, { method: 'POST' })
+            .then(r => r.json()).then(s => renderPower(!!s.enabled))
+            .catch(() => {});
     }
     function tick() {
         const d = new Date(), p = n => String(n).padStart(2, '0');
@@ -200,13 +228,16 @@
     ];
 
     if (DEMO) {
+        renderPower(true);
         setStatus('live', '미리보기(데모)');
         fetch('/hrd/board/data?demo=1').then(r => r.json()).then(render).catch(() => render(SAMPLE));
     } else {
+        fetch('/coolapi/hrd/board/status').then(r => r.json()).then(s => renderPower(!!s.enabled)).catch(() => {});
         fetch('/hrd/board/data').then(r => r.json()).then(render).catch(() => { setStatus('off','백엔드 미연결(샘플)'); render(SAMPLE); });
         try {
             const es = new EventSource('/hrd/board/stream');
             es.addEventListener('snapshot', e => { setStatus('live', '실시간 연결됨'); render(JSON.parse(e.data)); });
+            es.addEventListener('state', e => { renderPower(!!JSON.parse(e.data).enabled); });
             es.onopen = () => setStatus('live', '실시간 연결됨');
             es.onerror = () => setStatus('off', '연결 끊김 — 재시도 중');
         } catch (e) {}
