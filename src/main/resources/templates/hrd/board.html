@@ -6,85 +6,124 @@
     <title>실시간 출결 전광판</title>
     <style>
         * { box-sizing: border-box; margin: 0; padding: 0; }
+        :root {
+            --bg: #0a0e1a; --card: #141b2e; --card2: #0f1626; --line: #233152;
+            --ink: #eaf0ff; --dim: #8294bd; --dim2: #5d6d92;
+            --green: #34d399; --amber: #fbbf24; --red: #f87171; --blue: #7aa2ff; --gray: #7e8db0;
+        }
         body {
-            background: #0b1020; color: #e8eefc; font-family: "Pretendard", "맑은 고딕", sans-serif;
-            min-height: 100vh; padding: 24px;
+            background: radial-gradient(1200px 600px at 80% -10%, #15203a 0%, var(--bg) 60%) fixed;
+            color: var(--ink); font-family: "Pretendard", "맑은 고딕", system-ui, sans-serif;
+            min-height: 100vh; padding: 22px 26px;
         }
         header {
-            display: flex; align-items: baseline; justify-content: space-between;
-            margin-bottom: 20px; border-bottom: 2px solid #1d2944; padding-bottom: 14px;
+            display: flex; align-items: center; justify-content: space-between; gap: 20px;
+            margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid var(--line);
         }
-        header h1 { font-size: 30px; letter-spacing: 2px; }
-        .meta { display: flex; gap: 18px; align-items: center; font-size: 15px; color: #9fb0d6; }
-        #clock { font-variant-numeric: tabular-nums; font-size: 22px; color: #e8eefc; }
-        .dot { width: 11px; height: 11px; border-radius: 50%; display: inline-block; margin-right: 6px; }
-        .dot.live { background: #36d399; box-shadow: 0 0 8px #36d399; }
-        .dot.wait { background: #fbbd23; }
-        .dot.off  { background: #f87272; }
+        .brand { display: flex; align-items: baseline; gap: 14px; }
+        .brand h1 { font-size: 26px; letter-spacing: 3px; font-weight: 800; }
+        .brand .date { font-size: 14px; color: var(--dim); letter-spacing: 1px; }
+        .hgroup { display: flex; align-items: center; gap: 26px; }
+        .summary { display: flex; gap: 20px; }
+        .summary .s { text-align: center; }
+        .summary .s .v { font-size: 24px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+        .summary .s .k { font-size: 11px; color: var(--dim); margin-top: 3px; letter-spacing: 1px; }
+        .summary .s.present .v { color: var(--green); }
+        .summary .s.wait .v { color: var(--gray); }
+        .meta { display: flex; align-items: center; gap: 14px; }
+        #clock { font-size: 26px; font-variant-numeric: tabular-nums; font-weight: 700; }
+        .dot { width: 10px; height: 10px; border-radius: 50%; display: inline-block; margin-right: 6px; vertical-align: middle; }
+        .dot.live { background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .dot.wait { background: var(--amber); }
+        .dot.off  { background: var(--red); }
+        .status-txt { font-size: 12px; color: var(--dim); }
 
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(360px, 1fr)); gap: 18px; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(380px, 1fr)); gap: 16px; }
         .card {
-            background: #131c33; border: 1px solid #223153; border-radius: 14px; padding: 18px 20px;
-            display: flex; flex-direction: column; gap: 12px;
+            background: linear-gradient(180deg, var(--card) 0%, var(--card2) 100%);
+            border: 1px solid var(--line); border-left: 4px solid var(--gray); border-radius: 16px;
+            padding: 16px 18px 14px; display: flex; flex-direction: column; gap: 11px; position: relative;
         }
-        .card.done { opacity: .5; }
-        .card .title { font-size: 21px; font-weight: 700; line-height: 1.3; }
-        .card .sub { font-size: 13px; color: #9fb0d6; display: flex; flex-wrap: wrap; gap: 4px 14px; }
-        .counts { display: flex; gap: 10px; }
-        .pill { flex: 1; text-align: center; border-radius: 10px; padding: 8px 4px; background: #0e1730; }
-        .pill .n { font-size: 26px; font-weight: 800; font-variant-numeric: tabular-nums; }
-        .pill .l { font-size: 12px; color: #9fb0d6; }
-        .pill.present .n { color: #36d399; }
-        .pill.late .n    { color: #fbbd23; }
-        .pill.absent .n  { color: #f87272; }
-        .pill.wait .n    { color: #8aa0cc; }
-        .pill.out .n     { color: #7aa2ff; }
+        .card.active { border-left-color: var(--green); }
+        .card.done { opacity: .52; border-left-color: var(--blue); }
+        .card .head { display: flex; justify-content: space-between; align-items: flex-start; gap: 10px; }
+        .card .title { font-size: 19px; font-weight: 700; line-height: 1.32; }
+        .card .badge { flex-shrink: 0; font-size: 11px; font-weight: 700; padding: 3px 9px; border-radius: 999px;
+            background: rgba(122,162,255,.14); color: var(--blue); border: 1px solid rgba(122,162,255,.3); white-space: nowrap; }
+        .card .badge.done { background: rgba(122,162,255,.14); }
+        .card .sub { font-size: 12.5px; color: var(--dim); display: flex; flex-wrap: wrap; gap: 3px 14px; }
 
-        .people { display: flex; flex-wrap: wrap; gap: 6px; }
-        .chip {
-            font-size: 13px; padding: 4px 9px; border-radius: 999px; background: #1b2745; border: 1px solid #2b3c64;
-        }
-        .chip.s_present { border-color: #1f5e44; }
-        .chip.s_late    { border-color: #6b5318; }
-        .chip.s_absent  { border-color: #6b2a2a; color: #ffb4b4; }
-        .chip.s_wait    { border-color: #33405f; color: #8aa0cc; opacity: .8; }
-        .chip.s_out     { opacity: .55; text-decoration: line-through; }
-        .chip .ty { color: #8aa0cc; font-size: 11px; margin-left: 4px; }
-        .chip .tm { color: #6f80a6; font-size: 11px; margin-left: 5px; font-variant-numeric: tabular-nums; }
-        .empty { color: #6f80a6; text-align: center; padding: 60px; font-size: 18px; }
-        .done-badge { font-size: 12px; color: #7aa2ff; border: 1px solid #2b3c64; border-radius: 6px; padding: 2px 7px; }
+        .bar { height: 7px; border-radius: 4px; background: #0b1322; overflow: hidden; display: flex; }
+        .bar > span { height: 100%; }
+        .bar .b-present { background: var(--green); }
+        .bar .b-late { background: var(--amber); }
+        .bar .b-absent { background: var(--red); }
+        .rate { font-size: 12px; color: var(--dim); display: flex; justify-content: space-between; }
+        .rate b { color: var(--ink); }
+
+        .counts { display: flex; gap: 8px; }
+        .pill { flex: 1; text-align: center; border-radius: 11px; padding: 7px 2px; background: #0c1424; border: 1px solid #1b2643; }
+        .pill .n { font-size: 23px; font-weight: 800; font-variant-numeric: tabular-nums; line-height: 1; }
+        .pill .l { font-size: 11px; color: var(--dim); margin-top: 4px; }
+        .pill.present .n { color: var(--green); }
+        .pill.late .n    { color: var(--amber); }
+        .pill.absent .n  { color: var(--red); }
+        .pill.wait .n    { color: var(--gray); }
+        .pill.out .n     { color: var(--blue); }
+
+        .people { display: flex; flex-wrap: wrap; gap: 5px; }
+        .chip { font-size: 12.5px; padding: 3px 9px; border-radius: 999px; background: #16203a; border: 1px solid #263656; display: inline-flex; align-items: center; gap: 5px; }
+        .chip .ty { color: var(--dim2); font-size: 10.5px; }
+        .chip .tm { color: var(--dim2); font-size: 10.5px; font-variant-numeric: tabular-nums; }
+        .chip.s_present { border-color: rgba(52,211,153,.5); }
+        .chip.s_late    { border-color: rgba(251,191,36,.5); }
+        .chip.s_absent  { border-color: rgba(248,113,113,.5); color: #ffc4c4; }
+        .chip.s_wait    { border-color: #263656; color: var(--dim); opacity: .85; }
+        .chip.s_out     { opacity: .5; }
+        .chip.s_out .nm { text-decoration: line-through; }
+
+        .empty { grid-column: 1/-1; color: var(--dim2); text-align: center; padding: 70px; font-size: 18px; }
+        @media (max-width: 700px) { .summary { display: none; } }
     </style>
 </head>
 <body>
 <header>
-    <h1>실시간 출결 전광판</h1>
-    <div class="meta">
-        <span><span id="status-dot" class="dot wait"></span><span id="status-text">연결 대기</span></span>
-        <span id="clock">--:--:--</span>
+    <div class="brand">
+        <h1>실시간 출결 전광판</h1>
+        <span class="date" id="today"></span>
+    </div>
+    <div class="hgroup">
+        <div class="summary">
+            <div class="s"><div class="v" id="sumTotal">0</div><div class="k">재적</div></div>
+            <div class="s present"><div class="v" id="sumPresent">0</div><div class="k">출석</div></div>
+            <div class="s"><div class="v" id="sumLate">0</div><div class="k">지각</div></div>
+            <div class="s"><div class="v" id="sumAbsent">0</div><div class="k">결석</div></div>
+            <div class="s wait"><div class="v" id="sumWait">0</div><div class="k">미입력</div></div>
+        </div>
+        <div class="meta">
+            <span><span id="status-dot" class="dot wait"></span><span class="status-txt" id="status-text">연결 대기</span></span>
+            <span id="clock">--:--:--</span>
+        </div>
     </div>
 </header>
 
 <div id="board" class="grid"></div>
-<div id="empty" class="empty">데이터 대기 중… (HRD 세션·템플릿·과정 설정 확인)</div>
 
 <script th:inline="javascript">
     const DEMO = /*[[${demo}]]*/ false;
     const board = document.getElementById('board');
-    const emptyEl = document.getElementById('empty');
-    const statusDot = document.getElementById('status-dot');
-    const statusText = document.getElementById('status-text');
 
     function setStatus(cls, text) {
-        statusDot.className = 'dot ' + cls;
-        statusText.textContent = text;
+        document.getElementById('status-dot').className = 'dot ' + cls;
+        document.getElementById('status-text').textContent = text;
     }
-
-    function clock() {
-        const d = new Date();
-        const p = n => String(n).padStart(2, '0');
+    function tick() {
+        const d = new Date(), p = n => String(n).padStart(2, '0');
         document.getElementById('clock').textContent = `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+        const wd = ['일','월','화','수','목','금','토'][d.getDay()];
+        document.getElementById('today').textContent = `${d.getFullYear()}.${p(d.getMonth()+1)}.${p(d.getDate())} (${wd})`;
     }
-    setInterval(clock, 1000); clock();
+    setInterval(tick, 1000); tick();
 
     function statusClass(s) {
         if (!s || s === '-') return 's_wait';
@@ -93,44 +132,58 @@
         if (s.includes('결석')) return 's_absent';
         return 's_wait';
     }
-
-    function fmtTime(hhmm) {
-        if (!hhmm || hhmm.length !== 4) return '';
-        return hhmm.slice(0, 2) + ':' + hhmm.slice(2);
-    }
+    function fmtTime(hhmm) { return (hhmm && hhmm.length === 4) ? hhmm.slice(0,2) + ':' + hhmm.slice(2) : ''; }
 
     function render(rows) {
         if (!rows || rows.length === 0) {
-            board.innerHTML = '';
-            emptyEl.style.display = 'block';
+            board.innerHTML = '<div class="empty">데이터 대기 중… (오늘 진행 과정 / 출결 입력 확인)</div>';
+            ['Total','Present','Late','Absent','Wait'].forEach(k => document.getElementById('sum'+k).textContent = '0');
             return;
         }
-        emptyEl.style.display = 'none';
+        let st = 0, sp = 0, sl = 0, sa = 0, sw = 0;
         board.innerHTML = rows.map(r => {
+            st += r.total; sp += r.present; sl += r.late; sa += r.absent; sw += r.waiting;
+            const pct = n => r.total ? (n / r.total * 100).toFixed(1) : 0;
+            const attended = r.present + r.late;
+            const rate = r.total ? Math.round(attended / r.total * 100) : 0;
             const people = (r.attendees || []).map(a => {
                 const cls = a.checkedOut ? 's_out' : statusClass(a.status);
                 const label = (!a.status || a.status === '-') ? '미입력' : a.status;
                 const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
-                const times = (inT || outT) ? `<span class="tm">${inT ? '입 ' + inT : ''}${outT ? ' · 퇴 ' + outT : ''}</span>` : '';
-                return `<span class="chip ${cls}">${a.name || '?'}<span class="ty">${a.type || ''} · ${label}</span>${times}</span>`;
+                const times = (inT || outT) ? `<span class="tm">${inT ? '입'+inT : ''}${outT ? ' 퇴'+outT : ''}</span>` : '';
+                return `<span class="chip ${cls}"><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${times}</span>`;
             }).join('');
+            const cardCls = r.allCheckedOut ? 'done' : (attended > 0 ? 'active' : '');
             return `
-            <div class="card ${r.allCheckedOut ? 'done' : ''}">
-                <div class="title">${r.courseName || '(과정명 없음)'} ${r.allCheckedOut ? '<span class="done-badge">전원 퇴실</span>' : ''}</div>
+            <div class="card ${cardCls}">
+                <div class="head">
+                    <div class="title">${r.courseName || '(과정명 없음)'}</div>
+                    ${r.allCheckedOut ? '<span class="badge done">전원 퇴실</span>' : ''}
+                </div>
                 <div class="sub"><span>${r.period || ''}</span><span>${r.time || ''}</span></div>
+                <div class="bar">
+                    <span class="b-present" style="width:${pct(r.present)}%"></span>
+                    <span class="b-late" style="width:${pct(r.late)}%"></span>
+                    <span class="b-absent" style="width:${pct(r.absent)}%"></span>
+                </div>
+                <div class="rate"><span>출석률 <b>${rate}%</b></span><span>${attended}/${r.total}명</span></div>
                 <div class="counts">
                     <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
                     <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
                     <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
                     <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미입력</div></div>
-                    <div class="pill out"><div class="n">${r.checkedOut}/${r.total}</div><div class="l">퇴실</div></div>
+                    <div class="pill out"><div class="n">${r.checkedOut}</div><div class="l">퇴실</div></div>
                 </div>
                 <div class="people">${people}</div>
             </div>`;
         }).join('');
+        document.getElementById('sumTotal').textContent = st;
+        document.getElementById('sumPresent').textContent = sp;
+        document.getElementById('sumLate').textContent = sl;
+        document.getElementById('sumAbsent').textContent = sa;
+        document.getElementById('sumWait').textContent = sw;
     }
 
-    // 백엔드 미연결(정적 미리보기)에서도 화면을 볼 수 있는 샘플
     const SAMPLE = [
         {courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
          present:2, late:1, absent:1, waiting:0, checkedOut:0, total:4, allCheckedOut:false,
@@ -150,14 +203,13 @@
         setStatus('live', '미리보기(데모)');
         fetch('/hrd/board/data?demo=1').then(r => r.json()).then(render).catch(() => render(SAMPLE));
     } else {
-        // 초기 1회 + SSE 실시간. 백엔드 미연결이면 샘플로 화면 확인.
         fetch('/hrd/board/data').then(r => r.json()).then(render).catch(() => { setStatus('off','백엔드 미연결(샘플)'); render(SAMPLE); });
         try {
             const es = new EventSource('/hrd/board/stream');
             es.addEventListener('snapshot', e => { setStatus('live', '실시간 연결됨'); render(JSON.parse(e.data)); });
             es.onopen = () => setStatus('live', '실시간 연결됨');
             es.onerror = () => setStatus('off', '연결 끊김 — 재시도 중');
-        } catch (e) { /* 정적 미리보기 */ }
+        } catch (e) {}
     }
 </script>
 </body>
