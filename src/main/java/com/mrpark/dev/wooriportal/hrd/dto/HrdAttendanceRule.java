@@ -69,7 +69,10 @@ public final class HrdAttendanceRule {
         return nowMin(now) <= half ? WAITING : ABSENT;
     }
 
-    /** 퇴실 상태(퇴실/조퇴/미퇴실/null). null = 아직 수업중 등 표기 불필요. */
+    /**
+     * 퇴실 상태(퇴실/조퇴/미퇴실/null). null = 아직 수업중 등 표기 불필요.
+     * 종료 {@value #GRACE_MIN}분 전(end-10)부터 정상 퇴실 인정, 그 전 퇴실은 조퇴.
+     */
     public static String evaluateCheckout(boolean classDay, String levromHHmm, String endHHmm, LocalTime now) {
         if (!classDay) {
             return null;
@@ -77,7 +80,7 @@ public final class HrdAttendanceRule {
         Integer end = toMin(endHHmm);
         if (notBlank(levromHHmm)) {
             Integer t = toMin(levromHHmm);
-            if (end != null && t != null && t < end) {
+            if (end != null && t != null && t < end - GRACE_MIN) {
                 return EARLY_LEAVE;
             }
             return CHECKOUT_DONE;

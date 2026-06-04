@@ -71,9 +71,11 @@ class HrdAttendanceRuleTest {
 
     @Test
     void checkout() {
-        // 18:00 종료
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1730", "1800", LocalTime.of(17, 35)))
-                .isEqualTo(HrdAttendanceRule.EARLY_LEAVE);            // 조퇴
+        // 18:00 종료, 종료 10분전(17:50)부터 정상 퇴실
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1749", "1800", LocalTime.of(17, 55)))
+                .isEqualTo(HrdAttendanceRule.EARLY_LEAVE);            // 17:49 < 17:50 → 조퇴
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1750", "1800", LocalTime.of(17, 55)))
+                .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);          // 17:50 → 정상
         assertThat(HrdAttendanceRule.evaluateCheckout(true, "1800", "1800", LocalTime.of(18, 5)))
                 .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);          // 정상
         assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30)))
