@@ -112,12 +112,15 @@
             display: inline-flex; align-items: center; gap: 5px; }
         .chip .ty { color: var(--dim2); font-size: 10.5px; }
         .chip .tm { color: var(--dim2); font-size: 10.5px; font-variant-numeric: tabular-nums; }
-        .chip.s_present { border-color: color-mix(in srgb, var(--green) 55%, transparent); }
-        .chip.s_late { border-color: color-mix(in srgb, var(--amber) 55%, transparent); }
-        .chip.s_absent { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
+        .chip { border-width: 1.5px; }
+        .chip.s_present { border-color: var(--green); }
+        .chip.s_present .nm { color: var(--green); }
+        .chip.s_late { border-color: var(--amber); }
+        .chip.s_late .nm { color: var(--amber); }
+        .chip.s_absent { border-color: var(--red); }
         .chip.s_absent .nm { color: var(--red); }
-        .chip.s_wait { color: var(--dim); opacity: .9; }
-        .chip.s_dropped { border-style: dashed; opacity: .6; }
+        .chip.s_wait { border-color: var(--gray); color: var(--dim); }
+        .chip.s_dropped { border-style: dashed; border-color: var(--dim2); opacity: .65; }
         .chip.s_dropped .nm { text-decoration: line-through; color: var(--dim2); }
         .chip.s_out { opacity: .55; }
         .chip.s_out .nm { text-decoration: line-through; }
@@ -348,11 +351,11 @@
     }
 
     function statusClass(s) {
-        if (!s || s === '-') return 's_wait';
+        if (!s || s === '-' || s.includes('미출석')) return 's_wait'; // '미출석'.includes('출석') 주의 → 먼저 처리
         if (s.includes('탈락')) return 's_dropped';
-        if (s.includes('출석')) return 's_present';
         if (s.includes('지각')) return 's_late';
         if (s.includes('결석')) return 's_absent';
+        if (s.includes('출석')) return 's_present';
         return 's_wait';
     }
     function fmtTime(hhmm) { return (hhmm && hhmm.length === 4) ? hhmm.slice(0,2) + ':' + hhmm.slice(2) : ''; }
