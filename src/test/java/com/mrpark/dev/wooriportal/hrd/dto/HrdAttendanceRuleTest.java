@@ -71,16 +71,28 @@ class HrdAttendanceRuleTest {
 
     @Test
     void checkout() {
+        String P = HrdAttendanceRule.PRESENT;
         // 18:00 종료, 종료 10분전(17:50)부터 정상 퇴실
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1749", "1800", LocalTime.of(17, 55)))
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1749", "1800", LocalTime.of(17, 55), P))
                 .isEqualTo(HrdAttendanceRule.EARLY_LEAVE);            // 17:49 < 17:50 → 조퇴
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1750", "1800", LocalTime.of(17, 55)))
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1750", "1800", LocalTime.of(17, 55), P))
                 .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);          // 17:50 → 정상
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1800", "1800", LocalTime.of(18, 5)))
-                .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);          // 정상
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30)))
-                .isEqualTo(HrdAttendanceRule.NOT_CHECKED_OUT);        // 미퇴실
-        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(15, 0)))
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1800", "1800", LocalTime.of(18, 5), P))
+                .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30), P))
+                .isEqualTo(HrdAttendanceRule.NOT_CHECKED_OUT);        // 출석자 미퇴실
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(15, 0), P))
                 .isNull();                                           // 수업중
+    }
+
+    @Test
+    void absentAndDroppedNotMarkedNotCheckedOut() {
+        // 결석/미출석/중도탈락은 미퇴실(및 모든 퇴실표시) 없음
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30), HrdAttendanceRule.ABSENT))
+                .isNull();
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30), HrdAttendanceRule.WAITING))
+                .isNull();
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1700", "1800", LocalTime.of(18, 30), HrdAttendanceRule.DROPPED))
+                .isNull();
     }
 }

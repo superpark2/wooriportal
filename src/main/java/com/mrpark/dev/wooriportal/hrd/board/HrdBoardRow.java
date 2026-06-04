@@ -60,7 +60,7 @@ public class HrdBoardRow {
         for (HrdAttendee at : a.getRoster()) {
             String st = HrdAttendanceRule.evaluate(classDay, at.getCheckInTime(), begin, end, now, at.getTrneeSttusNm(), lunchMinutes);
             at.setComputedStatus(st);
-            String co = HrdAttendanceRule.evaluateCheckout(classDay, at.getCheckOutTime(), end, now);
+            String co = HrdAttendanceRule.evaluateCheckout(classDay, at.getCheckOutTime(), end, now, st);
             at.setCheckoutStatus(co);
 
             switch (st) {
@@ -89,8 +89,9 @@ public class HrdBoardRow {
         this.checkedOut = out;
         this.earlyLeave = early;
         this.notCheckedOut = noOut;
-        int active = total - drop;
-        this.allCheckedOut = active > 0 && out >= active;
+        // 전원 퇴실 = 실제 출석한(출석+지각) 사람이 모두 퇴실 (결석/중도탈락 제외)
+        int attendedCnt = p + l;
+        this.allCheckedOut = attendedCnt > 0 && out >= attendedCnt;
         this.attendees = list;
     }
 
