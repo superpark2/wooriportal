@@ -6,6 +6,7 @@ import com.mrpark.dev.wooriportal.hrd.dto.HrdDailyAttendance;
 import java.io.IOException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -156,9 +157,9 @@ public class HrdBoardService {
         return m;
     }
 
-    /** 규칙 판정 + 강의요일 적용 후 정렬: 강의일·진행중 먼저, 비강의일/전원퇴실은 뒤로. */
+    /** 규칙 판정 + 강의요일/특이사항 적용 후 정렬: 강의일·진행중 먼저, 비강의일/전원퇴실은 뒤로. */
     private List<HrdBoardRow> sortForBoard(List<HrdDailyAttendance> results) {
-        Map<String, List<Integer>> schedules = loadSchedules();
+        Map<String, HrdCourseScheduleEntity> schedules = loadSchedules();
         int todayDow = LocalDate.now().getDayOfWeek().getValue(); // 1=월..7=일
         LocalTime now = LocalTime.now();
 
@@ -166,10 +167,11 @@ public class HrdBoardService {
         for (HrdDailyAttendance a : results) {
             String id = a.getCourse() != null ? a.getCourse().getTracseId() : null;
             String tme = a.getCourse() != null ? a.getCourse().getTracseTme() : null;
-            List<Integer> days = schedules.get(HrdCourseScheduleEntity.key(id, tme));
-            // 스케줄 미설정 = 매일 강의로 간주(classDay=true). 설정됐으면 오늘 요일 포함 여부.
-            boolean classDay = (days == null || days.isEmpty()) || days.contains(todayDow);
-            rows.add(new HrdBoardRow(a, classDay, now, days != null ? days : List.of()));
+            HrdCourseScheduleEntity sch = schedules.get(HrdCourseScheduleEntity.key(id, tme));
+            List<Integer> days = sch != null ? parseDays(sch.getDaysOfWeek()) : List.of();
+            String notes = sch != null ? sch.getNotes() : null;
+            boolean classDay = days.isEmpty() || days.contains(todayDow);
+            rows.add(new HrdBoardRow(a, classDay, now, days, notes));
         }
         rows.sort(Comparator
                 .comparing(HrdBoardRow::isClassDay).reversed()        // 강의일 먼저
@@ -178,10 +180,10 @@ public class HrdBoardService {
         return rows;
     }
 
-    private Map<String, List<Integer>> loadSchedules() {
-        Map<String, List<Integer>> map = new LinkedHashMap<>();
+    private Map<String, HrdCourseScheduleEntity> loadSchedules() {
+        Map<String, HrdCourseScheduleEntity> map = new LinkedHashMap<>();
         for (HrdCourseScheduleEntity e : scheduleRepo.findAll()) {
-            map.put(e.getCourseKey(), parseDays(e.getDaysOfWeek()));
+            map.put(e.getCourseKey(), e);
         }
         return map;
     }
@@ -204,16 +206,30 @@ public class HrdBoardService {
         return days;
     }
 
-    /** 과정 강의요일 저장. days = 1~7 리스트(빈 리스트면 매일). */
-    public void saveSchedule(String tracseId, String tracseTme, List<Integer> days) {
+    private HrdCourseScheduleEntity upsert(String tracseId, String tracseTme) {
         String key = HrdCourseScheduleEntity.key(tracseId, tracseTme);
         HrdCourseScheduleEntity e = scheduleRepo.findById(key).orElseGet(HrdCourseScheduleEntity::new);
         e.setCourseKey(key);
         e.setTracseId(tracseId);
         e.setTracseTme(tracseTme);
+        e.setLastSeenAt(LocalDateTime.now());
+        return e;
+    }
+
+    /** 과정 강의요일 저장(전체 공유). days = 1~7 리스트(빈 리스트면 매일). */
+    public void saveSchedule(String tracseId, String tracseTme, List<Integer> days) {
+        HrdCourseScheduleEntity e = upsert(tracseId, tracseTme);
         e.setDaysOfWeek(days == null ? "" : days.stream().map(String::valueOf).reduce((x, y) -> x + "," + y).orElse(""));
         scheduleRepo.save(e);
-        log.info("강의요일 저장: {} = {}", key, e.getDaysOfWeek());
+        log.info("강의요일 저장: {} = {}", e.getCourseKey(), e.getDaysOfWeek());
+    }
+
+    /** 과정 특이사항 저장(전체 공유). */
+    public void saveNote(String tracseId, String tracseTme, String note) {
+        HrdCourseScheduleEntity e = upsert(tracseId, tracseTme);
+        e.setNotes(note == null ? "" : note.trim());
+        scheduleRepo.save(e);
+        log.info("특이사항 저장: {}", e.getCourseKey());
     }
 
     public Map<String, String> schedules() {
@@ -222,6 +238,39 @@ public class HrdBoardService {
             m.put(e.getCourseKey(), e.getDaysOfWeek());
         }
         return m;
+    }
+
+    /** 활성 과정의 종료일/최종확인 갱신(자동삭제 기준). 설정 행이 있는 과정만. */
+    private void touchSchedules(List<com.mrpark.dev.wooriportal.hrd.dto.HrdCourse> courses) {
+        for (var c : courses) {
+            String key = HrdCourseScheduleEntity.key(c.getTracseId(), c.getTracseTme());
+            scheduleRepo.findById(key).ifPresent(e -> {
+                e.setTracseEndDe(c.getTracseEndDe());
+                e.setLastSeenAt(LocalDateTime.now());
+                scheduleRepo.save(e);
+            });
+        }
+    }
+
+    /** 끝난 과정 설정 자동 삭제: 종료일+7일 경과 또는 14일간 미확인. 매일 03:10. */
+    @org.springframework.scheduling.annotation.Scheduled(cron = "0 10 3 * * *")
+    public void cleanupEndedSchedules() {
+        String cutoff = LocalDate.now().minusDays(7).format(YMD);
+        LocalDateTime stale = LocalDateTime.now().minusDays(14);
+        List<HrdCourseScheduleEntity> all = scheduleRepo.findAll();
+        List<HrdCourseScheduleEntity> toDelete = new ArrayList<>();
+        for (HrdCourseScheduleEntity e : all) {
+            boolean ended = e.getTracseEndDe() != null && e.getTracseEndDe().length() == 8
+                    && e.getTracseEndDe().compareTo(cutoff) < 0;
+            boolean unseen = e.getLastSeenAt() != null && e.getLastSeenAt().isBefore(stale);
+            if (ended || unseen) {
+                toDelete.add(e);
+            }
+        }
+        if (!toDelete.isEmpty()) {
+            scheduleRepo.deleteAll(toDelete);
+            log.info("끝난 과정 설정 {}건 자동삭제", toDelete.size());
+        }
     }
 
     // ── SSE ──
@@ -272,8 +321,9 @@ public class HrdBoardService {
                     || java.time.Duration.between(discoveredAt, Instant.now()).toMinutes() >= discoverMinutes;
             if (stale) {
                 try {
+                    var courses = client.fetchCourseList(listT.get());
                     List<CourseKey> found = new ArrayList<>();
-                    for (var c : client.fetchCourseList(listT.get())) {
+                    for (var c : courses) {
                         if (c.getTracseId() != null && c.getTracseTme() != null) {
                             found.add(new CourseKey(c.getTracseId(), c.getTracseTme()));
                         }
@@ -281,6 +331,7 @@ public class HrdBoardService {
                     if (!found.isEmpty()) {
                         discovered = found;
                         discoveredAt = Instant.now();
+                        touchSchedules(courses); // 종료일/최종확인 갱신(자동삭제 기준)
                         log.info("오늘 과정 자동탐색: {}개", found.size());
                     }
                 } catch (Exception e) {

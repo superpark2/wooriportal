@@ -61,6 +61,15 @@ public class HrdBoardDiagnosticController {
         return Map.of("ok", true);
     }
 
+    /** 과정 특이사항 저장(전체 공유). */
+    @PostMapping("/note")
+    public Map<String, Object> saveNote(@RequestParam("tracseId") String tracseId,
+                                        @RequestParam("tracseTme") String tracseTme,
+                                        @RequestParam(value = "note", required = false) String note) {
+        boardService.saveNote(tracseId, tracseTme, note);
+        return Map.of("ok", true);
+    }
+
     /** 한 과정의 출결 원시 시각/상태 컬럼을 덤프(필드 매핑 확인용, 이름 제외). */
     @GetMapping("/debug")
     public Object debug(@RequestParam String tracseId, @RequestParam String tracseTme) {

@@ -117,8 +117,20 @@
         .chip.s_absent { border-color: color-mix(in srgb, var(--red) 55%, transparent); }
         .chip.s_absent .nm { color: var(--red); }
         .chip.s_wait { color: var(--dim); opacity: .9; }
-        .chip.s_out { opacity: .5; }
+        .chip.s_dropped { border-style: dashed; opacity: .6; }
+        .chip.s_dropped .nm { text-decoration: line-through; color: var(--dim2); }
+        .chip.s_out { opacity: .55; }
         .chip.s_out .nm { text-decoration: line-through; }
+        .chip.notout { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, var(--chip)); }
+        .chip .co { font-size: 10px; font-weight: 700; }
+        .chip .co.early { color: var(--amber); }
+        .chip .co.notout { color: var(--amber); }
+        .pill.notout .n { color: var(--amber); }
+        .cmeta { font-size: 11.5px; color: var(--dim); display: flex; gap: 12px; flex-wrap: wrap; }
+        .cmeta b { color: var(--ink); }
+        .notes { font-size: 12.5px; background: color-mix(in srgb, var(--amber) 9%, transparent); color: var(--ink);
+            border: 1px solid color-mix(in srgb, var(--amber) 35%, transparent); border-radius: 9px; padding: 7px 10px; }
+        .notes .nlbl { color: var(--amber); font-weight: 700; margin-right: 5px; }
         .empty { grid-column: 1/-1; color: var(--dim2); text-align: center; padding: 70px; font-size: 18px; }
 
         /* 요일 설정 모달 */
@@ -211,6 +223,20 @@
     </div>
 </div>
 
+<div id="noteModal" class="modal" onclick="if(event.target.id==='noteModal')closeNote()">
+    <div class="modal-box">
+        <h3>특이사항 (전체 공유)</h3>
+        <div class="mc" id="noteModalTitle"></div>
+        <textarea id="noteText" rows="4" style="width:100%;border:1px solid var(--line);border-radius:9px;padding:10px;
+            font-family:inherit;font-size:14px;background:var(--pill);color:var(--ink);resize:vertical;margin-bottom:16px;"
+            placeholder="예: 오후 외부강사 특강 / 결석자 사전연락 등"></textarea>
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeNote()">취소</button>
+            <button class="btn-save" onclick="saveNote()">저장</button>
+        </div>
+    </div>
+</div>
+
 <script th:inline="javascript">
     const DEMO = /*[[${demo}]]*/ false;
     const DAYNAMES = ['', '월', '화', '수', '목', '금', '토', '일'];
@@ -283,6 +309,23 @@
         document.getElementById('dayModal').classList.add('show');
     }
     function closeDays() { document.getElementById('dayModal').classList.remove('show'); }
+
+    // ── 특이사항 모달 ──
+    let noteKey = null;
+    function openNote(key) {
+        const r = LAST_ROWS.find(x => courseKey(x) === key); if (!r) return;
+        noteKey = key;
+        document.getElementById('noteModalTitle').textContent = (r.courseName || '') + ' (' + (r.tracseTme || '') + '회차)';
+        document.getElementById('noteText').value = r.notes || '';
+        document.getElementById('noteModal').classList.add('show');
+    }
+    function closeNote() { document.getElementById('noteModal').classList.remove('show'); }
+    function saveNote() {
+        const r = LAST_ROWS.find(x => courseKey(x) === noteKey); if (!r) return closeNote();
+        const note = document.getElementById('noteText').value;
+        fetch(`/coolapi/hrd/board/note?tracseId=${encodeURIComponent(r.tracseId)}&tracseTme=${encodeURIComponent(r.tracseTme)}&note=${encodeURIComponent(note)}`, { method: 'POST' })
+            .then(() => { r.notes = note; closeNote(); render(LAST_ROWS); }).catch(() => closeNote());
+    }
     function saveDays() {
         const r = LAST_ROWS.find(x => courseKey(x) === dayModalKey); if (!r) return closeDays();
         const days = [...document.querySelectorAll('#dayModal .daychk:checked')].map(cb => +cb.value);
@@ -297,6 +340,7 @@
 
     function statusClass(s) {
         if (!s || s === '-') return 's_wait';
+        if (s.includes('탈락')) return 's_dropped';
         if (s.includes('출석')) return 's_present';
         if (s.includes('지각')) return 's_late';
         if (s.includes('결석')) return 's_absent';
@@ -311,44 +355,61 @@
 
     function cardHtml(r) {
         const noClass = !effClassDay(r);
+        const active = r.total - (r.dropped || 0);          // 중도탈락 제외 분모
         const attended = r.present + r.late;
-        const rate = r.total ? Math.round(attended / r.total * 100) : 0;
-        const pct = n => r.total ? (n / r.total * 100).toFixed(1) : 0;
+        const rate = active > 0 ? Math.round(attended / active * 100) : 0;
+        const pct = n => active > 0 ? (n / active * 100).toFixed(1) : 0;
         const people = (r.attendees || []).map(a => {
-            const cls = a.checkedOut ? 's_out' : statusClass(a.status);
+            const co = a.checkoutStatus;
+            let cls = statusClass(a.status);
+            if (a.status !== '중도탈락' && co === '퇴실') cls = 's_out';
+            if (co === '미퇴실') cls += ' notout';
             const label = (!a.status || a.status === '-') ? '미출석' : a.status;
             const inT = fmtTime(a.checkInTime), outT = fmtTime(a.checkOutTime);
-            const times = (inT || outT) ? `<span class="tm">${inT ? '입'+inT : ''}${outT ? ' 퇴'+outT : ''}</span>` : '';
-            return `<span class="chip ${cls}"><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${times}</span>`;
+            let coTag = '';
+            if (co === '조퇴') coTag = `<span class="co early">조퇴 ${outT}</span>`;
+            else if (co === '미퇴실') coTag = `<span class="co notout">미퇴실⚠</span>`;
+            else if (co === '퇴실') coTag = `<span class="tm">퇴${outT}</span>`;
+            const inTag = inT ? `<span class="tm">입${inT}</span>` : '';
+            const tip = a.telno ? ` title="${a.telno}"` : '';
+            return `<span class="chip ${cls}"${tip}><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${inTag}${coTag}</span>`;
         }).join('');
         const cardCls = noClass ? 'noclass' : (r.allCheckedOut ? 'done' : (attended > 0 ? 'active' : ''));
         const badge = noClass ? '<span class="badge noclass">오늘 강의 없음</span>'
             : (r.allCheckedOut ? '<span class="badge done">전원 퇴실</span>' : '');
         const key = courseKey(r);
+        const meta = [];
+        if (r.dropped) meta.push(`중도탈락 <b>${r.dropped}</b>`);
+        if (r.earlyLeave) meta.push(`조퇴 <b>${r.earlyLeave}</b>`);
+        meta.push(`퇴실 <b>${r.checkedOut}/${active}</b>`);
+        const notesHtml = r.notes ? `<div class="notes"><span class="nlbl">특이사항</span>${r.notes}</div>` : '';
         return `
         <div class="card ${cardCls}">
             <div class="head">
                 <div class="title">${r.courseName || '(과정명 없음)'}</div>
                 <div class="acts">
                     ${badge}
+                    <button class="icon-btn" title="특이사항" onclick="openNote('${key}')">📝</button>
                     <button class="icon-btn" title="강의요일 설정" onclick="openDays('${key}')">⚙</button>
                     <button class="icon-btn" title="접기" onclick="toggleCollapse('${key}')">▾</button>
                 </div>
             </div>
             <div class="sub"><span>${r.period || ''}</span><span>${r.time || ''}</span><span class="daysline">강의요일 <b>${daysLabel(r)}</b></span></div>
+            ${notesHtml}
             <div class="bar">
                 <span class="b-present" style="width:${pct(r.present)}%"></span>
                 <span class="b-late" style="width:${pct(r.late)}%"></span>
                 <span class="b-absent" style="width:${pct(r.absent)}%"></span>
             </div>
-            <div class="rate"><span>출석률 <b>${rate}%</b></span><span>${attended}/${r.total}명</span></div>
+            <div class="rate"><span>출석률 <b>${rate}%</b></span><span>${attended}/${active}명</span></div>
             <div class="counts">
                 <div class="pill present"><div class="n">${r.present}</div><div class="l">출석</div></div>
                 <div class="pill late"><div class="n">${r.late}</div><div class="l">지각</div></div>
                 <div class="pill absent"><div class="n">${r.absent}</div><div class="l">결석</div></div>
                 <div class="pill wait"><div class="n">${r.waiting}</div><div class="l">미출석</div></div>
-                <div class="pill out"><div class="n">${r.checkedOut}</div><div class="l">퇴실</div></div>
+                <div class="pill notout"><div class="n">${r.notCheckedOut || 0}</div><div class="l">미퇴실</div></div>
             </div>
+            <div class="cmeta">${meta.join('')}</div>
             <div class="people">${people}</div>
         </div>`;
     }
@@ -382,17 +443,21 @@
     }
 
     const SAMPLE = [
-        {tracseId:'A1', tracseTme:'17', courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'19:00~22:00(총 3시간)',
-         present:2, late:1, absent:1, waiting:0, checkedOut:0, total:4, allCheckedOut:false, classDay:true, scheduledDays:[1,2,3,4,5],
-         attendees:[{name:'강건임',type:'실업자',status:'출석',checkInTime:'1856',checkedOut:false},{name:'송유나',type:'재직자',status:'출석',checkInTime:'1902',checkedOut:false},
-                    {name:'이몽룡',type:'실업자',status:'지각',checkInTime:'1930',checkedOut:false},{name:'성춘향',type:'실업자',status:'결석',checkedOut:false}]},
+        {tracseId:'A1', tracseTme:'17', courseName:'전산회계1급 자격증', period:'2026-04-02~2026-06-05 (17회차)', time:'09:00~18:00(총 8시간)',
+         present:2, late:1, absent:1, waiting:0, dropped:1, checkedOut:1, earlyLeave:1, notCheckedOut:1, total:5, allCheckedOut:false, classDay:true, scheduledDays:[1,2,3,4,5],
+         notes:'오후 외부강사 특강(3교시)',
+         attendees:[{name:'강건임',type:'실업자',status:'출석',checkInTime:'0902',checkoutStatus:'퇴실',checkOutTime:'1800',telno:'010-1234-5678'},
+                    {name:'송유나',type:'재직자',status:'출석',checkInTime:'0905',checkoutStatus:'조퇴',checkOutTime:'1530',telno:'010-2222-3333'},
+                    {name:'이몽룡',type:'실업자',status:'지각',checkInTime:'1130',checkoutStatus:'미퇴실'},
+                    {name:'성춘향',type:'실업자',status:'결석'},
+                    {name:'변학도',type:'실업자',status:'중도탈락'}]},
         {tracseId:'A2', tracseTme:'1', courseName:'AI응용서비스개발자 과정', period:'2026-03-17~2027-01-06 (1회차)', time:'09:00~18:00(총 8시간)',
-         present:1, late:0, absent:0, waiting:3, checkedOut:0, total:4, allCheckedOut:false, classDay:true, scheduledDays:[],
-         attendees:[{name:'김초롱',type:'실업자',status:'출석',checkInTime:'0902',checkedOut:false},{name:'박두팔',type:'실업자',status:'미출석',checkedOut:false},
-                    {name:'최삼식',type:'실업자',status:'미출석',checkedOut:false},{name:'정사랑',type:'실업자',status:'미출석',checkedOut:false}]},
+         present:1, late:0, absent:0, waiting:3, dropped:0, checkedOut:0, earlyLeave:0, notCheckedOut:0, total:4, allCheckedOut:false, classDay:true, scheduledDays:[],
+         attendees:[{name:'김초롱',type:'실업자',status:'출석',checkInTime:'0902',telno:'010-9876-5432'},{name:'박두팔',type:'실업자',status:'미출석'},
+                    {name:'최삼식',type:'실업자',status:'미출석'},{name:'정사랑',type:'실업자',status:'미출석'}]},
         {tracseId:'A3', tracseTme:'8', courseName:'AWS기반 웹서비스플랫폼개발(오늘 휴강)', period:'2025-12-31~2026-06-26 (8회차)', time:'09:00~18:00',
-         present:0, late:0, absent:0, waiting:3, checkedOut:0, total:3, allCheckedOut:false, classDay:false, scheduledDays:[6],
-         attendees:[{name:'홍길동',type:'실업자',status:'미출석',checkedOut:false},{name:'임꺽정',type:'실업자',status:'미출석',checkedOut:false},{name:'장길산',type:'실업자',status:'미출석',checkedOut:false}]}
+         present:0, late:0, absent:0, waiting:3, dropped:0, checkedOut:0, earlyLeave:0, notCheckedOut:0, total:3, allCheckedOut:false, classDay:false, scheduledDays:[6],
+         attendees:[{name:'홍길동',type:'실업자',status:'미출석'},{name:'임꺽정',type:'실업자',status:'미출석'},{name:'장길산',type:'실업자',status:'미출석'}]}
     ];
 
     if (DEMO) {

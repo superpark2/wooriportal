@@ -5,59 +5,68 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.time.LocalTime;
 import org.junit.jupiter.api.Test;
 
-/** 출결 재판정 규칙 — 입실시각 기준(HRD 결석상태 무시). 09:00~18:00 강의 기준. */
+/** 출결 재판정 규칙(입실시각 기준, 점심 제외 50%, 중도탈락, 퇴실/조퇴/미퇴실). */
 class HrdAttendanceRuleTest {
 
-    private static final String BEGIN = "0900";
-    private static final String END = "1800"; // 50% 지점 = 13:30
-
-    private String eval(String checkIn, LocalTime now) {
-        return HrdAttendanceRule.evaluate(true, checkIn, BEGIN, END, now);
+    // 09:00~18:00 = 점심1h 제외 8h, 50% 지점 = 14:00
+    private String at(String checkIn, LocalTime now) {
+        return HrdAttendanceRule.evaluate(true, checkIn, "0900", "1800", now, null);
     }
 
     @Test
-    void checkInWithinGraceIsPresent() {
-        assertThat(eval("0900", LocalTime.of(9, 0))).isEqualTo(HrdAttendanceRule.PRESENT);
-        assertThat(eval("0910", LocalTime.of(9, 30))).isEqualTo(HrdAttendanceRule.PRESENT); // 유예 10분 경계
+    void withinGraceIsPresent() {
+        assertThat(at("0900", LocalTime.of(9, 0))).isEqualTo(HrdAttendanceRule.PRESENT);
+        assertThat(at("0910", LocalTime.of(9, 30))).isEqualTo(HrdAttendanceRule.PRESENT);
     }
 
     @Test
-    void checkInAfterGraceBeforeHalfIsLate() {
-        assertThat(eval("0911", LocalTime.of(9, 30))).isEqualTo(HrdAttendanceRule.LATE);
-        assertThat(eval("1330", LocalTime.of(13, 40))).isEqualTo(HrdAttendanceRule.LATE); // 50% 경계
+    void afterGraceUntilHalfIsLate() {
+        assertThat(at("0911", LocalTime.of(9, 30))).isEqualTo(HrdAttendanceRule.LATE);
+        assertThat(at("1400", LocalTime.of(14, 5))).isEqualTo(HrdAttendanceRule.LATE);   // 50% 경계(점심 제외 → 14:00)
     }
 
     @Test
-    void checkInAfterHalfIsAbsent() {
-        assertThat(eval("1400", LocalTime.of(14, 10))).isEqualTo(HrdAttendanceRule.ABSENT);
+    void afterHalfIsAbsent() {
+        assertThat(at("1401", LocalTime.of(14, 10))).isEqualTo(HrdAttendanceRule.ABSENT);
+        assertThat(at(null, LocalTime.of(14, 1))).isEqualTo(HrdAttendanceRule.ABSENT);
     }
 
     @Test
     void noCheckInBeforeHalfIsWaiting() {
-        assertThat(eval(null, LocalTime.of(11, 0))).isEqualTo(HrdAttendanceRule.WAITING);
-        assertThat(eval("", LocalTime.of(13, 30))).isEqualTo(HrdAttendanceRule.WAITING);
+        assertThat(at(null, LocalTime.of(13, 0))).isEqualTo(HrdAttendanceRule.WAITING);
     }
 
     @Test
-    void noCheckInAfterHalfIsAbsent() {
-        assertThat(eval(null, LocalTime.of(15, 0))).isEqualTo(HrdAttendanceRule.ABSENT);
-    }
-
-    @Test
-    void nonClassDayIsAlwaysWaiting() {
-        // 입실 찍혀도 강의일 아니면 미출석(결석 아님)
-        assertThat(HrdAttendanceRule.evaluate(false, "0900", BEGIN, END, LocalTime.of(9, 0)))
-                .isEqualTo(HrdAttendanceRule.WAITING);
-        assertThat(HrdAttendanceRule.evaluate(false, null, BEGIN, END, LocalTime.of(15, 0)))
-                .isEqualTo(HrdAttendanceRule.WAITING);
-    }
-
-    @Test
-    void afternoonClassGrace() {
-        // 14:00 시작이면 14:10 입실은 출석
-        assertThat(HrdAttendanceRule.evaluate(true, "1410", "1400", "1800", LocalTime.of(14, 30)))
-                .isEqualTo(HrdAttendanceRule.PRESENT);
-        assertThat(HrdAttendanceRule.evaluate(true, "1411", "1400", "1800", LocalTime.of(14, 30)))
+    void fourHourCourseNoLunch() {
+        // 09:00~13:00 (4h, 점심 없음) → 50% = 11:00
+        assertThat(HrdAttendanceRule.evaluate(true, "1059", "0900", "1300", LocalTime.of(11, 30), null))
                 .isEqualTo(HrdAttendanceRule.LATE);
+        assertThat(HrdAttendanceRule.evaluate(true, "1101", "0900", "1300", LocalTime.of(11, 30), null))
+                .isEqualTo(HrdAttendanceRule.ABSENT);
+    }
+
+    @Test
+    void droppedAlwaysDropped() {
+        assertThat(HrdAttendanceRule.evaluate(true, "0900", "0900", "1800", LocalTime.of(9, 0), "중도탈락"))
+                .isEqualTo(HrdAttendanceRule.DROPPED);
+    }
+
+    @Test
+    void nonClassDayIsWaiting() {
+        assertThat(HrdAttendanceRule.evaluate(false, "0900", "0900", "1800", LocalTime.of(9, 0), null))
+                .isEqualTo(HrdAttendanceRule.WAITING);
+    }
+
+    @Test
+    void checkout() {
+        // 18:00 종료
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1730", "1800", LocalTime.of(17, 35)))
+                .isEqualTo(HrdAttendanceRule.EARLY_LEAVE);            // 조퇴
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, "1800", "1800", LocalTime.of(18, 5)))
+                .isEqualTo(HrdAttendanceRule.CHECKOUT_DONE);          // 정상
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(18, 30)))
+                .isEqualTo(HrdAttendanceRule.NOT_CHECKED_OUT);        // 미퇴실
+        assertThat(HrdAttendanceRule.evaluateCheckout(true, null, "1800", LocalTime.of(15, 0)))
+                .isNull();                                           // 수업중
     }
 }
