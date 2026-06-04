@@ -62,6 +62,11 @@ public class JobKoreaCrawlerService {
         if (req.getEduLevel() != null && !req.getEduLevel().isBlank()) {
             sb.append("&eduLevel=").append(req.getEduLevel());
         }
+        if (req.getJobTypes() != null && !req.getJobTypes().isEmpty()) {
+            for (String t : req.getJobTypes()) {
+                sb.append("&indType=").append(t);
+            }
+        }
         return sb.toString();
     }
 

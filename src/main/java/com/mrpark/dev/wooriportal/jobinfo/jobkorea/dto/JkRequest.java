@@ -30,4 +30,7 @@ public class JkRequest {
 
     /** 학력: 0=무관, 1=고졸, 2=초대졸, 3=대졸, 4=석사, 5=박사 */
     private String eduLevel;
+
+    /** 직종 코드 목록 (indType) */
+    private List<String> jobTypes;
 }

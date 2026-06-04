@@ -201,19 +201,41 @@
       </div>
     </div>
 
-    <!-- 직종 -->
-    <div class="sec" id="s-job">
-      <div class="sec-hdr" onclick="tog('s-job')"><span class="sec-lbl">🔧 직종 / 직업</span><span class="cnt" id="c-job"></span><span class="sec-ic">▾</span></div>
-      <div class="sec-body"><div class="job-tree" id="jobTree"><div style="color:var(--tx3);font-size:12px;font-family:var(--mono);padding:8px">불러오는 중...</div></div></div>
-    </div>
-
     <!-- 경력 -->
     <div class="sec open" id="s-car">
-      <div class="sec-hdr" onclick="tog('s-car')"><span class="sec-lbl">💼 경력</span><span class="cnt" id="c-car"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-hdr" onclick="tog('s-car')"><span class="sec-lbl">👤 경력</span><span class="cnt" id="c-car"></span><span class="sec-ic">▾</span></div>
       <div class="sec-body"><div class="cg">
         <label class="chip"><input type="checkbox" name="car" value="N" onchange="ckChg(this,'c-car','car')"><span>신입</span></label>
         <label class="chip"><input type="checkbox" name="car" value="E" onchange="ckChg(this,'c-car','car')"><span>경력</span></label>
         <label class="chip"><input type="checkbox" name="car" value="Z" onchange="ckChg(this,'c-car','car')"><span>관계없음</span></label>
+      </div></div>
+    </div>
+
+    <!-- 고용형태 -->
+    <div class="sec" id="s-emp">
+      <div class="sec-hdr" onclick="tog('s-emp')"><span class="sec-lbl">💼 고용형태</span><span class="cnt" id="c-emp"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="cg">
+        <label class="chip"><input type="checkbox" name="emp" value="10" onchange="ckChg(this,'c-emp','emp')"><span>정규(기간없음)</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="11" onchange="ckChg(this,'c-emp','emp')"><span>정규·시간선택</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="20" onchange="ckChg(this,'c-emp','emp')"><span>계약(기간있음)</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="21" onchange="ckChg(this,'c-emp','emp')"><span>계약·시간선택</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="4" onchange="ckChg(this,'c-emp','emp')"><span>파견근로</span></label>
+      </div></div>
+    </div>
+
+    <!-- 기업형태 -->
+    <div class="sec" id="s-ent">
+      <div class="sec-hdr" onclick="tog('s-ent')"><span class="sec-lbl">🏢 기업형태</span><span class="cnt" id="c-ent"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="cg">
+        <label class="chip"><input type="checkbox" name="ent" value="01" onchange="ckChg(this,'c-ent','ent')"><span>대기업</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="20" onchange="ckChg(this,'c-ent','ent')"><span>중견기업</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="04" onchange="ckChg(this,'c-ent','ent')"><span>공무원·공기업</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="05" onchange="ckChg(this,'c-ent','ent')"><span>외국계</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="06" onchange="ckChg(this,'c-ent','ent')"><span>코스피</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="07" onchange="ckChg(this,'c-ent','ent')"><span>코스닥</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="09" onchange="ckChg(this,'c-ent','ent')"><span>일학습병행</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="10" onchange="ckChg(this,'c-ent','ent')"><span>청년친화강소</span></label>
+        <label class="chip"><input type="checkbox" name="ent" value="11" onchange="ckChg(this,'c-ent','ent')"><span>가족친화인증</span></label>
       </div></div>
     </div>
 
@@ -265,18 +287,6 @@
       </div></div>
     </div>
 
-    <!-- 고용형태 -->
-    <div class="sec" id="s-emp">
-      <div class="sec-hdr" onclick="tog('s-emp')"><span class="sec-lbl">📋 고용형태</span><span class="cnt" id="c-emp"></span><span class="sec-ic">▾</span></div>
-      <div class="sec-body"><div class="cg">
-        <label class="chip"><input type="checkbox" name="emp" value="10" onchange="ckChg(this,'c-emp','emp')"><span>정규(기간없음)</span></label>
-        <label class="chip"><input type="checkbox" name="emp" value="11" onchange="ckChg(this,'c-emp','emp')"><span>정규·시간선택</span></label>
-        <label class="chip"><input type="checkbox" name="emp" value="20" onchange="ckChg(this,'c-emp','emp')"><span>계약(기간있음)</span></label>
-        <label class="chip"><input type="checkbox" name="emp" value="21" onchange="ckChg(this,'c-emp','emp')"><span>계약·시간선택</span></label>
-        <label class="chip"><input type="checkbox" name="emp" value="4" onchange="ckChg(this,'c-emp','emp')"><span>파견근로</span></label>
-      </div></div>
-    </div>
-
     <!-- 상용/일용 -->
     <div class="sec" id="s-tp">
       <div class="sec-hdr" onclick="tog('s-tp')"><span class="sec-lbl">🗂 상용/일용</span><span class="cnt" id="c-tp"></span><span class="sec-ic">▾</span></div>
@@ -286,20 +296,10 @@
       </div></div>
     </div>
 
-    <!-- 기업형태 -->
-    <div class="sec" id="s-ent">
-      <div class="sec-hdr" onclick="tog('s-ent')"><span class="sec-lbl">🏢 기업형태</span><span class="cnt" id="c-ent"></span><span class="sec-ic">▾</span></div>
-      <div class="sec-body"><div class="cg">
-        <label class="chip"><input type="checkbox" name="ent" value="01" onchange="ckChg(this,'c-ent','ent')"><span>대기업</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="20" onchange="ckChg(this,'c-ent','ent')"><span>중견기업</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="04" onchange="ckChg(this,'c-ent','ent')"><span>공무원·공기업</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="05" onchange="ckChg(this,'c-ent','ent')"><span>외국계</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="06" onchange="ckChg(this,'c-ent','ent')"><span>코스피</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="07" onchange="ckChg(this,'c-ent','ent')"><span>코스닥</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="09" onchange="ckChg(this,'c-ent','ent')"><span>일학습병행</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="10" onchange="ckChg(this,'c-ent','ent')"><span>청년친화강소</span></label>
-        <label class="chip"><input type="checkbox" name="ent" value="11" onchange="ckChg(this,'c-ent','ent')"><span>가족친화인증</span></label>
-      </div></div>
+    <!-- 직종 -->
+    <div class="sec" id="s-job">
+      <div class="sec-hdr" onclick="tog('s-job')"><span class="sec-lbl">🔧 직종 / 직업</span><span class="cnt" id="c-job"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="job-tree" id="jobTree"><div style="color:var(--tx3);font-size:12px;font-family:var(--mono);padding:8px">불러오는 중...</div></div></div>
     </div>
 
     <!-- 가져올 개수 -->

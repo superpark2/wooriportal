@@ -182,22 +182,11 @@
       </div>
     </div>
 
-    <!-- 경력 -->
-    <div class="sec" id="s-career">
-      <div class="sec-hdr" onclick="tog('s-career')"><span class="sec-lbl">👤 경력</span><span class="sec-ic">▾</span></div>
-      <div class="sec-body"><div class="cg">
-        <label class="chip on"><input type="radio" name="career" value="" onchange="rdChg(this);updUrl()" checked><span>무관</span></label>
-        <label class="chip"><input type="radio" name="career" value="1" onchange="rdChg(this);updUrl()"><span>신입</span></label>
-        <label class="chip"><input type="radio" name="career" value="2" onchange="rdChg(this);updUrl()"><span>경력</span></label>
-        <label class="chip"><input type="radio" name="career" value="3" onchange="rdChg(this);updUrl()"><span>신입·경력</span></label>
-      </div></div>
-    </div>
-
     <!-- 지역 -->
     <div class="sec" id="s-loc">
-      <div class="sec-hdr" onclick="tog('s-loc')"><span class="sec-lbl">📍 지역</span><span class="cnt" id="c-loc"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-hdr" onclick="tog('s-loc')"><span class="sec-lbl">📍 근무 지역</span><span class="cnt" id="c-loc"></span><span class="sec-ic">▾</span></div>
       <div class="sec-body">
-        <div class="cg" id="locChips">
+        <div class="cg">
           <label class="chip"><input type="checkbox" name="loc" value="101000" onchange="ckChg(this,'c-loc','loc')"><span>서울</span></label>
           <label class="chip"><input type="checkbox" name="loc" value="102000" onchange="ckChg(this,'c-loc','loc')"><span>경기</span></label>
           <label class="chip"><input type="checkbox" name="loc" value="108000" onchange="ckChg(this,'c-loc','loc')"><span>인천</span></label>
@@ -217,6 +206,17 @@
           <label class="chip"><input type="checkbox" name="loc" value="116000" onchange="ckChg(this,'c-loc','loc')"><span>제주</span></label>
         </div>
       </div>
+    </div>
+
+    <!-- 경력 -->
+    <div class="sec" id="s-career">
+      <div class="sec-hdr" onclick="tog('s-career')"><span class="sec-lbl">👤 경력</span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="cg">
+        <label class="chip on"><input type="radio" name="career" value="" onchange="rdChg(this);updUrl()" checked><span>무관</span></label>
+        <label class="chip"><input type="radio" name="career" value="1" onchange="rdChg(this);updUrl()"><span>신입</span></label>
+        <label class="chip"><input type="radio" name="career" value="2" onchange="rdChg(this);updUrl()"><span>경력</span></label>
+        <label class="chip"><input type="radio" name="career" value="3" onchange="rdChg(this);updUrl()"><span>신입·경력</span></label>
+      </div></div>
     </div>
 
     <!-- 고용형태 -->
@@ -247,6 +247,18 @@
           </select>
           <span class="sa">▾</span>
         </div>
+      </div>
+    </div>
+
+    <!-- 직종 -->
+    <div class="sec open" id="s-job">
+      <div class="sec-hdr" onclick="tog('s-job')">
+        <span class="sec-lbl">🔧 직종 / 직업</span>
+        <span class="cnt" id="c-job"></span>
+        <span class="sec-ic">▾</span>
+      </div>
+      <div class="sec-body">
+        <div class="job-tree" id="jobTree"></div>
       </div>
     </div>
 
@@ -293,26 +305,95 @@
 <div class="ld" id="ld"><div class="spin"></div><div class="ld-txt">크롤링 중...</div></div>
 
 <script>
+  /* 잡코리아 직종 (indType 코드) */
+  const JOBS=[
+    {n:'IT개발·데이터',c:'1',kw:[{k:'백엔드/서버',c:'101'},{k:'프론트엔드',c:'102'},{k:'앱개발',c:'103'},{k:'웹개발',c:'104'},{k:'AI/머신러닝',c:'105'},{k:'데이터분석',c:'106'},{k:'DBA',c:'107'},{k:'DevOps/클라우드',c:'108'},{k:'QA/테스터',c:'109'},{k:'보안',c:'110'},{k:'임베디드',c:'111'}]},
+    {n:'경영·사무',c:'2',kw:[{k:'경영기획',c:'201'},{k:'총무',c:'202'},{k:'법무/컴플라이언스',c:'203'},{k:'비서/사무',c:'204'},{k:'구매/자재',c:'205'}]},
+    {n:'영업·판매·무역',c:'3',kw:[{k:'영업',c:'301'},{k:'기술영업',c:'302'},{k:'해외영업',c:'303'},{k:'판매',c:'304'},{k:'무역/수출입',c:'305'}]},
+    {n:'마케팅·홍보',c:'4',kw:[{k:'마케팅',c:'401'},{k:'디지털마케팅',c:'402'},{k:'SNS/콘텐츠',c:'403'},{k:'브랜드',c:'404'},{k:'홍보/PR',c:'405'}]},
+    {n:'디자인',c:'5',kw:[{k:'UI/UX',c:'501'},{k:'그래픽디자인',c:'502'},{k:'영상편집',c:'503'},{k:'제품디자인',c:'504'}]},
+    {n:'금융·보험',c:'6',kw:[{k:'금융/투자',c:'601'},{k:'보험',c:'602'},{k:'회계/재무',c:'603'},{k:'세무',c:'604'},{k:'은행/증권',c:'605'}]},
+    {n:'의료·제약·복지',c:'7',kw:[{k:'간호사',c:'701'},{k:'의사',c:'702'},{k:'물리치료사',c:'703'},{k:'사회복지사',c:'704'},{k:'약사',c:'705'}]},
+    {n:'교육',c:'8',kw:[{k:'교사/강사',c:'801'},{k:'유아교육',c:'802'},{k:'학원',c:'803'},{k:'온라인교육',c:'804'}]},
+    {n:'생산·품질',c:'9',kw:[{k:'생산관리',c:'901'},{k:'품질관리',c:'902'},{k:'공정관리',c:'903'},{k:'제조',c:'904'}]},
+    {n:'건설·건축',c:'10',kw:[{k:'건축설계',c:'1001'},{k:'시공/현장',c:'1002'},{k:'인테리어',c:'1003'},{k:'토목',c:'1004'}]},
+    {n:'서비스',c:'11',kw:[{k:'고객상담',c:'1101'},{k:'바리스타',c:'1102'},{k:'요식업',c:'1103'},{k:'호텔/여행',c:'1104'}]},
+    {n:'연구·R&D',c:'12',kw:[{k:'연구원',c:'1201'},{k:'임상연구',c:'1202'},{k:'반도체',c:'1203'},{k:'신소재',c:'1204'}]},
+    {n:'미디어·광고',c:'13',kw:[{k:'방송/미디어',c:'1301'},{k:'광고기획',c:'1302'},{k:'사진/영상',c:'1303'},{k:'작가/편집',c:'1304'}]},
+    {n:'물류·운송',c:'14',kw:[{k:'물류관리',c:'1401'},{k:'배송기사',c:'1402'},{k:'지게차',c:'1403'},{k:'화물운전',c:'1404'}]},
+    {n:'인사·노무·HRD',c:'15',kw:[{k:'인사',c:'1501'},{k:'채용',c:'1502'},{k:'노무',c:'1503'},{k:'HRD/교육',c:'1504'}]},
+    {n:'고객상담·TM',c:'16',kw:[{k:'인바운드',c:'1601'},{k:'아웃바운드',c:'1602'},{k:'CS매니저',c:'1603'},{k:'콜센터',c:'1604'}]},
+    {n:'기타전문직',c:'17',kw:[{k:'공무원',c:'1701'},{k:'공기업',c:'1702'},{k:'특수직',c:'1703'}]},
+  ];
+
   let currentPage=1, lastReq=null, allPostings=[];
   let currentJobId=null, currentEventSource=null;
+  const catSel=new Set(), kwSel=new Map();
 
   function initTheme(){applyTheme(localStorage.getItem('jk-theme')||'light')}
   function toggleTheme(){const c=document.documentElement.classList.contains('light')?'light':'dark';const n=c==='dark'?'light':'dark';applyTheme(n);localStorage.setItem('jk-theme',n)}
   function applyTheme(t){const h=document.documentElement,b=document.getElementById('themeBtn');if(t==='light'){h.classList.add('light');b.textContent='🌙'}else{h.classList.remove('light');b.textContent='☀️'}}
 
   function tog(id){document.getElementById(id).classList.toggle('open')}
+  function setCnt(id,n){const e=document.getElementById(id);if(!e)return;e.textContent=n;e.classList.toggle('show',n>0)}
   function rdChg(inp){document.querySelectorAll(`[name="${inp.name}"]`).forEach(i=>i.closest('.chip').classList.remove('on'));inp.closest('.chip').classList.add('on')}
   function ckChg(inp,cntId,name){
     inp.closest('.chip').classList.toggle('on',inp.checked);
-    const n=document.querySelectorAll(`[name="${name}"]:checked`).length;
-    const el=document.getElementById(cntId);
-    el.textContent=n||'';el.classList.toggle('show',n>0);
+    setCnt(cntId,document.querySelectorAll(`[name="${name}"]:checked`).length);
     updUrl();
   }
+
+  /* 직종 트리 */
+  function buildTree(){
+    document.getElementById('jobTree').innerHTML=JOBS.map(j=>`
+    <div class="jcat" id="jc-${j.c}">
+      <div class="jcat-row">
+        <label class="jcat-ck" title="${j.n} 전체 선택">
+          <input type="checkbox" id="jck-${j.c}" onchange="catAll('${j.c}',this.checked)">
+          <div class="ck-box">✓</div>
+        </label>
+        <div class="jcat-hdr" onclick="togCat('${j.c}')">
+          <span class="jcat-tog">▶</span>
+          <span>${j.n}</span>
+          <span class="jcat-cnt" id="jcnt-${j.c}">0</span>
+        </div>
+      </div>
+      <div class="jkws">
+        <div class="kw-grid">${j.kw.map(k=>`<span class="kw" data-cat="${j.c}" data-kc="${k.c}" onclick="togKw('${j.c}','${k.c}',this)">${k.k}</span>`).join('')}</div>
+      </div>
+    </div>`).join('');
+  }
+  function togCat(c){document.getElementById('jc-'+c).classList.toggle('open')}
+  function catAll(catCode,checked){
+    const lbl=document.querySelector(`#jc-${catCode} .jcat-ck`);
+    if(checked){catSel.add(catCode);document.querySelectorAll(`[data-cat="${catCode}"]`).forEach(e=>e.classList.add('on'));lbl.classList.remove('partial')}
+    else{catSel.delete(catCode);kwSel.delete(catCode);document.querySelectorAll(`[data-cat="${catCode}"]`).forEach(e=>e.classList.remove('on'));lbl.classList.remove('partial')}
+    syncCat(catCode);updJobCnt();updUrl();
+  }
+  function togKw(catCode,kwCode,el){
+    el.classList.toggle('on');
+    if(!kwSel.has(catCode))kwSel.set(catCode,new Set());
+    const s=kwSel.get(catCode);
+    el.classList.contains('on')?s.add(kwCode):s.delete(kwCode);
+    if(s.size===0)kwSel.delete(catCode);
+    if(catSel.has(catCode)&&!el.classList.contains('on')){catSel.delete(catCode);document.getElementById('jck-'+catCode).checked=false;}
+    syncCat(catCode);updJobCnt();updUrl();
+  }
+  function syncCat(c){
+    const kwSet=kwSel.get(c),selN=kwSet?kwSet.size:0;
+    const ck=document.getElementById('jck-'+c),lbl=ck.closest('.jcat-ck'),cnt=document.getElementById('jcnt-'+c);
+    if(catSel.has(c)){ck.checked=true;lbl.classList.remove('partial');cnt.textContent='전체';cnt.classList.add('show')}
+    else if(selN>0){ck.checked=false;lbl.classList.add('partial');cnt.textContent=selN;cnt.classList.add('show')}
+    else{ck.checked=false;lbl.classList.remove('partial');cnt.classList.remove('show')}
+  }
+  function updJobCnt(){setCnt('c-job',catSel.size+kwSel.size)}
 
   function buildReq(){
     const locs=[...document.querySelectorAll('[name="loc"]:checked')].map(i=>i.value);
     const emps=[...document.querySelectorAll('[name="emp"]:checked')].map(i=>i.value);
+    const jobTypes=[];
+    catSel.forEach(c=>jobTypes.push(c));
+    kwSel.forEach((s,cat)=>{if(!catSel.has(cat))s.forEach(kc=>jobTypes.push(kc))});
     return {
       keyword: document.getElementById('kw').value.trim(),
       page: currentPage,
@@ -320,7 +401,8 @@
       careerType: document.querySelector('[name="career"]:checked')?.value||'',
       location: locs,
       empType: emps,
-      eduLevel: document.getElementById('eduSel').value
+      eduLevel: document.getElementById('eduSel').value,
+      jobTypes: jobTypes
     };
   }
 
@@ -331,6 +413,7 @@
     if(r.location&&r.location.length) p.push('loc='+r.location.join(','));
     if(r.empType&&r.empType.length) p.push('empType='+r.empType.join(','));
     if(r.eduLevel) p.push('eduLevel='+r.eduLevel);
+    if(r.jobTypes&&r.jobTypes.length) r.jobTypes.forEach(t=>p.push('indType='+t));
     return 'https://www.jobkorea.co.kr/Search?'+p.join('&');
   }
   function updUrl(){document.getElementById('urlTxt').textContent=mkUrl(buildReq())}
@@ -441,7 +524,7 @@
   function showErr(msg,url){document.getElementById('errMsg').innerHTML=`<strong>크롤링 실패</strong><br>${msg}${url?`<br><br><a href="${url}" target="_blank" style="color:var(--bl2)">↗ 직접 열어보기</a>`:''}`;document.getElementById('errArea').style.display='block'}
   function x(s){if(!s)return '';return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
 
-  initTheme(); updUrl();
+  initTheme(); buildTree(); updUrl();
 </script>
 </body>
 </html>
