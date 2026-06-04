@@ -27,6 +27,7 @@ public class HrdBoardRow {
     private final int absent;
     private final int waiting;
     private final int dropped;        // 중도탈락
+    private final int earlyEmployed;  // 조기취업
     private final int checkedOut;     // 퇴실(정상)
     private final int earlyLeave;     // 조퇴
     private final int notCheckedOut;  // 미퇴실(경고)
@@ -55,7 +56,7 @@ public class HrdBoardRow {
         String begin = c != null ? c.getTraingBeginTime() : null;
         String end = c != null ? c.getTraingEndTime() : null;
 
-        int p = 0, l = 0, ab = 0, w = 0, drop = 0, out = 0, early = 0, noOut = 0;
+        int p = 0, l = 0, ab = 0, w = 0, drop = 0, emp = 0, out = 0, early = 0, noOut = 0;
         List<Attendee> list = new ArrayList<>();
         for (HrdAttendee at : a.getRoster()) {
             String st = HrdAttendanceRule.evaluate(classDay, at.getCheckInTime(), begin, end, now, at.getTrneeSttusNm(), lunchMinutes);
@@ -68,6 +69,7 @@ public class HrdBoardRow {
                 case HrdAttendanceRule.LATE -> l++;
                 case HrdAttendanceRule.ABSENT -> ab++;
                 case HrdAttendanceRule.DROPPED -> drop++;
+                case HrdAttendanceRule.EARLY_EMPLOYED -> emp++;
                 default -> w++;
             }
             if (HrdAttendanceRule.EARLY_LEAVE.equals(co)) {
@@ -86,10 +88,11 @@ public class HrdBoardRow {
         this.absent = ab;
         this.waiting = w;
         this.dropped = drop;
+        this.earlyEmployed = emp;
         this.checkedOut = out;
         this.earlyLeave = early;
         this.notCheckedOut = noOut;
-        // 전원 퇴실 = 실제 출석한(출석+지각) 사람이 모두 퇴실 (결석/중도탈락 제외)
+        // 전원 퇴실 = 실제 출석한(출석+지각) 사람이 모두 퇴실 (결석/중도탈락/조기취업 제외)
         int attendedCnt = p + l;
         this.allCheckedOut = attendedCnt > 0 && out >= attendedCnt;
         this.attendees = list;

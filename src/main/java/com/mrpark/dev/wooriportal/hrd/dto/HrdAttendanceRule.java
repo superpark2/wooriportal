@@ -26,6 +26,7 @@ public final class HrdAttendanceRule {
     public static final String ABSENT = "결석";
     public static final String WAITING = "미출석";
     public static final String DROPPED = "중도탈락";
+    public static final String EARLY_EMPLOYED = "조기취업";
 
     public static final String CHECKOUT_DONE = "퇴실";
     public static final String EARLY_LEAVE = "조퇴";
@@ -47,6 +48,9 @@ public final class HrdAttendanceRule {
                                   LocalTime now, String trneeStatus, Integer lunchMin) {
         if (trneeStatus != null && trneeStatus.contains("탈락")) {
             return DROPPED;
+        }
+        if (trneeStatus != null && trneeStatus.contains("조기취업")) {
+            return EARLY_EMPLOYED;
         }
         if (!classDay) {
             return WAITING;
@@ -79,7 +83,7 @@ public final class HrdAttendanceRule {
         if (!classDay) {
             return null;
         }
-        // 실제 출석(출석/지각)한 사람만 퇴실 판정 — 결석·미출석·중도탈락 제외
+        // 실제 출석(출석/지각)한 사람만 퇴실 판정 — 결석·미출석·중도탈락·조기취업 제외
         if (!PRESENT.equals(attendanceStatus) && !LATE.equals(attendanceStatus)) {
             return null;
         }

@@ -104,10 +104,12 @@
     <!-- 채용정보 크롤링 도구 -->
     <div class="sidebar-section">
         <ul class="sidebar-menu">
-            <li><a th:classappend="${activeMenu == 'saramin' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="saramin-submenu"><i class="fas fa-robot"></i> 채용정보</a></li>
+            <li><a th:classappend="${activeMenu == 'jobinfo' ? 'expanded' : ''}" href="#" class="submenu-toggle" data-target="jobinfo-submenu"><i class="fas fa-robot"></i> 채용정보</a></li>
         </ul>
-        <ul th:classappend="${activeMenu == 'saramin' ? 'show' : ''}" class="sidebar-menu submenu" id="saramin-submenu">
-            <li><a th:classappend="${activeSubMenu == 'saramin' ? 'active' : ''}" href="/saramin" target="_blank" rel="noopener noreferrer"><i class="fas fa-robot"></i> 채용정보 검색</a></li>
+        <ul th:classappend="${activeMenu == 'jobinfo' ? 'show' : ''}" class="sidebar-menu submenu" id="jobinfo-submenu">
+            <li><a th:classappend="${activeSubMenu == 'saramin' ? 'active' : ''}" href="/jobinfo/saramin" target="_blank" rel="noopener noreferrer"><i class="fas fa-id-badge"></i> 사람인</a></li>
+            <li><a th:classappend="${activeSubMenu == 'jobkorea' ? 'active' : ''}" href="/jobinfo/jobkorea" target="_blank" rel="noopener noreferrer"><i class="fas fa-briefcase"></i> 잡코리아</a></li>
+            <li><a th:classappend="${activeSubMenu == 'employment24' ? 'active' : ''}" href="/jobinfo/employment24" target="_blank" rel="noopener noreferrer"><i class="fas fa-landmark"></i> 고용24</a></li>
         </ul>
     </div>
 
