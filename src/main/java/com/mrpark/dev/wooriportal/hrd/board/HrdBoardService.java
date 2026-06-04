@@ -170,8 +170,9 @@ public class HrdBoardService {
             HrdCourseScheduleEntity sch = schedules.get(HrdCourseScheduleEntity.key(id, tme));
             List<Integer> days = sch != null ? parseDays(sch.getDaysOfWeek()) : List.of();
             String notes = sch != null ? sch.getNotes() : null;
+            Integer lunch = sch != null ? sch.getLunchMinutes() : null;
             boolean classDay = days.isEmpty() || days.contains(todayDow);
-            rows.add(new HrdBoardRow(a, classDay, now, days, notes));
+            rows.add(new HrdBoardRow(a, classDay, now, days, notes, lunch));
         }
         rows.sort(Comparator
                 .comparing(HrdBoardRow::isClassDay).reversed()        // 강의일 먼저
@@ -216,12 +217,13 @@ public class HrdBoardService {
         return e;
     }
 
-    /** 과정 강의요일 저장(전체 공유). days = 1~7 리스트(빈 리스트면 매일). */
-    public void saveSchedule(String tracseId, String tracseTme, List<Integer> days) {
+    /** 과정 강의요일 + 점심(분) 저장(전체 공유). days 빈 리스트면 매일, lunchMinutes null이면 시간기반 기본. */
+    public void saveSchedule(String tracseId, String tracseTme, List<Integer> days, Integer lunchMinutes) {
         HrdCourseScheduleEntity e = upsert(tracseId, tracseTme);
         e.setDaysOfWeek(days == null ? "" : days.stream().map(String::valueOf).reduce((x, y) -> x + "," + y).orElse(""));
+        e.setLunchMinutes(lunchMinutes);
         scheduleRepo.save(e);
-        log.info("강의요일 저장: {} = {}", e.getCourseKey(), e.getDaysOfWeek());
+        log.info("강의설정 저장: {} 요일={} 점심={}분", e.getCourseKey(), e.getDaysOfWeek(), lunchMinutes);
     }
 
     /** 과정 특이사항 저장(전체 공유). */

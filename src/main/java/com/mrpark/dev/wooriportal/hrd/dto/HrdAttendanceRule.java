@@ -31,17 +31,20 @@ public final class HrdAttendanceRule {
     public static final String EARLY_LEAVE = "조퇴";
     public static final String NOT_CHECKED_OUT = "미퇴실";
 
+    /** 출석 인정 유예(분) — 고정. */
     public static final int GRACE_MIN = 10;
-    private static final int LUNCH_START = 12 * 60; // 12:00
-    private static final int LUNCH_END = 13 * 60;   // 13:00
+
+    private static final int LUNCH_START = 12 * 60; // 12:00 부터 점심 시작 가정
     private static final int DEFAULT_HALF_MIN = 240;
+    /** 점심 자동적용 기준: 7시간(420분) 이상 교육이면 기본 60분, 미만이면 0분. */
+    private static final int LUNCH_AUTO_THRESHOLD_MIN = 420;
 
     private HrdAttendanceRule() {
     }
 
-    /** 출석 상태(출석/지각/결석/미출석/중도탈락). */
-    public static String evaluate(boolean classDay, String checkInHHmm, String beginHHmm,
-                                  String endHHmm, LocalTime now, String trneeStatus) {
+    /** 출석 상태(출석/지각/결석/미출석/중도탈락). lunchMin = 과정별 점심(분, null=시간기반 기본). */
+    public static String evaluate(boolean classDay, String checkInHHmm, String beginHHmm, String endHHmm,
+                                  LocalTime now, String trneeStatus, Integer lunchMin) {
         if (trneeStatus != null && trneeStatus.contains("탈락")) {
             return DROPPED;
         }
@@ -53,7 +56,7 @@ public final class HrdAttendanceRule {
         if (start == null) {
             return checkedIn ? PRESENT : WAITING;
         }
-        int half = halfPointClock(start, toMin(endHHmm));
+        int half = halfPointClock(start, toMin(endHHmm), lunchMin);
         int grace = start + GRACE_MIN;
 
         if (checkedIn) {
@@ -85,16 +88,18 @@ public final class HrdAttendanceRule {
         return null;
     }
 
-    /** 순수 훈련시간(점심 제외) 50% 지점의 시계시각(분). */
-    static int halfPointClock(int start, Integer endNullable) {
+    /** 순수 훈련시간(점심 lunchMin 제외) 50% 지점의 시계시각(분). lunchMin null=7시간이상 60분/미만 0분. */
+    static int halfPointClock(int start, Integer endNullable, Integer lunchMinNullable) {
         if (endNullable == null || endNullable <= start) {
             return start + DEFAULT_HALF_MIN;
         }
         int end = endNullable;
-        int duration = end - start;
-        // 점심 1시간 제외: 12:00~13:00 을 가로지르고 총 6시간 이상인 종일과정만
-        boolean hasLunch = start <= LUNCH_START && end >= LUNCH_END && duration >= 360;
-        int training = duration - (hasLunch ? 60 : 0);
+        int lunch = lunchMinNullable != null ? lunchMinNullable
+                : ((end - start) >= LUNCH_AUTO_THRESHOLD_MIN ? 60 : 0); // 7시간 이상이면 기본 60분
+        int lunchEnd = LUNCH_START + lunch;
+        // 점심 적용: lunch>0 이고 12:00 부터 점심 끝까지를 강의가 포함할 때만 제외
+        boolean hasLunch = lunch > 0 && start <= LUNCH_START && end >= lunchEnd;
+        int training = (end - start) - (hasLunch ? lunch : 0);
         int half = training / 2;
         if (!hasLunch) {
             return start + half;
@@ -103,7 +108,7 @@ public final class HrdAttendanceRule {
         if (half <= morningTraining) {
             return start + half;
         }
-        return LUNCH_END + (half - morningTraining); // 점심 후로 넘어감
+        return lunchEnd + (half - morningTraining); // 점심 후로 넘어감
     }
 
     private static int nowMin(LocalTime now) {

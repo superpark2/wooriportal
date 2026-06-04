@@ -216,6 +216,11 @@
             <label><input type="checkbox" class="daychk" value="6"><span>토</span></label>
             <label><input type="checkbox" class="daychk" value="7"><span>일</span></label>
         </div>
+        <label style="font-size:13px;color:var(--dim);display:block;margin-bottom:6px;">점심시간(분) — 50% 결석컷 계산 시 제외</label>
+        <input id="lunchInput" type="number" min="0" max="240"
+            style="width:100%;border:1px solid var(--line);border-radius:9px;padding:9px;background:var(--pill);color:var(--ink);font-size:14px;margin-bottom:6px;"
+            placeholder="비우면 자동 (7시간↑ 60분, 미만 0분)">
+        <div class="hint" style="margin-bottom:18px;">예) 09:00~18:00 + 점심 60분 → 결석컷 14:00. 입실 유예는 10분 고정.</div>
         <div class="modal-actions">
             <button class="btn-cancel" onclick="closeDays()">취소</button>
             <button class="btn-save" onclick="saveDays()">저장</button>
@@ -306,6 +311,7 @@
         document.getElementById('dayModalTitle').textContent = (r.courseName || '') + ' (' + (r.tracseTme || '') + '회차)';
         const days = r.scheduledDays || [];
         document.querySelectorAll('#dayModal .daychk').forEach(cb => cb.checked = days.indexOf(+cb.value) >= 0);
+        document.getElementById('lunchInput').value = (r.lunchMinutes != null ? r.lunchMinutes : '');
         document.getElementById('dayModal').classList.add('show');
     }
     function closeDays() { document.getElementById('dayModal').classList.remove('show'); }
@@ -329,11 +335,14 @@
     function saveDays() {
         const r = LAST_ROWS.find(x => courseKey(x) === dayModalKey); if (!r) return closeDays();
         const days = [...document.querySelectorAll('#dayModal .daychk:checked')].map(cb => +cb.value);
-        const csv = days.join(',');
-        fetch(`/coolapi/hrd/board/schedule?tracseId=${encodeURIComponent(r.tracseId)}&tracseTme=${encodeURIComponent(r.tracseTme)}&days=${csv}`, { method: 'POST' })
+        const lunchRaw = document.getElementById('lunchInput').value.trim();
+        let url = `/coolapi/hrd/board/schedule?tracseId=${encodeURIComponent(r.tracseId)}&tracseTme=${encodeURIComponent(r.tracseTme)}&days=${days.join(',')}`;
+        if (lunchRaw !== '') url += `&lunch=${encodeURIComponent(lunchRaw)}`;
+        fetch(url, { method: 'POST' })
             .then(() => {
-                r.scheduledDays = days;           // 즉시 반영(집계는 최대 10초 후 서버 동기화)
-                setCollapse(courseKey(r), null);  // 명시적 접기 해제 → 자동규칙 적용
+                r.scheduledDays = days;                              // 즉시 반영(집계는 최대 10초 후 동기화)
+                r.lunchMinutes = lunchRaw === '' ? null : +lunchRaw;
+                setCollapse(courseKey(r), null);
                 closeDays(); render(LAST_ROWS);
             }).catch(() => { closeDays(); });
     }

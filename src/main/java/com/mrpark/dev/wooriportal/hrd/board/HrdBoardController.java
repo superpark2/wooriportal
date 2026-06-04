@@ -77,6 +77,6 @@ public class HrdBoardController {
             }
             roster.add(a);
         }
-        return new HrdBoardRow(new HrdDailyAttendance(c, roster), true, java.time.LocalTime.now(), java.util.List.of(), null);
+        return new HrdBoardRow(new HrdDailyAttendance(c, roster), true, java.time.LocalTime.now(), java.util.List.of(), null, null);
     }
 }

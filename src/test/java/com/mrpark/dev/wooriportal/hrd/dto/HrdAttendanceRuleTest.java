@@ -10,7 +10,7 @@ class HrdAttendanceRuleTest {
 
     // 09:00~18:00 = 점심1h 제외 8h, 50% 지점 = 14:00
     private String at(String checkIn, LocalTime now) {
-        return HrdAttendanceRule.evaluate(true, checkIn, "0900", "1800", now, null);
+        return HrdAttendanceRule.evaluate(true, checkIn, "0900", "1800", now, null, null);
     }
 
     @Test
@@ -39,21 +39,33 @@ class HrdAttendanceRuleTest {
     @Test
     void fourHourCourseNoLunch() {
         // 09:00~13:00 (4h, 점심 없음) → 50% = 11:00
-        assertThat(HrdAttendanceRule.evaluate(true, "1059", "0900", "1300", LocalTime.of(11, 30), null))
+        assertThat(HrdAttendanceRule.evaluate(true, "1059", "0900", "1300", LocalTime.of(11, 30), null, null))
                 .isEqualTo(HrdAttendanceRule.LATE);
-        assertThat(HrdAttendanceRule.evaluate(true, "1101", "0900", "1300", LocalTime.of(11, 30), null))
+        assertThat(HrdAttendanceRule.evaluate(true, "1101", "0900", "1300", LocalTime.of(11, 30), null, null))
                 .isEqualTo(HrdAttendanceRule.ABSENT);
     }
 
     @Test
     void droppedAlwaysDropped() {
-        assertThat(HrdAttendanceRule.evaluate(true, "0900", "0900", "1800", LocalTime.of(9, 0), "중도탈락"))
+        assertThat(HrdAttendanceRule.evaluate(true, "0900", "0900", "1800", LocalTime.of(9, 0), "중도탈락", null))
                 .isEqualTo(HrdAttendanceRule.DROPPED);
     }
 
     @Test
+    void configurableLunch() {
+        // 09:00~18:00 점심 0분 → 50% = 13:30
+        assertThat(HrdAttendanceRule.evaluate(true, "1325", "0900", "1800", LocalTime.of(13, 40), null, 0))
+                .isEqualTo(HrdAttendanceRule.LATE);
+        assertThat(HrdAttendanceRule.evaluate(true, "1335", "0900", "1800", LocalTime.of(13, 40), null, 0))
+                .isEqualTo(HrdAttendanceRule.ABSENT);
+        // 점심 120분 → 50% = 14:30
+        assertThat(HrdAttendanceRule.evaluate(true, "1425", "0900", "1800", LocalTime.of(14, 40), null, 120))
+                .isEqualTo(HrdAttendanceRule.LATE);
+    }
+
+    @Test
     void nonClassDayIsWaiting() {
-        assertThat(HrdAttendanceRule.evaluate(false, "0900", "0900", "1800", LocalTime.of(9, 0), null))
+        assertThat(HrdAttendanceRule.evaluate(false, "0900", "0900", "1800", LocalTime.of(9, 0), null, null))
                 .isEqualTo(HrdAttendanceRule.WAITING);
     }
 

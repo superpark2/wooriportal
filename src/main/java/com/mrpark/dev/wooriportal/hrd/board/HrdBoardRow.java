@@ -35,11 +35,12 @@ public class HrdBoardRow {
     private final boolean classDay;
     private final List<Integer> scheduledDays;
     private final String notes;       // 특이사항(공유)
+    private final Integer lunchMinutes; // 점심(분, null=시간기반 기본)
 
     private final List<Attendee> attendees;
 
     public HrdBoardRow(HrdDailyAttendance a, boolean classDay, LocalTime now,
-                       List<Integer> scheduledDays, String notes) {
+                       List<Integer> scheduledDays, String notes, Integer lunchMinutes) {
         HrdCourseDetail c = a.getCourse();
         this.tracseId = c != null ? c.getTracseId() : null;
         this.tracseTme = c != null ? c.getTracseTme() : null;
@@ -49,6 +50,7 @@ public class HrdBoardRow {
         this.classDay = classDay;
         this.scheduledDays = scheduledDays != null ? scheduledDays : List.of();
         this.notes = notes;
+        this.lunchMinutes = lunchMinutes;
 
         String begin = c != null ? c.getTraingBeginTime() : null;
         String end = c != null ? c.getTraingEndTime() : null;
@@ -56,7 +58,7 @@ public class HrdBoardRow {
         int p = 0, l = 0, ab = 0, w = 0, drop = 0, out = 0, early = 0, noOut = 0;
         List<Attendee> list = new ArrayList<>();
         for (HrdAttendee at : a.getRoster()) {
-            String st = HrdAttendanceRule.evaluate(classDay, at.getCheckInTime(), begin, end, now, at.getTrneeSttusNm());
+            String st = HrdAttendanceRule.evaluate(classDay, at.getCheckInTime(), begin, end, now, at.getTrneeSttusNm(), lunchMinutes);
             at.setComputedStatus(st);
             String co = HrdAttendanceRule.evaluateCheckout(classDay, at.getCheckOutTime(), end, now);
             at.setCheckoutStatus(co);

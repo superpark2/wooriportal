@@ -52,12 +52,13 @@ public class HrdBoardDiagnosticController {
         return boardService.schedules();
     }
 
-    /** 과정 강의요일 저장. days = "1,2,3,4,5" (1=월..7=일), 빈값이면 매일. */
+    /** 과정 강의요일 + 점심(분) 저장. days="1,2,3,4,5"(빈값=매일), lunch=점심분(빈값=시간기반 기본). */
     @PostMapping("/schedule")
     public Map<String, Object> saveSchedule(@RequestParam("tracseId") String tracseId,
                                             @RequestParam("tracseTme") String tracseTme,
-                                            @RequestParam(value = "days", required = false) String days) {
-        boardService.saveSchedule(tracseId, tracseTme, HrdBoardService.parseDays(days));
+                                            @RequestParam(value = "days", required = false) String days,
+                                            @RequestParam(value = "lunch", required = false) Integer lunch) {
+        boardService.saveSchedule(tracseId, tracseTme, HrdBoardService.parseDays(days), lunch);
         return Map.of("ok", true);
     }
 

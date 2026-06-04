@@ -33,6 +33,10 @@ public class HrdCourseScheduleEntity {
     @Column(name = "days_of_week", length = 20)
     private String daysOfWeek;
 
+    /** 점심시간(분, 50% 계산 시 제외). null = 7시간이상 60분/미만 0분. */
+    @Column(name = "lunch_minutes")
+    private Integer lunchMinutes;
+
     /** 특이사항(공유 메모). */
     @Column(name = "notes", length = 1000)
     private String notes;
