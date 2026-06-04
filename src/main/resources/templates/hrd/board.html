@@ -369,8 +369,8 @@
             let coTag = '';
             if (co === '조퇴') coTag = `<span class="co early">조퇴 ${outT}</span>`;
             else if (co === '미퇴실') coTag = `<span class="co notout">미퇴실⚠</span>`;
-            else if (co === '퇴실') coTag = `<span class="tm">퇴${outT}</span>`;
-            const inTag = inT ? `<span class="tm">입${inT}</span>` : '';
+            else if (co === '퇴실') coTag = `<span class="tm">퇴실 ${outT}</span>`;
+            const inTag = inT ? `<span class="tm">입실 ${inT}</span>` : '';
             const tip = a.telno ? ` title="${a.telno}"` : '';
             return `<span class="chip ${cls}"${tip}><span class="nm">${a.name || '?'}</span><span class="ty">${a.type || ''}·${label}</span>${inTag}${coTag}</span>`;
         }).join('');
