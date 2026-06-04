@@ -137,7 +137,7 @@ public class HrdBoardService {
         lastFailCount = fail;
         int presentSum = snapshot.stream().mapToInt(HrdBoardRow::getPresent).sum();
         lastStatus = String.format("성공 %d과정 / 실패 %d / 출석 %d명", results.size(), fail, presentSum);
-        log.info("전광판 갱신: {}", lastStatus);
+        log.debug("전광판 갱신: {}", lastStatus);
         broadcast();
     }
 
@@ -181,12 +181,20 @@ public class HrdBoardService {
         return rows;
     }
 
+    private volatile Map<String, HrdCourseScheduleEntity> scheduleCache;
+    private volatile boolean scheduleDirty = true;
+
+    /** 스케줄 캐시(변경 시에만 DB 재조회) — 10초 폴링마다 findAll SQL 소음 방지. */
     private Map<String, HrdCourseScheduleEntity> loadSchedules() {
-        Map<String, HrdCourseScheduleEntity> map = new LinkedHashMap<>();
-        for (HrdCourseScheduleEntity e : scheduleRepo.findAll()) {
-            map.put(e.getCourseKey(), e);
+        if (scheduleDirty || scheduleCache == null) {
+            Map<String, HrdCourseScheduleEntity> map = new LinkedHashMap<>();
+            for (HrdCourseScheduleEntity e : scheduleRepo.findAll()) {
+                map.put(e.getCourseKey(), e);
+            }
+            scheduleCache = map;
+            scheduleDirty = false;
         }
-        return map;
+        return scheduleCache;
     }
 
     static List<Integer> parseDays(String csv) {
@@ -223,6 +231,7 @@ public class HrdBoardService {
         e.setDaysOfWeek(days == null ? "" : days.stream().map(String::valueOf).reduce((x, y) -> x + "," + y).orElse(""));
         e.setLunchMinutes(lunchMinutes);
         scheduleRepo.save(e);
+        scheduleDirty = true;
         log.info("강의설정 저장: {} 요일={} 점심={}분", e.getCourseKey(), e.getDaysOfWeek(), lunchMinutes);
     }
 
@@ -231,6 +240,7 @@ public class HrdBoardService {
         HrdCourseScheduleEntity e = upsert(tracseId, tracseTme);
         e.setNotes(note == null ? "" : note.trim());
         scheduleRepo.save(e);
+        scheduleDirty = true;
         log.info("특이사항 저장: {}", e.getCourseKey());
     }
 
@@ -250,6 +260,7 @@ public class HrdBoardService {
                 e.setTracseEndDe(c.getTracseEndDe());
                 e.setLastSeenAt(LocalDateTime.now());
                 scheduleRepo.save(e);
+                scheduleDirty = true;
             });
         }
     }
@@ -271,6 +282,7 @@ public class HrdBoardService {
         }
         if (!toDelete.isEmpty()) {
             scheduleRepo.deleteAll(toDelete);
+            scheduleDirty = true;
             log.info("끝난 과정 설정 {}건 자동삭제", toDelete.size());
         }
     }
