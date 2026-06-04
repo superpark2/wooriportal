@@ -45,8 +45,8 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf
                         .csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
                         .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler())
-                        // AI/엑셀 스트리밍 + 읽기 전용 ID 중복확인은 제외
-                        .ignoringRequestMatchers("/ai/**", "/excel/**", "/check-id")
+                        // AI/엑셀 스트리밍 + 채용정보(로그인 불필요) + 읽기 전용 ID 중복확인은 제외
+                        .ignoringRequestMatchers("/ai/**", "/excel/**", "/jobinfo/**", "/check-id")
                 )
                 // Spring Security 6의 지연 토큰 로딩 대응: 매 요청마다 토큰을 강제로 로드해
                 // XSRF-TOKEN 쿠키가 항상 응답에 실리도록 함(없으면 JS가 토큰을 못 읽어 403).
@@ -60,7 +60,7 @@ public class SecurityConfig {
 
                         // 2. 인증/인가 없이 접근 가능한 공통 페이지
                         //    (filestorage·db는 민감 데이터/관리 기능이므로 permitAll에서 제거)
-                        .requestMatchers("/login", "/signup", "/check-id", "/aicoach/**").permitAll()
+                        .requestMatchers("/login", "/signup", "/check-id", "/aicoach/**", "/jobinfo/**").permitAll()
 
                         // 3. DB 관리 화면 및 API는 관리자 전용
                         .requestMatchers("/db/**").hasAuthority("admin")
