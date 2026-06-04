@@ -69,7 +69,7 @@ public class SecurityConfig {
                         .requestMatchers(
                                 "/pcinfo/**",             // view, require 등 하위 경로 포함
                                 "/facility/pcinfo/**",    // pclist, add, delete 등 하위 경로 포함
-                                "/location/**", "/log/**", "/jobinfo/**",
+                                "/location/**", "/log/**",
                                 "/filestorage/**",
                                 "/api/sse/**", "/ai/**", "/excel/**"
                         ).hasAnyAuthority("user", "admin")
