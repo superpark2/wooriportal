@@ -146,6 +146,8 @@
     .pgn-btn:disabled{opacity:.35;cursor:not-allowed}
     .pgn-ellipsis{color:var(--tx3);font-size:13px;padding:0 4px}
     .pgn-info{font-size:12px;color:var(--tx3);font-family:var(--mono);margin-left:8px}
+    .nav-link{padding:5px 11px;border-radius:7px;border:1px solid var(--bd2);background:var(--sf2);color:var(--tx2);font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;font-family:var(--mono)}
+    .nav-link:hover{border-color:var(--bl);color:var(--bl2)}
   </style>
 </head>
 <body>
@@ -162,7 +164,8 @@
     </div>
     <button class="stop-btn" id="stopBtn" onclick="cancelExport()"><span>⏹</span><span>중단</span></button>
     <button class="xl-btn" id="xlBtn" onclick="exportExcel()"><span>📊</span><span>EXCEL 저장</span></button>
-    <span class="live">LIVE</span>
+    <a href="/jobinfo/saramin" class="nav-link">사람인</a>
+    <a href="/jobinfo/employment24" class="nav-link">고용24</a>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 전환">☀️</button>
   </div>
 </header>
@@ -176,6 +179,74 @@
       <div class="sec-body">
         <input type="text" id="kw" placeholder="예) 개발, 백엔드, 디자이너" onkeydown="if(event.key==='Enter'){currentPage=1;doSearch()}" oninput="updUrl()"
                style="width:100%;background:var(--sf2);border:1px solid var(--bd2);border-radius:7px;color:var(--tx);padding:8px 10px;font-size:14px;font-family:var(--sans);outline:none">
+      </div>
+    </div>
+
+    <!-- 경력 -->
+    <div class="sec" id="s-career">
+      <div class="sec-hdr" onclick="tog('s-career')"><span class="sec-lbl">👤 경력</span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="cg">
+        <label class="chip on"><input type="radio" name="career" value="" onchange="rdChg(this);updUrl()" checked><span>무관</span></label>
+        <label class="chip"><input type="radio" name="career" value="1" onchange="rdChg(this);updUrl()"><span>신입</span></label>
+        <label class="chip"><input type="radio" name="career" value="2" onchange="rdChg(this);updUrl()"><span>경력</span></label>
+        <label class="chip"><input type="radio" name="career" value="3" onchange="rdChg(this);updUrl()"><span>신입·경력</span></label>
+      </div></div>
+    </div>
+
+    <!-- 지역 -->
+    <div class="sec" id="s-loc">
+      <div class="sec-hdr" onclick="tog('s-loc')"><span class="sec-lbl">📍 지역</span><span class="cnt" id="c-loc"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-body">
+        <div class="cg" id="locChips">
+          <label class="chip"><input type="checkbox" name="loc" value="101000" onchange="ckChg(this,'c-loc','loc')"><span>서울</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="102000" onchange="ckChg(this,'c-loc','loc')"><span>경기</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="108000" onchange="ckChg(this,'c-loc','loc')"><span>인천</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="106000" onchange="ckChg(this,'c-loc','loc')"><span>부산</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="104000" onchange="ckChg(this,'c-loc','loc')"><span>대구</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="103000" onchange="ckChg(this,'c-loc','loc')"><span>광주</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="105000" onchange="ckChg(this,'c-loc','loc')"><span>대전</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="107000" onchange="ckChg(this,'c-loc','loc')"><span>울산</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="118000" onchange="ckChg(this,'c-loc','loc')"><span>세종</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="109000" onchange="ckChg(this,'c-loc','loc')"><span>강원</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="110000" onchange="ckChg(this,'c-loc','loc')"><span>충북</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="111000" onchange="ckChg(this,'c-loc','loc')"><span>충남</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="112000" onchange="ckChg(this,'c-loc','loc')"><span>전북</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="113000" onchange="ckChg(this,'c-loc','loc')"><span>전남</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="114000" onchange="ckChg(this,'c-loc','loc')"><span>경북</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="115000" onchange="ckChg(this,'c-loc','loc')"><span>경남</span></label>
+          <label class="chip"><input type="checkbox" name="loc" value="116000" onchange="ckChg(this,'c-loc','loc')"><span>제주</span></label>
+        </div>
+      </div>
+    </div>
+
+    <!-- 고용형태 -->
+    <div class="sec" id="s-emp">
+      <div class="sec-hdr" onclick="tog('s-emp')"><span class="sec-lbl">💼 고용형태</span><span class="cnt" id="c-emp"></span><span class="sec-ic">▾</span></div>
+      <div class="sec-body"><div class="cg">
+        <label class="chip"><input type="checkbox" name="emp" value="1" onchange="ckChg(this,'c-emp','emp')"><span>정규직</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="2" onchange="ckChg(this,'c-emp','emp')"><span>계약직</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="3" onchange="ckChg(this,'c-emp','emp')"><span>인턴</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="4" onchange="ckChg(this,'c-emp','emp')"><span>아르바이트</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="5" onchange="ckChg(this,'c-emp','emp')"><span>파견직</span></label>
+        <label class="chip"><input type="checkbox" name="emp" value="6" onchange="ckChg(this,'c-emp','emp')"><span>프리랜서</span></label>
+      </div></div>
+    </div>
+
+    <!-- 학력 -->
+    <div class="sec" id="s-edu">
+      <div class="sec-hdr" onclick="tog('s-edu')"><span class="sec-lbl">🎓 학력</span><span class="sec-ic">▾</span></div>
+      <div class="sec-body">
+        <div class="sw">
+          <select id="eduSel" onchange="updUrl()">
+            <option value="">무관</option>
+            <option value="1">고졸</option>
+            <option value="2">초대졸</option>
+            <option value="3">대졸</option>
+            <option value="4">석사</option>
+            <option value="5">박사</option>
+          </select>
+          <span class="sa">▾</span>
+        </div>
       </div>
     </div>
 
@@ -230,19 +301,36 @@
   function applyTheme(t){const h=document.documentElement,b=document.getElementById('themeBtn');if(t==='light'){h.classList.add('light');b.textContent='🌙'}else{h.classList.remove('light');b.textContent='☀️'}}
 
   function tog(id){document.getElementById(id).classList.toggle('open')}
-  function rdChg(inp){document.querySelectorAll(`[name="${inp.name}"]`).forEach(i=>i.closest('.chip').classList.remove('on'));inp.closest('.chip').classList.add('on');updUrl()}
+  function rdChg(inp){document.querySelectorAll(`[name="${inp.name}"]`).forEach(i=>i.closest('.chip').classList.remove('on'));inp.closest('.chip').classList.add('on')}
+  function ckChg(inp,cntId,name){
+    inp.closest('.chip').classList.toggle('on',inp.checked);
+    const n=document.querySelectorAll(`[name="${name}"]:checked`).length;
+    const el=document.getElementById(cntId);
+    el.textContent=n||'';el.classList.toggle('show',n>0);
+    updUrl();
+  }
 
   function buildReq(){
+    const locs=[...document.querySelectorAll('[name="loc"]:checked')].map(i=>i.value);
+    const emps=[...document.querySelectorAll('[name="emp"]:checked')].map(i=>i.value);
     return {
       keyword: document.getElementById('kw').value.trim(),
       page: currentPage,
-      pageCount: parseInt(document.querySelector('[name="pgc"]:checked')?.value||'20')
+      pageCount: parseInt(document.querySelector('[name="pgc"]:checked')?.value||'20'),
+      careerType: document.querySelector('[name="career"]:checked')?.value||'',
+      location: locs,
+      empType: emps,
+      eduLevel: document.getElementById('eduSel').value
     };
   }
 
   function mkUrl(r){
     const p=['Page_No='+(r.page||1)];
     if(r.keyword) p.push('stext='+encodeURIComponent(r.keyword));
+    if(r.careerType) p.push('careerType='+r.careerType);
+    if(r.location&&r.location.length) p.push('loc='+r.location.join(','));
+    if(r.empType&&r.empType.length) p.push('empType='+r.empType.join(','));
+    if(r.eduLevel) p.push('eduLevel='+r.eduLevel);
     return 'https://www.jobkorea.co.kr/Search?'+p.join('&');
   }
   function updUrl(){document.getElementById('urlTxt').textContent=mkUrl(buildReq())}

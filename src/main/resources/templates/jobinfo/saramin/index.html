@@ -146,6 +146,8 @@
     .pgn-btn:disabled{opacity:.35;cursor:not-allowed}
     .pgn-ellipsis{color:var(--tx3);font-size:13px;padding:0 4px}
     .pgn-info{font-size:12px;color:var(--tx3);font-family:var(--mono);margin-left:8px}
+    .nav-link{padding:5px 11px;border-radius:7px;border:1px solid var(--bd2);background:var(--sf2);color:var(--tx2);font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;font-family:var(--mono)}
+    .nav-link:hover{border-color:var(--bl);color:var(--bl2)}
   </style>
 </head>
 <body>
@@ -166,7 +168,8 @@
     <button class="xl-btn" id="xlBtn" onclick="exportExcel()">
       <span>📊</span><span>EXCEL 저장</span>
     </button>
-    <span class="live">LIVE</span>
+    <a href="/jobinfo/jobkorea" class="nav-link">잡코리아</a>
+    <a href="/jobinfo/employment24" class="nav-link">고용24</a>
     <button class="theme-btn" id="themeBtn" onclick="toggleTheme()" title="테마 전환">☀️</button>
   </div>
 </header>

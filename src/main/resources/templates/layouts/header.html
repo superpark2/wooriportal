@@ -12,32 +12,6 @@
 
 <header class="header" th:block th:fragment="header">
 
-        <style>
-            .hrd-widget { display:inline-flex; flex-direction:column; align-items:stretch; gap:4px; margin-right:14px; }
-            .hrd-status { display:inline-flex; align-items:center; gap:6px; padding:4px 10px; border-radius:14px;
-                font-size:12px; font-weight:700; border:1px solid transparent; justify-content:center; }
-            .hrd-status.hrd-on     { background:rgba(54,211,153,.15);  color:#1f9d6b; border-color:rgba(54,211,153,.4); }
-            .hrd-status.hrd-off    { background:rgba(150,150,150,.12); color:#888;    border-color:rgba(150,150,150,.3); }
-            .hrd-status.hrd-wait   { background:rgba(251,189,35,.15);  color:#b8860b; border-color:rgba(251,189,35,.4); }
-            .hrd-status.hrd-broken { background:rgba(248,114,114,.18); color:#e0484c; border-color:rgba(248,114,114,.5); }
-            .hrd-actions { display:flex; gap:5px; }
-            .hrd-btn { flex:1; cursor:pointer; font-size:12px; font-weight:600; padding:4px 8px; border-radius:10px;
-                border:1px solid #2f6fed; background:#2f6fed; color:#fff; white-space:nowrap; }
-            .hrd-btn.ghost { background:transparent; color:#2f6fed; }
-            .hrd-btn:hover { filter:brightness(1.08); }
-            .hrd-modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.45); z-index:9999;
-                align-items:center; justify-content:center; }
-            .hrd-modal.show { display:flex; }
-            .hrd-modal-box { background:#fff; color:#222; width:min(520px,92vw); border-radius:14px; padding:24px 26px;
-                box-shadow:0 20px 60px rgba(0,0,0,.3); max-height:88vh; overflow:auto; }
-            .hrd-modal-box h3 { margin:0 0 12px; font-size:19px; }
-            .hrd-modal-box ol { margin:0 0 18px; padding-left:20px; line-height:1.8; font-size:14px; }
-            .hrd-modal-box code { background:#f0f2f7; padding:1px 6px; border-radius:5px; font-size:13px; }
-            .hrd-dl { display:inline-block; background:#2f6fed; color:#fff; padding:11px 18px; border-radius:10px;
-                text-decoration:none; font-weight:700; font-size:15px; }
-            .hrd-close { float:right; background:#eee; border:none; padding:11px 18px; border-radius:10px; cursor:pointer; font-weight:600; }
-        </style>
-
         <div class="header-left">
             <div class="logo">⛔출입금지🚭</div>
             <nav>
@@ -56,13 +30,6 @@
             </nav>
         </div>
         <div class="header-right">
-            <div class="hrd-widget">
-                <div id="hrdStatus" class="hrd-status hrd-off"><i class="fas fa-link"></i> <span id="hrdStatusText">HRD 미연동</span></div>
-                <div class="hrd-actions">
-                    <button type="button" class="hrd-btn" onclick="hrdLinkClick()">HRD 연동</button>
-                    <button type="button" class="hrd-btn ghost" onclick="hrdGuideOpen()">연동방법</button>
-                </div>
-            </div>
             <div class="user-profile image-container">
 
                 <img sec:authorize="isAuthenticated()"
@@ -78,64 +45,6 @@
             </div>
         </div>
 
-        <div id="hrdGuideModal" class="hrd-modal" onclick="hrdGuideBg(event)">
-            <div class="hrd-modal-box">
-                <h3>HRD 연동 방법</h3>
-                <div id="hrdTplStatus" style="background:#f0f4ff;border:1px solid #d3deff;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:13px;color:#345;">현재 인증서 정보 조회 중…</div>
-                <ol>
-                    <li><b>하베스터 다운로드</b> 후 압축을 풀어 한 폴더에 둡니다(아래 버튼).</li>
-                    <li>최초 1회: <code>pip install mitmproxy</code> 설치.</li>
-                    <li><code>start-harvester.bat</code> 실행 → 브라우저로 <code>http://mitm.it</code> 접속해 Windows 인증서(CA) 설치.</li>
-                    <li>Windows 프록시를 <code>127.0.0.1:8899</code> 로 지정.</li>
-                    <li>HRD 행정프로그램에 로그인하고 출결을 한 번 조회 → 자동 연동.</li>
-                </ol>
-                <a class="hrd-dl" href="/coolapi/hrd/harvester/download">⬇ 하베스터 다운로드 (zip)</a>
-                <button type="button" class="hrd-close" onclick="hrdGuideClose()">닫기</button>
-            </div>
-        </div>
-
-        <script>
-            function hrdRenderStatus(s) {
-                var el = document.getElementById('hrdStatus'), t = document.getElementById('hrdStatusText');
-                if (!el) return;
-                if (s && s.broken) { el.className = 'hrd-status hrd-broken'; t.textContent = 'HRD 끊김' + (s.owner ? (' (' + s.owner + ')') : ''); }
-                else if (s && s.present) { el.className = 'hrd-status hrd-on'; t.textContent = 'HRD 연동됨' + (s.owner ? (' (' + s.owner + ')') : ''); }
-                else if (s && s.takeoverOpen) { el.className = 'hrd-status hrd-wait'; t.textContent = '연동 전환중…'; }
-                else { el.className = 'hrd-status hrd-off'; t.textContent = 'HRD 미연동'; }
-            }
-            function hrdFetchStatus() {
-                fetch('/coolapi/hrd/session/status').then(function (r) { return r.json(); }).then(hrdRenderStatus).catch(function () {});
-            }
-            function hrdLinkClick() {
-                fetch('/coolapi/hrd/session/status').then(function (r) { return r.json(); }).then(function (s) {
-                    if (s && s.present && !s.broken) {
-                        if (confirm('이미 ' + (s.owner || '다른 사용자') + ' 님이 연동되어 있습니다.\n기존 연동을 끊고 새로 연동하시겠습니까?')) {
-                            fetch('/coolapi/hrd/session/takeover', { method: 'POST' }).then(function () {
-                                alert('연동 전환 창이 열렸습니다(90초).\n본인 PC의 하베스터가 곧 연동을 가져갑니다.');
-                                setTimeout(hrdFetchStatus, 1000);
-                            });
-                        }
-                    } else {
-                        alert('하베스터가 실행 중이면 곧 자동 연동됩니다.\n설치가 필요하면 [연동방법]을 눌러 하베스터를 받으세요.');
-                    }
-                });
-            }
-            function hrdGuideOpen() {
-                document.getElementById('hrdGuideModal').classList.add('show');
-                fetch('/coolapi/hrd/harvester/template/status').then(function (r) { return r.json(); }).then(function (s) {
-                    var d = s && s.detail || {};
-                    var box = document.getElementById('hrdTplStatus');
-                    if (d.present) {
-                        box.innerHTML = '✅ 현재 활성 인증서: <b>' + (d.owner || '미상') + '</b>' + (d.updatedAt ? ' <span style="color:#789">(갱신 ' + d.updatedAt.replace('T',' ').slice(0,16) + ')</span>' : '') + '<br>HRD를 쓰는 분의 요청이 프록시를 지나면 그분 인증서로 자동 갱신됩니다.';
-                    } else {
-                        box.innerHTML = '⚠️ 활성 인증서 없음 — 아래 하베스터를 설치하고 HRD를 한 번 조회하면 인증서가 자동 저장됩니다.';
-                    }
-                }).catch(function () { document.getElementById('hrdTplStatus').textContent = '인증서 상태 조회 실패'; });
-            }
-            function hrdGuideClose() { document.getElementById('hrdGuideModal').classList.remove('show'); }
-            function hrdGuideBg(e) { if (e.target.id === 'hrdGuideModal') hrdGuideClose(); }
-            document.addEventListener('DOMContentLoaded', function () { hrdFetchStatus(); setInterval(hrdFetchStatus, 15000); });
-        </script>
     </header>
 
 </body>

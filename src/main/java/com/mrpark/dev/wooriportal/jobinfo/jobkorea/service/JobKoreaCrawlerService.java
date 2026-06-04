@@ -50,6 +50,18 @@ public class JobKoreaCrawlerService {
         if (req.getKeyword() != null && !req.getKeyword().isBlank()) {
             sb.append("&stext=").append(URLEncoder.encode(req.getKeyword(), StandardCharsets.UTF_8));
         }
+        if (req.getCareerType() != null && !req.getCareerType().isBlank()) {
+            sb.append("&careerType=").append(req.getCareerType());
+        }
+        if (req.getLocation() != null && !req.getLocation().isEmpty()) {
+            sb.append("&loc=").append(String.join(",", req.getLocation()));
+        }
+        if (req.getEmpType() != null && !req.getEmpType().isEmpty()) {
+            sb.append("&empType=").append(String.join(",", req.getEmpType()));
+        }
+        if (req.getEduLevel() != null && !req.getEduLevel().isBlank()) {
+            sb.append("&eduLevel=").append(req.getEduLevel());
+        }
         return sb.toString();
     }
 
